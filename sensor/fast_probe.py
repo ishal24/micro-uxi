@@ -46,6 +46,10 @@ class FastProbe:
         self.dns_domains  = fp.get("dns_domains",
                             config.get("dns", {}).get("domains_routine", ["google.com"]))
         self.dns_timeout  = fp.get("dns_timeout_sec", 2)
+        # Optional: explicit DNS resolver IP to bypass local dnsmasq.
+        # When set, queries go directly to this resolver and are FORWARDED
+        # through the hotspot laptop — making them visible to tc/iptables faults.
+        self.dns_resolver = fp.get("dns_resolver", None)
         self._seq = 0
 
     # ------------------------------------------------------------------
@@ -93,11 +97,14 @@ class FastProbe:
         Uses dnspython (preferred) or dig fallback.
         Returns (success: bool, latency_ms: float | None).
         Cache is intentionally bypassed — we want to see live resolver performance.
+        If dns_resolver is set, queries go directly to that IP (bypasses dnsmasq).
         """
         if _HAS_DNSPYTHON:
             resolver = _dns_mod.Resolver()
             resolver.cache    = None          # bypass cache — measure live latency
             resolver.lifetime = self.dns_timeout
+            if self.dns_resolver:
+                resolver.nameservers = [self.dns_resolver]
             start = time.monotonic()
             try:
                 resolver.resolve(domain, "A")
@@ -107,10 +114,11 @@ class FastProbe:
         else:
             # fallback: dig with hard timeout
             start = time.monotonic()
-            rc, out, _ = self._run(
-                ["dig", domain, f"+time={int(self.dns_timeout)}", "+tries=1", "+short"],
-                timeout=self.dns_timeout + 1,
-            )
+            cmd = ["dig", domain,
+                   f"+time={int(self.dns_timeout)}", "+tries=1", "+short"]
+            if self.dns_resolver:
+                cmd.insert(1, f"@{self.dns_resolver}")
+            rc, out, _ = self._run(cmd, timeout=self.dns_timeout + 1)
             elapsed = round((time.monotonic() - start) * 1000, 2)
             return (rc == 0 and bool(out.strip())), elapsed
 
