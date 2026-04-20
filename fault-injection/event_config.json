@@ -1,0 +1,89 @@
+{
+  "_comment": "Threshold configuration for Micro-UXI event detector (event_detector.py).",
+
+  "detector": {
+    "fast_probe_file":    null,
+    "telemetry_file":     null,
+    "throughput_file":    null,
+    "poll_interval_sec":  1.0,
+    "follow_mode":        true,
+    "print_normal":       false,
+    "output_jsonl":       null,
+    "window_size":        3
+  },
+
+  "events": {
+
+    "S1_RTT_INCREASE": {
+      "enabled":      true,
+      "description":  "Sustained high round-trip latency on the upstream path.",
+      "probe":        "telemetry",
+      "conditions": {
+        "rtt_avg_ms_gt":   150.0,
+        "loss_pct_lt":     10.0
+      },
+      "confirm_consecutive": 2
+    },
+
+    "S2_DNS_OUTAGE_BURST": {
+      "enabled":      true,
+      "description":  "All monitored DNS domains fail simultaneously while ping is OK. Latency is low (fast reject).",
+      "probe":        "fast",
+      "conditions": {
+        "all_dns_fail":         true,
+        "ping_ok":              true,
+        "wifi_up":              true,
+        "dns_latency_ms_lt":    500
+      },
+      "confirm_consecutive": 2
+    },
+
+    "S3_PACKET_LOSS_BURST": {
+      "enabled":      true,
+      "description":  "Ping fails or high loss is detected while DNS may still resolve.",
+      "probe":        "fast",
+      "conditions": {
+        "ping_fail":            true,
+        "wifi_up":              true,
+        "dns_latency_ms_gte":   300
+      },
+      "confirm_consecutive": 2
+    },
+
+    "S4_DNS_DELAY": {
+      "enabled":      true,
+      "description":  "DNS queries succeed but with abnormally high latency (slow resolver).",
+      "probe":        "fast",
+      "conditions": {
+        "any_dns_slow_ms_gte":  300,
+        "all_dns_fail":         false,
+        "ping_ok":              true,
+        "wifi_up":              true
+      },
+      "confirm_consecutive": 2
+    },
+
+    "S5_THROTTLE": {
+      "enabled":      true,
+      "description":  "Bandwidth is severely limited. Detected via throughput probe.",
+      "probe":        "throughput",
+      "conditions": {
+        "throughput_avg_mbps_lt": 3.0,
+        "http_success_rate_lt":   1.0
+      },
+      "confirm_consecutive": 1
+    },
+
+    "S6_CONNECTIVITY_FLAP": {
+      "enabled":      true,
+      "description":  "Upstream interface goes down: ping fails AND DNS fails simultaneously.",
+      "probe":        "fast",
+      "conditions": {
+        "ping_fail":            true,
+        "all_dns_fail":         true,
+        "wifi_up":              true
+      },
+      "confirm_consecutive": 1
+    }
+  }
+}
