@@ -208,14 +208,18 @@ class EventDetector:
                  print_normal: bool = False,
                  window_override: int | None = None):
 
-        self._sensor_cfg     = sensor_cfg
-        self._events_cfg     = event_cfg.get("events", {})
-        self._print_normal   = print_normal
+        self._sensor_cfg      = sensor_cfg
+        self._events_cfg      = event_cfg.get("events", {})
+        self._print_normal    = print_normal
         self._window_override = window_override
-        self._confirmer      = _Confirmer()
-        self._lock           = threading.Lock()
-        self._stop           = threading.Event()
-        self._out_f          = open(output_path, "a", encoding="utf-8") if output_path else None
+        self._confirmer       = _Confirmer()
+        self._lock            = threading.Lock()
+        self._stop            = threading.Event()
+        self._out_f           = open(output_path, "a", encoding="utf-8") if output_path else None
+
+        det = event_cfg.get("detector", {})
+        self._grace_sec       = det.get("startup_grace_sec", 10)
+        self._heartbeat_sec   = det.get("heartbeat_interval_sec", 30)
 
         sched = sensor_cfg.get("scheduler", {})
         fp    = sensor_cfg.get("fast_probe", {})
@@ -225,13 +229,28 @@ class EventDetector:
         self._throughput_interval = sched.get("throughput_interval_sec", 300)
         self._throughput_enabled  = sensor_cfg.get("modules", {}).get("throughput", False)
 
-        self._seq = 0
+        self._start_time  = None   # set in run()
+        self._seq         = 0
+        self._fast_count  = 0
+        self._event_count = 0
+
+    # ── grace period ─────────────────────────────────────────────────────────
+
+    def _in_grace(self) -> bool:
+        if self._start_time is None:
+            return True
+        return (time.monotonic() - self._start_time) < self._grace_sec
 
     # ── evaluation ───────────────────────────────────────────────────────────
 
     def _evaluate(self, sample: dict) -> list[tuple[str, str]]:
         probe_type = sample.get("probe_type", "")
-        fired = []
+        fired      = []
+
+        # Still push to confirmer during grace (to warm up the window)
+        # but collect results only after grace ends.
+        in_grace = self._in_grace()
+
         for key in PRIORITY_ORDER:
             ecfg = self._events_cfg.get(key, {})
             if not ecfg.get("enabled", True):
@@ -245,9 +264,19 @@ class EventDetector:
             window    = self._window_override or ecfg.get("confirm_consecutive", 2)
             hit, info = evaluator(sample, cond)
             confirmed = self._confirmer.push(key, hit, window)
-            if confirmed:
+            if confirmed and not in_grace:
                 fired.append((key, info))
-        return fired
+
+        # Apply suppressed_by: remove events whose parent is also fired
+        fired_keys = {k for k, _ in fired}
+        filtered   = []
+        for key, info in fired:
+            suppressors = self._events_cfg.get(key, {}).get("suppressed_by", [])
+            if any(s in fired_keys for s in suppressors):
+                continue   # skip — a higher-priority event already covers this
+            filtered.append((key, info))
+
+        return filtered
 
     # ── output ───────────────────────────────────────────────────────────────
 
@@ -256,8 +285,8 @@ class EventDetector:
         return datetime.now(timezone.utc).strftime("%H:%M:%S")
 
     def _print(self, sample: dict, events: list[tuple[str, str]]):
-        ts  = self._now_short()
-        seq = sample.get("seq", "")
+        ts      = self._now_short()
+        seq     = sample.get("seq", "")
         seq_str = f"#{seq:>5}" if seq != "" else ""
         probe   = (sample.get("probe_type") or "?").upper()
 
@@ -267,14 +296,15 @@ class EventDetector:
                     print(_c(_GRY, f"[{probe:>10} {seq_str}] {ts}  ✓ NORMAL"))
                 return
 
-            primary_key, primary_info = events[0]
-            col   = EVENT_COLORS.get(primary_key, _BLD)
-            label = _c(col, f"⚡ EVENT DETECTED: {primary_key}")
-            print(f"{_c(_BLD, f'[{probe:>10} {seq_str}]')} {ts}  {label}")
-            print(f"  ↳ {_c(col, primary_info)}")
-            for k, info in events[1:]:
-                c2 = EVENT_COLORS.get(k, _YLW)
-                print(f"  ↳ also: {_c(c2, k)}  {_c(_GRY, info)}")
+            # Print each confirmed (non-suppressed) event
+            for i, (key, info) in enumerate(events):
+                col   = EVENT_COLORS.get(key, _BLD)
+                label = _c(col, f"⚡ EVENT DETECTED: {key}")
+                if i == 0:
+                    print(f"{_c(_BLD, f'[{probe:>10} {seq_str}]')} {ts}  {label}")
+                else:
+                    print(f"{_c(_BLD, f'[{probe:>10}        ]')} {ts}  {label}")
+                print(f"  ↳ {_c(col, info)}")
             print()
             sys.stdout.flush()
 
@@ -295,7 +325,11 @@ class EventDetector:
 
     def _handle(self, sample: dict):
         self._seq += 1
+        if sample.get("probe_type") == "fast":
+            self._fast_count += 1
         events = self._evaluate(sample)
+        if events:
+            self._event_count += 1
         self._print(sample, events)
         self._write_jsonl(sample, events)
 
@@ -337,6 +371,24 @@ class EventDetector:
                     print(_c(_RED, f"[THR ERROR] {e}"))
             self._stop.wait(max(0, self._throughput_interval - (time.monotonic() - t0)))
 
+    def _heartbeat_worker(self):
+        """Prints a status line every heartbeat_sec so user knows detector is alive."""
+        while not self._stop.is_set():
+            self._stop.wait(self._heartbeat_sec)
+            if self._stop.is_set():
+                break
+            elapsed = time.monotonic() - self._start_time
+            grace   = self._in_grace()
+            ts      = self._now_short()
+            tag     = _c(_YLW, "(grace)") if grace else _c(_GRN, "✓ NORMAL")
+            with self._lock:
+                print(_c(_GRY,
+                    f"[  DETECTOR] {ts}  {tag}  "
+                    f"fast={self._fast_count}  events={self._event_count}  "
+                    f"uptime={elapsed:.0f}s"
+                ))
+                sys.stdout.flush()
+
     # ── main loop ─────────────────────────────────────────────────────────────
 
     def run(self, duration_sec: float | None = None):
@@ -355,23 +407,27 @@ class EventDetector:
         print("=" * 66)
         for line in enabled:
             print(f"  {line}")
-        print(f"  Duration : {dur_label}")
-        print(f"  Normal   : {'printed' if self._print_normal else 'silent (only events shown)'}")
+        print(f"  Duration    : {dur_label}")
+        print(f"  Grace period: {self._grace_sec}s  (events suppressed at startup)")
+        print(f"  Heartbeat   : every {self._heartbeat_sec}s")
+        print(f"  Normal      : {'printed' if self._print_normal else 'silent (only events shown)'}")
         print("=" * 66)
         print()
 
+        self._start_time = time.monotonic()
+
         threads = []
         if self._fast_enabled:
-            threads.append(threading.Thread(target=self._fast_worker, daemon=True, name="fast"))
-        threads.append(threading.Thread(target=self._telemetry_worker, daemon=True, name="telemetry"))
+            threads.append(threading.Thread(target=self._fast_worker,      daemon=True, name="fast"))
+        threads.append(threading.Thread(target=self._telemetry_worker,     daemon=True, name="telemetry"))
         if self._throughput_enabled and _HAS_THROUGHPUT:
             threads.append(threading.Thread(target=self._throughput_worker, daemon=True, name="throughput"))
+        threads.append(threading.Thread(target=self._heartbeat_worker,     daemon=True, name="heartbeat"))
 
         for t in threads:
             t.start()
 
-        start = time.monotonic()
-        end   = (start + duration_sec) if duration_sec else None
+        end = (self._start_time + duration_sec) if duration_sec else None
         try:
             if end:
                 remaining = end - time.monotonic()
@@ -391,9 +447,11 @@ class EventDetector:
         if self._out_f:
             self._out_f.close()
 
-        elapsed = time.monotonic() - start
+        elapsed = time.monotonic() - self._start_time
         print("=" * 66)
         print(f"  Done. Elapsed: {elapsed:.1f}s  ({elapsed/60:.1f} min)")
+        print(f"  Total fast samples : {self._fast_count}")
+        print(f"  Total events fired : {self._event_count}")
         print("=" * 66)
 
 
