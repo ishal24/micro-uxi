@@ -43,7 +43,7 @@
         "ping_fail": true,
         "wifi_up":   true
       },
-      "confirm_consecutive": 2
+      "confirm_consecutive": 1
     },
 
     "S4_DNS_DELAY": {
@@ -79,7 +79,7 @@
         "all_dns_fail":true,
         "wifi_up":     true
       },
-      "confirm_consecutive": 2
+      "confirm_consecutive": 1
     }
   }
 }

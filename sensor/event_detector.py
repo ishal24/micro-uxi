@@ -132,14 +132,26 @@ def _eval_S2(sample: dict, cond: dict):
 
 
 def _eval_S3(sample: dict, cond: dict):
-    """Ping fails while wifi is still up (packet loss)."""
-    ping_ok = (sample.get("ping") or {}).get("success", False)
-    wifi_up = sample.get("wifi_up", False)
-    if cond.get("wifi_up", True)    and not wifi_up:  return False, "wifi DOWN"
-    if cond.get("ping_fail", True)  and ping_ok:       return False, "ping OK → not loss"
-    dns_list    = sample.get("dns") or []
+    """Ping fails while wifi is still up (packet loss or path issue)."""
+    ping     = sample.get("ping") or {}
+    ping_ok  = ping.get("success", False)
+    rtt_ms   = ping.get("rtt_ms")
+    wifi_up  = sample.get("wifi_up", False)
+    if cond.get("wifi_up", True)   and not wifi_up: return False, "wifi DOWN"
+    if cond.get("ping_fail", True) and ping_ok:     return False, f"ping={rtt_ms:.1f}ms OK"
+
+    dns_list     = sample.get("dns") or []
     all_dns_fail = bool(dns_list) and all(not d.get("success") for d in dns_list)
-    return True, f"ping=FAIL  wifi=UP  all_dns_fail={all_dns_fail}"
+    dns_ok_list  = [d.get("domain","?") for d in dns_list if d.get("success")]
+    dns_fail_list= [d.get("domain","?") for d in dns_list if not d.get("success")]
+
+    ping_detail = "ping=TIMEOUT"
+    dns_detail  = (
+        f"dns=OK({','.join(dns_ok_list)})" if dns_ok_list
+        else f"dns=FAIL({','.join(dns_fail_list)})" if dns_fail_list
+        else "dns=?"
+    )
+    return True, f"{ping_detail}  wifi=UP  {dns_detail}"
 
 
 def _eval_S4(sample: dict, cond: dict):
@@ -359,8 +371,8 @@ class EventDetector:
             self._stop.wait(max(0, self._telemetry_interval - (time.monotonic() - t0)))
 
     def _throughput_worker(self):
-        # Stagger first run
-        self._stop.wait(self._throughput_interval)
+        # Run first measurement immediately (no stagger),
+        # then repeat every throughput_interval thereafter.
         while not self._stop.is_set():
             t0 = time.monotonic()
             try:
