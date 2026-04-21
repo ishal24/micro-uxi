@@ -3,26 +3,26 @@
 event_detector.py — Micro-UXI Real-time Event Detector
 ========================================================
 
-Script ini dijalankan di Uno Q, berjalan bersama (atau sebagai pengganti)
-controller.py. Ia menggunakan FastProbe dan TelemetryProbe secara langsung
-(tanpa perlu baca file JSONL) dan mencetak status event setelah setiap sample.
+Detects 6 network fault types in real-time on the Uno Q by calling
+probes directly (no file reading needed):
 
-Event yang dideteksi:
-  S1  RTT_INCREASE        — RTT rata-rata tinggi, loss rendah   (telemetry)
-  S2  DNS_OUTAGE_BURST    — Semua DNS fail, ping OK, latensi DNS rendah (fast)
-  S3  PACKET_LOSS_BURST   — Ping fail, wifi tetap nyala          (fast)
-  S4  DNS_DELAY           — DNS berhasil tapi sangat lambat      (fast)
-  S5  THROTTLE            — Throughput sangat rendah             (throughput)
-  S6  CONNECTIVITY_FLAP   — Ping + DNS keduanya fail sekaligus   (fast)
+  S1  DNS_DELAY           — DNS succeeds but slowly        (fast)
+  S2  DNS_OUTAGE_BURST    — All DNS fail, ping OK           (fast)
+  S3  PACKET_LOSS_BURST   — Ping fail, wifi up              (fast)
+  S4  RTT_INCREASE        — Sustained high RTT, low loss    (telemetry)
+  S5  THROTTLE            — Very low throughput             (throughput)
+  S6  CONNECTIVITY_FLAP   — Ping + DNS both fail, wifi up   (fast)
 
-Cara pakai:
+Usage:
   python event_detector.py
-  python event_detector.py --config event_config.json
   python event_detector.py --duration 15m
-  python event_detector.py --output out/events.jsonl
+  python event_detector.py --output out/events.jsonl --csv out/events.csv
+  python event_detector.py --print-normal
+  python event_detector.py --window 1
 """
 
 import argparse
+import csv
 import json
 import os
 import sys
@@ -59,10 +59,10 @@ def _c(col, text):
 
 
 EVENT_COLORS = {
-    "S1_RTT_INCREASE":      _YLW,
+    "S1_DNS_DELAY":         _MAG,
     "S2_DNS_OUTAGE_BURST":  _RED,
     "S3_PACKET_LOSS_BURST": _RED,
-    "S4_DNS_DELAY":         _MAG,
+    "S4_RTT_INCREASE":      _YLW,
     "S5_THROTTLE":          _CYN,
     "S6_CONNECTIVITY_FLAP": _RED,
 }
@@ -72,8 +72,8 @@ PRIORITY_ORDER = [
     "S2_DNS_OUTAGE_BURST",
     "S6_CONNECTIVITY_FLAP",
     "S3_PACKET_LOSS_BURST",
-    "S4_DNS_DELAY",
-    "S1_RTT_INCREASE",
+    "S1_DNS_DELAY",
+    "S4_RTT_INCREASE",
     "S5_THROTTLE",
 ]
 
@@ -98,8 +98,8 @@ class _Confirmer:
 
 # ─── Per-event evaluators ─────────────────────────────────────────────────────
 
-def _eval_S1(sample: dict, cond: dict):
-    """High sustained RTT from telemetry."""
+def _eval_rtt_increase(sample: dict, cond: dict):
+    """S4 — High sustained RTT from telemetry."""
     ping = (sample.get("telemetry") or {}).get("ping") or {}
     rtt  = ping.get("rtt_avg_ms")
     loss = ping.get("loss_pct")
@@ -112,8 +112,8 @@ def _eval_S1(sample: dict, cond: dict):
     return False, f"rtt_avg={rtt:.1f}ms (ok)"
 
 
-def _eval_S2(sample: dict, cond: dict):
-    """All DNS fail + ping OK + low DNS latency (fast local drop)."""
+def _eval_dns_outage(sample: dict, cond: dict):
+    """S2 — All DNS fail + ping OK + fast timeout (local DNS drop)."""
     dns_list = sample.get("dns") or []
     ping_ok  = (sample.get("ping") or {}).get("success", False)
     wifi_up  = sample.get("wifi_up", False)
@@ -121,18 +121,17 @@ def _eval_S2(sample: dict, cond: dict):
         return False, "no dns data"
     all_fail  = all(not d.get("success") for d in dns_list)
     max_lat   = max((d.get("latency_ms") or 0) for d in dns_list)
-    lat_thresh = cond.get("dns_latency_ms_lt", 500)
-    if not cond.get("wifi_up", True) or wifi_up:   pass
-    if cond.get("wifi_up", True)  and not wifi_up:   return False, "wifi DOWN"
-    if cond.get("ping_ok", True)  and not ping_ok:   return False, "ping FAIL → not S2"
-    if cond.get("all_dns_fail", True) and not all_fail: return False, "some DNS ok"
+    lat_thresh = cond.get("dns_latency_ms_lt", 600)
+    if cond.get("wifi_up", True)      and not wifi_up:   return False, "wifi DOWN"
+    if cond.get("ping_ok", True)      and not ping_ok:   return False, "ping FAIL → not S2"
+    if cond.get("all_dns_fail", True) and not all_fail:  return False, "some DNS ok"
     if max_lat >= lat_thresh:
-        return False, f"dns_lat={max_lat:.0f}ms too slow for S2 (→ try S4)"
+        return False, f"dns_lat={max_lat:.0f}ms too slow for S2 (→ try S1)"
     return True, f"all_dns=FAIL  lat={max_lat:.0f}ms < {lat_thresh}ms  ping=OK"
 
 
-def _eval_S3(sample: dict, cond: dict):
-    """Ping fails while wifi is still up (packet loss or path issue)."""
+def _eval_packet_loss(sample: dict, cond: dict):
+    """S3 — Ping fails while wifi is still up."""
     ping     = sample.get("ping") or {}
     ping_ok  = ping.get("success", False)
     rtt_ms   = ping.get("rtt_ms")
@@ -141,21 +140,19 @@ def _eval_S3(sample: dict, cond: dict):
     if cond.get("ping_fail", True) and ping_ok:     return False, f"ping={rtt_ms:.1f}ms OK"
 
     dns_list     = sample.get("dns") or []
-    all_dns_fail = bool(dns_list) and all(not d.get("success") for d in dns_list)
-    dns_ok_list  = [d.get("domain","?") for d in dns_list if d.get("success")]
-    dns_fail_list= [d.get("domain","?") for d in dns_list if not d.get("success")]
+    dns_ok_list  = [d.get("domain", "?") for d in dns_list if d.get("success")]
+    dns_fail_list= [d.get("domain", "?") for d in dns_list if not d.get("success")]
 
-    ping_detail = "ping=TIMEOUT"
-    dns_detail  = (
-        f"dns=OK({','.join(dns_ok_list)})" if dns_ok_list
+    dns_detail = (
+        f"dns=OK({','.join(dns_ok_list)})"   if dns_ok_list
         else f"dns=FAIL({','.join(dns_fail_list)})" if dns_fail_list
         else "dns=?"
     )
-    return True, f"{ping_detail}  wifi=UP  {dns_detail}"
+    return True, f"ping=TIMEOUT  wifi=UP  {dns_detail}"
 
 
-def _eval_S4(sample: dict, cond: dict):
-    """DNS resolves but very slowly."""
+def _eval_dns_delay(sample: dict, cond: dict):
+    """S1 — DNS resolves but very slowly."""
     dns_list = sample.get("dns") or []
     ping_ok  = (sample.get("ping") or {}).get("success", False)
     wifi_up  = sample.get("wifi_up", False)
@@ -167,48 +164,83 @@ def _eval_S4(sample: dict, cond: dict):
     thresh = cond.get("any_dns_slow_ms_gte", 300)
     slow   = [d for d in dns_list if (d.get("latency_ms") or 0) >= thresh]
     if not slow:                                       return False, f"dns lat < {thresh}ms"
-    detail = ", ".join(f"{d['domain']}={d.get('latency_ms',0):.0f}ms" for d in slow)
+    detail = ", ".join(f"{d['domain']}={d.get('latency_ms', 0):.0f}ms" for d in slow)
     return True, f"slow_dns=[{detail}] >= {thresh}ms  ping=OK"
 
 
-def _eval_S5(sample: dict, cond: dict):
-    """Throughput probe reports low bandwidth."""
+def _eval_throttle(sample: dict, cond: dict):
+    """S5 — Throughput probe reports low bandwidth."""
     summary = sample.get("summary") or {}
     tp      = summary.get("throughput_total_mbps") or {}
     rh      = summary.get("run_health") or {}
     tp_avg  = tp.get("avg") if isinstance(tp, dict) else None
     total   = rh.get("total_runs", 1) or 1
     ok      = rh.get("successful_http_runs", 0)
-    if tp_avg is None:                                 return False, "no throughput data"
-    thresh_tp   = cond.get("throughput_avg_mbps_lt", 3.0)
-    thresh_rate = cond.get("http_success_rate_lt",   1.0)
+    thresh_tp = cond.get("throughput_avg_mbps_lt", 3.0)
+
+    # All runs failed — server unreachable or throttled to 0
+    if tp_avg is None:
+        if ok == 0 and total > 0:
+            return True, f"all {total} runs failed (server down or throttled to 0)"
+        return False, "no throughput data"
+
     if tp_avg < thresh_tp:
         return True, f"tp_avg={tp_avg:.2f}Mbps < {thresh_tp}Mbps  runs={ok}/{total}"
-    if (ok / total) < thresh_rate:
-        return True, f"success_rate={ok}/{total} < {thresh_rate}  tp={tp_avg:.2f}Mbps"
     return False, f"tp_avg={tp_avg:.2f}Mbps (ok)"
 
 
-def _eval_S6(sample: dict, cond: dict):
-    """Upstream flap: ping + DNS both fail, wifi still associated."""
+def _eval_flap(sample: dict, cond: dict):
+    """S6 — Upstream flap: ping + DNS both fail, wifi still associated."""
     ping_ok  = (sample.get("ping") or {}).get("success", False)
     wifi_up  = sample.get("wifi_up", False)
     dns_list = sample.get("dns") or []
     all_fail = bool(dns_list) and all(not d.get("success") for d in dns_list)
-    if cond.get("wifi_up", True)     and not wifi_up:  return False, "wifi DOWN"
-    if cond.get("ping_fail", True)   and ping_ok:      return False, "ping OK"
+    if cond.get("wifi_up", True)      and not wifi_up:  return False, "wifi DOWN"
+    if cond.get("ping_fail", True)    and ping_ok:      return False, "ping OK"
     if cond.get("all_dns_fail", True) and not all_fail: return False, "some DNS ok"
     return True, "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"
 
 
 EVALUATORS = {
-    "S1_RTT_INCREASE":      _eval_S1,
-    "S2_DNS_OUTAGE_BURST":  _eval_S2,
-    "S3_PACKET_LOSS_BURST": _eval_S3,
-    "S4_DNS_DELAY":         _eval_S4,
-    "S5_THROTTLE":          _eval_S5,
-    "S6_CONNECTIVITY_FLAP": _eval_S6,
+    "S1_DNS_DELAY":         _eval_dns_delay,
+    "S2_DNS_OUTAGE_BURST":  _eval_dns_outage,
+    "S3_PACKET_LOSS_BURST": _eval_packet_loss,
+    "S4_RTT_INCREASE":      _eval_rtt_increase,
+    "S5_THROTTLE":          _eval_throttle,
+    "S6_CONNECTIVITY_FLAP": _eval_flap,
 }
+
+
+# ─── CSV writer ───────────────────────────────────────────────────────────────
+
+CSV_FIELDNAMES = [
+    "ts", "probe_type", "seq",
+    "event_detected", "event_keys",
+    "wifi_up", "ping_ok", "ping_rtt_ms",
+    "dns_all_ok", "dns_latency_max_ms",
+    "rtt_avg_ms", "loss_pct",
+    "throughput_avg_mbps",
+    "detail",
+]
+
+
+class _CsvWriter:
+    def __init__(self, path: str):
+        self._path = path
+        os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+        new_file = not os.path.exists(path) or os.path.getsize(path) == 0
+        self._f = open(path, "a", newline="", encoding="utf-8")
+        self._w = csv.DictWriter(self._f, fieldnames=CSV_FIELDNAMES, extrasaction="ignore")
+        if new_file:
+            self._w.writeheader()
+            self._f.flush()
+
+    def write(self, row: dict):
+        self._w.writerow(row)
+        self._f.flush()
+
+    def close(self):
+        self._f.close()
 
 
 # ─── Main detector class ──────────────────────────────────────────────────────
@@ -217,6 +249,7 @@ class EventDetector:
 
     def __init__(self, sensor_cfg: dict, event_cfg: dict,
                  output_path: str | None = None,
+                 csv_path: str | None = None,
                  print_normal: bool = False,
                  window_override: int | None = None):
 
@@ -228,6 +261,7 @@ class EventDetector:
         self._lock            = threading.Lock()
         self._stop            = threading.Event()
         self._out_f           = open(output_path, "a", encoding="utf-8") if output_path else None
+        self._csv             = _CsvWriter(csv_path) if csv_path else None
 
         det = event_cfg.get("detector", {})
         self._grace_sec       = det.get("startup_grace_sec", 10)
@@ -241,7 +275,7 @@ class EventDetector:
         self._throughput_interval = sched.get("throughput_interval_sec", 300)
         self._throughput_enabled  = sensor_cfg.get("modules", {}).get("throughput", False)
 
-        self._start_time  = None   # set in run()
+        self._start_time  = None
         self._seq         = 0
         self._fast_count  = 0
         self._event_count = 0
@@ -258,10 +292,7 @@ class EventDetector:
     def _evaluate(self, sample: dict) -> list[tuple[str, str]]:
         probe_type = sample.get("probe_type", "")
         fired      = []
-
-        # Still push to confirmer during grace (to warm up the window)
-        # but collect results only after grace ends.
-        in_grace = self._in_grace()
+        in_grace   = self._in_grace()
 
         for key in PRIORITY_ORDER:
             ecfg = self._events_cfg.get(key, {})
@@ -279,13 +310,13 @@ class EventDetector:
             if confirmed and not in_grace:
                 fired.append((key, info))
 
-        # Apply suppressed_by: remove events whose parent is also fired
+        # Apply suppressed_by
         fired_keys = {k for k, _ in fired}
         filtered   = []
         for key, info in fired:
             suppressors = self._events_cfg.get(key, {}).get("suppressed_by", [])
             if any(s in fired_keys for s in suppressors):
-                continue   # skip — a higher-priority event already covers this
+                continue
             filtered.append((key, info))
 
         return filtered
@@ -308,7 +339,6 @@ class EventDetector:
                     print(_c(_GRY, f"[{probe:>10} {seq_str}] {ts}  ✓ NORMAL"))
                 return
 
-            # Print each confirmed (non-suppressed) event
             for i, (key, info) in enumerate(events):
                 col   = EVENT_COLORS.get(key, _BLD)
                 label = _c(col, f"⚡ EVENT DETECTED: {key}")
@@ -335,6 +365,54 @@ class EventDetector:
             self._out_f.write(json.dumps(rec) + "\n")
             self._out_f.flush()
 
+    def _write_csv(self, sample: dict, events: list[tuple[str, str]]):
+        if not self._csv:
+            return
+
+        probe = sample.get("probe_type", "")
+
+        # Extract probe-specific metrics
+        ping_ok = ping_rtt = dns_all_ok = dns_lat_max = None
+        rtt_avg = loss_pct = tp_avg = None
+
+        if probe == "fast":
+            ping     = sample.get("ping") or {}
+            ping_ok  = ping.get("success")
+            ping_rtt = ping.get("rtt_ms")
+            dns_list = sample.get("dns") or []
+            if dns_list:
+                dns_all_ok  = all(d.get("success") for d in dns_list)
+                dns_lat_max = max((d.get("latency_ms") or 0) for d in dns_list)
+
+        elif probe == "telemetry":
+            tel  = sample.get("telemetry") or {}
+            ping = tel.get("ping") or {}
+            rtt_avg  = ping.get("rtt_avg_ms")
+            loss_pct = ping.get("loss_pct")
+
+        elif probe == "throughput":
+            summary = sample.get("summary") or {}
+            tp      = summary.get("throughput_total_mbps") or {}
+            tp_avg  = tp.get("avg") if isinstance(tp, dict) else None
+
+        row = {
+            "ts":                 sample.get("ts") or sample.get("collected_at_utc"),
+            "probe_type":         probe,
+            "seq":                sample.get("seq", ""),
+            "event_detected":     bool(events),
+            "event_keys":         "|".join(k for k, _ in events),
+            "wifi_up":            sample.get("wifi_up", ""),
+            "ping_ok":            ping_ok,
+            "ping_rtt_ms":        ping_rtt,
+            "dns_all_ok":         dns_all_ok,
+            "dns_latency_max_ms": dns_lat_max,
+            "rtt_avg_ms":         rtt_avg,
+            "loss_pct":           loss_pct,
+            "throughput_avg_mbps":tp_avg,
+            "detail":             " | ".join(f"{k}:{info}" for k, info in events),
+        }
+        self._csv.write(row)
+
     def _handle(self, sample: dict):
         self._seq += 1
         if sample.get("probe_type") == "fast":
@@ -344,6 +422,7 @@ class EventDetector:
             self._event_count += 1
         self._print(sample, events)
         self._write_jsonl(sample, events)
+        self._write_csv(sample, events)
 
     # ── worker threads ────────────────────────────────────────────────────────
 
@@ -371,8 +450,6 @@ class EventDetector:
             self._stop.wait(max(0, self._telemetry_interval - (time.monotonic() - t0)))
 
     def _throughput_worker(self):
-        # Run first measurement immediately (no stagger),
-        # then repeat every throughput_interval thereafter.
         while not self._stop.is_set():
             t0 = time.monotonic()
             try:
@@ -409,8 +486,8 @@ class EventDetector:
 
         enabled = []
         if self._fast_enabled:
-            enabled.append(f"fast every {self._fast_interval}s  → S2/S3/S4/S6")
-        enabled.append(f"telemetry every {self._telemetry_interval}s  → S1")
+            enabled.append(f"fast every {self._fast_interval}s  → S1/S2/S3/S6")
+        enabled.append(f"telemetry every {self._telemetry_interval}s  → S4")
         if self._throughput_enabled:
             enabled.append(f"throughput every {self._throughput_interval}s  → S5")
 
@@ -423,6 +500,8 @@ class EventDetector:
         print(f"  Grace period: {self._grace_sec}s  (events suppressed at startup)")
         print(f"  Heartbeat   : every {self._heartbeat_sec}s")
         print(f"  Normal      : {'printed' if self._print_normal else 'silent (only events shown)'}")
+        if self._csv:
+            print(f"  CSV output  : {self._csv._path}")
         print("=" * 66)
         print()
 
@@ -458,6 +537,8 @@ class EventDetector:
 
         if self._out_f:
             self._out_f.close()
+        if self._csv:
+            self._csv.close()
 
         elapsed = time.monotonic() - self._start_time
         print("=" * 66)
@@ -490,8 +571,8 @@ Examples:
   # Default (reads config.json + event_config.json):
   python event_detector.py
 
-  # Run for 20 minutes, save events to file:
-  python event_detector.py --duration 20m --output out/events.jsonl
+  # Run for 20 minutes, save events to JSONL and CSV:
+  python event_detector.py --duration 20m --output out/events.jsonl --csv out/events.csv
 
   # Also print NORMAL samples (verbose):
   python event_detector.py --print-normal
@@ -508,13 +589,14 @@ Examples:
                         help="Run duration: 15m / 1h / 0=indefinite (default: 0)")
     parser.add_argument("--output",        default=None, metavar="PATH",
                         help="Append event records to a JSONL file")
+    parser.add_argument("--csv",           default=None, metavar="PATH",
+                        help="Append all samples + events to a CSV file")
     parser.add_argument("--print-normal",  action="store_true",
                         help="Also print lines when no event is detected")
     parser.add_argument("--window",        type=int, default=None, metavar="N",
                         help="Override confirm_consecutive for all events")
     args = parser.parse_args()
 
-    # Load configs
     for path in (args.config, args.event_config):
         if not os.path.isfile(path):
             print(f"[ERROR] File not found: {path}", file=sys.stderr)
@@ -525,7 +607,6 @@ Examples:
     with open(args.event_config, encoding="utf-8") as f:
         event_cfg = json.load(f)
 
-    # Output directory
     if args.output:
         os.makedirs(os.path.dirname(args.output) or ".", exist_ok=True)
 
@@ -533,6 +614,7 @@ Examples:
         sensor_cfg     = sensor_cfg,
         event_cfg      = event_cfg,
         output_path    = args.output,
+        csv_path       = args.csv,
         print_normal   = args.print_normal,
         window_override= args.window,
     )

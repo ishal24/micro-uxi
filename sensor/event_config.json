@@ -10,13 +10,15 @@
 
   "events": {
 
-    "S1_RTT_INCREASE": {
+    "S1_DNS_DELAY": {
       "enabled":      true,
-      "description":  "Sustained high round-trip latency on the upstream path.",
-      "probe":        "telemetry",
+      "description":  "DNS queries succeed but abnormally slowly (DNS delay injected).",
+      "probe":        "fast",
       "conditions": {
-        "rtt_avg_ms_gt":   150.0,
-        "loss_pct_lt":     10.0
+        "any_dns_slow_ms_gte": 300,
+        "all_dns_fail":        false,
+        "ping_ok":             true,
+        "wifi_up":             true
       },
       "confirm_consecutive": 2
     },
@@ -29,7 +31,7 @@
         "all_dns_fail":      true,
         "ping_ok":           true,
         "wifi_up":           true,
-        "dns_latency_ms_lt": 500
+        "dns_latency_ms_lt": 600
       },
       "confirm_consecutive": 2
     },
@@ -46,15 +48,13 @@
       "confirm_consecutive": 1
     },
 
-    "S4_DNS_DELAY": {
+    "S4_RTT_INCREASE": {
       "enabled":      true,
-      "description":  "DNS queries succeed but abnormally slowly (DNS delay injected).",
-      "probe":        "fast",
+      "description":  "Sustained high round-trip latency on the upstream path.",
+      "probe":        "telemetry",
       "conditions": {
-        "any_dns_slow_ms_gte": 300,
-        "all_dns_fail":        false,
-        "ping_ok":             true,
-        "wifi_up":             true
+        "rtt_avg_ms_gt":   150.0,
+        "loss_pct_lt":     10.0
       },
       "confirm_consecutive": 2
     },
@@ -64,8 +64,7 @@
       "description":  "Bandwidth severely limited, detected via throughput probe.",
       "probe":        "throughput",
       "conditions": {
-        "throughput_avg_mbps_lt": 3.0,
-        "http_success_rate_lt":   1.0
+        "throughput_avg_mbps_lt": 3.0
       },
       "confirm_consecutive": 1
     },
@@ -75,11 +74,11 @@
       "description":  "Upstream interface down: ping + DNS both fail, wifi stays associated.",
       "probe":        "fast",
       "conditions": {
-        "ping_fail":   true,
-        "all_dns_fail":true,
-        "wifi_up":     true
+        "ping_fail":    true,
+        "all_dns_fail": true,
+        "wifi_up":      true
       },
-      "confirm_consecutive": 1
+      "confirm_consecutive": 2
     }
   }
 }

@@ -19,7 +19,7 @@
       "google.com",
       "its.ac.id"
     ],
-    "dns_timeout_sec": 2,
+    "dns_timeout_sec": 0.5,
     "dns_resolver": "8.8.8.8"
   },
   "modules": {
