@@ -25,13 +25,12 @@
 
     "S2_DNS_OUTAGE_BURST": {
       "enabled":      true,
-      "description":  "All DNS domains fail simultaneously while ping is OK (local DNS drop).",
+      "description":  "All DNS domains fail simultaneously while ping is OK (DNS DROP injected).",
       "probe":        "fast",
       "conditions": {
-        "all_dns_fail":      true,
-        "ping_ok":           true,
-        "wifi_up":           true,
-        "dns_latency_ms_lt": 600
+        "all_dns_fail": true,
+        "ping_ok":      true,
+        "wifi_up":      true
       },
       "confirm_consecutive": 2
     },

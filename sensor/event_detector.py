@@ -113,21 +113,19 @@ def _eval_rtt_increase(sample: dict, cond: dict):
 
 
 def _eval_dns_outage(sample: dict, cond: dict):
-    """S2 — All DNS fail + ping OK + fast timeout (local DNS drop)."""
+    """S2 — All DNS fail + ping OK (DNS DROP injected, queries time out)."""
     dns_list = sample.get("dns") or []
     ping_ok  = (sample.get("ping") or {}).get("success", False)
     wifi_up  = sample.get("wifi_up", False)
     if not dns_list:
         return False, "no dns data"
-    all_fail  = all(not d.get("success") for d in dns_list)
-    max_lat   = max((d.get("latency_ms") or 0) for d in dns_list)
-    lat_thresh = cond.get("dns_latency_ms_lt", 600)
-    if cond.get("wifi_up", True)      and not wifi_up:   return False, "wifi DOWN"
-    if cond.get("ping_ok", True)      and not ping_ok:   return False, "ping FAIL → not S2"
-    if cond.get("all_dns_fail", True) and not all_fail:  return False, "some DNS ok"
-    if max_lat >= lat_thresh:
-        return False, f"dns_lat={max_lat:.0f}ms too slow for S2 (→ try S1)"
-    return True, f"all_dns=FAIL  lat={max_lat:.0f}ms < {lat_thresh}ms  ping=OK"
+    all_fail = all(not d.get("success") for d in dns_list)
+    if cond.get("wifi_up", True) and not wifi_up:  return False, "wifi DOWN"
+    if cond.get("ping_ok", True) and not ping_ok:  return False, "ping FAIL → not S2"
+    if not all_fail:                                return False, "some DNS still OK"
+    n_fail   = len(dns_list)
+    max_lat  = max((d.get("latency_ms") or 0) for d in dns_list)
+    return True, f"all_dns=FAIL ({n_fail} domains)  lat={max_lat:.0f}ms  ping=OK"
 
 
 def _eval_packet_loss(sample: dict, cond: dict):

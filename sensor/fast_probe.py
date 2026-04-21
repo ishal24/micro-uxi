@@ -102,7 +102,8 @@ class FastProbe:
         if _HAS_DNSPYTHON:
             resolver = _dns_mod.Resolver()
             resolver.cache    = None          # bypass cache — measure live latency
-            resolver.lifetime = self.dns_timeout
+            resolver.timeout  = self.dns_timeout   # timeout per single attempt
+            resolver.lifetime = self.dns_timeout   # total lifetime across all attempts
             if self.dns_resolver:
                 resolver.nameservers = [self.dns_resolver]
             start = time.monotonic()
