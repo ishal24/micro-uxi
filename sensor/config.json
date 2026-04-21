@@ -63,7 +63,7 @@
     "mode": "routine",
     "connect_timeout_sec": 5,
     "routine": {
-      "url": "http://192.168.88.74:8080/testfile_1mb.bin",
+      "url": "http://192.168.12.1:8080/testfile_1mb.bin",
       "expected_bytes": 1048576,
       "runs": 3,
       "warmup": 1,
