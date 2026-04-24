@@ -10,6 +10,7 @@ tidak ada dependensi berat, tidak ada I/O jaringan.
 Metrik yang diukur (per sampel):
   CPU      — cpu_pct, cpu_pct_sensor (proses sensor), n_threads
   Memori   — rss_mb, vms_mb, mem_pct, mem_avail_mb, mem_used_mb
+  Suhu     — temp_c (jika didukung perangkat keras)
   Disk I/O — read_kb, write_kb (delta dari sampel sebelumnya)
   Waktu    — ts (ISO UTC), elapsed_sec
 
@@ -183,6 +184,20 @@ class OverheadSampler:
         except (psutil.AccessDenied, AttributeError):
             pass
 
+        # ── Suhu (Temperature) ────────────────────────────────────────────────
+        temp_c = None
+        try:
+            if hasattr(psutil, "sensors_temperatures"):
+                temps = psutil.sensors_temperatures()
+                if temps:
+                    # Ambil nilai temperatur pertama yang tersedia (umumnya cpu_thermal atau coretemp)
+                    for name, entries in temps.items():
+                        if entries:
+                            temp_c = round(entries[0].current, 1)
+                            break
+        except Exception:
+            pass
+
         # ── Metrik proses sensor ───────────────────────────────────────────────
         proc_rss_mb   = 0.0
         proc_vms_mb   = 0.0
@@ -206,6 +221,7 @@ class OverheadSampler:
             "ts":             ts_now,
             # Sistem
             "cpu_pct":        round(cpu_pct, 2),
+            "temp_c":         temp_c,
             "mem_used_mb":    mem_used_mb,
             "mem_avail_mb":   mem_avail_mb,
             "mem_total_mb":   mem_total_mb,
@@ -227,7 +243,7 @@ class _OutputWriter:
     """Menulis sampel ke JSONL dan/atau CSV secara efisien (append mode)."""
 
     CSV_FIELDS = [
-        "ts", "cpu_pct", "mem_used_mb", "mem_avail_mb", "mem_pct",
+        "ts", "cpu_pct", "temp_c", "mem_used_mb", "mem_avail_mb", "mem_pct",
         "disk_read_kbs", "disk_write_kbs",
         "proc_rss_mb", "proc_vms_mb", "proc_cpu_pct", "proc_threads",
     ]
@@ -275,7 +291,7 @@ def _print_verbose(s: dict, seq: int):
         print(
             f"\n{_BLD}"
             f"{'#':>5}  {'TIME':>8}  "
-            f"{'CPU%':>6}  {'MEM%':>6}  {'MEM_MB':>7}  {'AVAIL_MB':>9}  "
+            f"{'CPU%':>6}  {'TEMP':>5}  {'MEM%':>6}  {'MEM_MB':>7}  {'AVAIL_MB':>9}  "
             f"{'RD_KB/s':>8}  {'WR_KB/s':>8}  "
             f"{'P_RSS_MB':>9}  {'P_CPU%':>7}  {'P_THR':>6}"
             f"{_RST}"
@@ -286,9 +302,12 @@ def _print_verbose(s: dict, seq: int):
     rd  = f"{s['disk_read_kbs']:8.1f}"  if s["disk_read_kbs"]  is not None else f"{'N/A':>8}"
     wr  = f"{s['disk_write_kbs']:8.1f}" if s["disk_write_kbs"] is not None else f"{'N/A':>8}"
 
+    tc = f"{s['temp_c']:5.1f}" if s["temp_c"] is not None else "  N/A"
+
     print(
         f"{seq:>5}  {t:>8}  "
         f"{_colorize_pct(s['cpu_pct']):>6}  "
+        f"{_YLW}{tc}{_RST}  "
         f"{_colorize_pct(s['mem_pct']):>6}  "
         f"{s['mem_used_mb']:>7.1f}  {s['mem_avail_mb']:>9.1f}  "
         f"{_GRY}{rd}  {wr}{_RST}  "
@@ -302,10 +321,11 @@ def _print_verbose(s: dict, seq: int):
 def _print_summary(s: dict, seq: int):
     """Cetak ringkasan satu baris (mode default, non-verbose)."""
     t = s["ts"][11:19]
+    tc = f"temp={s['temp_c']}C  " if s["temp_c"] is not None else ""
     pids_str = ",".join(str(p) for p in s["proc_pids"]) or "none"
     print(
         f"[{t}] #{seq:>4}  "
-        f"cpu={s['cpu_pct']:.1f}%  mem={s['mem_pct']:.1f}%({s['mem_used_mb']:.0f}MB)  "
+        f"cpu={s['cpu_pct']:.1f}%  {tc}mem={s['mem_pct']:.1f}%({s['mem_used_mb']:.0f}MB)  "
         f"proc_rss={s['proc_rss_mb']:.1f}MB  proc_cpu={s['proc_cpu_pct']:.1f}%  "
         f"pid=[{pids_str}]"
     )
