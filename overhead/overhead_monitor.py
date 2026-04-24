@@ -10,6 +10,8 @@ tidak ada dependensi berat, tidak ada I/O jaringan.
 Metrik yang diukur (per sampel):
   CPU      — cpu_pct, cpu_pct_sensor (proses sensor), n_threads
   Memori   — rss_mb, vms_mb, mem_pct, mem_avail_mb, mem_used_mb
+  Storage  — disk_pct, disk_used_mb, disk_free_mb
+  Bandwidth— net_tx_kbs, net_rx_kbs
   Suhu     — temp_c (jika didukung perangkat keras)
   Disk I/O — read_kb, write_kb (delta dari sampel sebelumnya)
   Waktu    — ts (ISO UTC), elapsed_sec
@@ -130,6 +132,18 @@ class OverheadSampler:
         self._last_io_write = 0
         self._last_io_ts    = time.monotonic()
 
+        # Baseline Network untuk delta
+        self._last_net_tx = 0
+        self._last_net_rx = 0
+        self._last_net_ts = time.monotonic()
+        try:
+            net = psutil.net_io_counters()
+            if net:
+                self._last_net_tx = net.bytes_sent
+                self._last_net_rx = net.bytes_recv
+        except Exception:
+            pass
+
         # Inisialisasi: cpu_percent() butuh satu panggilan dummy dulu
         psutil.cpu_percent(interval=None)
         for p in self._procs:
@@ -184,6 +198,35 @@ class OverheadSampler:
         except (psutil.AccessDenied, AttributeError):
             pass
 
+        # ── Storage (Disk Usage) ──────────────────────────────────────────────
+        disk_pct = 0.0
+        disk_used_mb = 0.0
+        disk_free_mb = 0.0
+        try:
+            du = psutil.disk_usage('/')
+            disk_pct = du.percent
+            disk_used_mb = round(du.used / 1024 / 1024, 1)
+            disk_free_mb = round(du.free / 1024 / 1024, 1)
+        except Exception:
+            pass
+
+        # ── Bandwidth (Network I/O) ───────────────────────────────────────────
+        net_tx_kbs = 0.0
+        net_rx_kbs = 0.0
+        try:
+            net = psutil.net_io_counters()
+            if net is not None:
+                dt_net = max(mono - self._last_net_ts, 0.001)
+                net_tx_kbs = round((net.bytes_sent - self._last_net_tx) / 1024 / dt_net, 2)
+                net_rx_kbs = round((net.bytes_recv - self._last_net_rx) / 1024 / dt_net, 2)
+                net_tx_kbs = max(net_tx_kbs, 0.0)
+                net_rx_kbs = max(net_rx_kbs, 0.0)
+                self._last_net_tx = net.bytes_sent
+                self._last_net_rx = net.bytes_recv
+                self._last_net_ts = mono
+        except Exception:
+            pass
+
         # ── Suhu (Temperature) ────────────────────────────────────────────────
         temp_c = None
         try:
@@ -226,6 +269,11 @@ class OverheadSampler:
             "mem_avail_mb":   mem_avail_mb,
             "mem_total_mb":   mem_total_mb,
             "mem_pct":        round(mem_pct, 2),
+            "disk_pct":       round(disk_pct, 2),
+            "disk_used_mb":   disk_used_mb,
+            "disk_free_mb":   disk_free_mb,
+            "net_tx_kbs":     net_tx_kbs,
+            "net_rx_kbs":     net_rx_kbs,
             "disk_read_kbs":  read_kb,
             "disk_write_kbs": write_kb,
             # Proses sensor
@@ -244,6 +292,7 @@ class _OutputWriter:
 
     CSV_FIELDS = [
         "ts", "cpu_pct", "temp_c", "mem_used_mb", "mem_avail_mb", "mem_pct",
+        "disk_pct", "disk_used_mb", "disk_free_mb", "net_tx_kbs", "net_rx_kbs",
         "disk_read_kbs", "disk_write_kbs",
         "proc_rss_mb", "proc_vms_mb", "proc_cpu_pct", "proc_threads",
     ]
@@ -291,9 +340,10 @@ def _print_verbose(s: dict, seq: int):
         print(
             f"\n{_BLD}"
             f"{'#':>5}  {'TIME':>8}  "
-            f"{'CPU%':>6}  {'TEMP':>5}  {'MEM%':>6}  {'MEM_MB':>7}  {'AVAIL_MB':>9}  "
+            f"{'CPU%':>5}  {'MEM%':>5}  {'DSK%':>5}  "
+            f"{'RX_KB/s':>8}  {'TX_KB/s':>8}  "
             f"{'RD_KB/s':>8}  {'WR_KB/s':>8}  "
-            f"{'P_RSS_MB':>9}  {'P_CPU%':>7}  {'P_THR':>6}"
+            f"{'P_RSS_MB':>8}  {'P_CPU%':>6}"
             f"{_RST}"
         )
         _HDR_PRINTED = True
@@ -301,19 +351,21 @@ def _print_verbose(s: dict, seq: int):
     t = s["ts"][11:19]  # HH:MM:SS
     rd  = f"{s['disk_read_kbs']:8.1f}"  if s["disk_read_kbs"]  is not None else f"{'N/A':>8}"
     wr  = f"{s['disk_write_kbs']:8.1f}" if s["disk_write_kbs"] is not None else f"{'N/A':>8}"
+    
+    rx  = f"{s['net_rx_kbs']:8.1f}"
+    tx  = f"{s['net_tx_kbs']:8.1f}"
 
-    tc = f"{s['temp_c']:5.1f}" if s["temp_c"] is not None else "  N/A"
+    tc = f"{s['temp_c']:4.1f}C" if s["temp_c"] is not None else " N/A"
 
     print(
         f"{seq:>5}  {t:>8}  "
-        f"{_colorize_pct(s['cpu_pct']):>6}  "
-        f"{_YLW}{tc}{_RST}  "
-        f"{_colorize_pct(s['mem_pct']):>6}  "
-        f"{s['mem_used_mb']:>7.1f}  {s['mem_avail_mb']:>9.1f}  "
+        f"{_colorize_pct(s['cpu_pct']):>5}  "
+        f"{_colorize_pct(s['mem_pct']):>5}  "
+        f"{_colorize_pct(s['disk_pct']):>5}  "
+        f"{_GRY}{rx}  {tx}{_RST}  "
         f"{_GRY}{rd}  {wr}{_RST}  "
-        f"{_CYN}{s['proc_rss_mb']:>9.2f}  "
-        f"{_colorize_pct(s['proc_cpu_pct'], 20, 50):>7}  "
-        f"{s['proc_threads']:>6}{_RST}"
+        f"{_CYN}{s['proc_rss_mb']:>8.2f}  "
+        f"{_colorize_pct(s['proc_cpu_pct'], 20, 50):>6}{_RST}"
     )
     sys.stdout.flush()
 
@@ -325,9 +377,9 @@ def _print_summary(s: dict, seq: int):
     pids_str = ",".join(str(p) for p in s["proc_pids"]) or "none"
     print(
         f"[{t}] #{seq:>4}  "
-        f"cpu={s['cpu_pct']:.1f}%  {tc}mem={s['mem_pct']:.1f}%({s['mem_used_mb']:.0f}MB)  "
-        f"proc_rss={s['proc_rss_mb']:.1f}MB  proc_cpu={s['proc_cpu_pct']:.1f}%  "
-        f"pid=[{pids_str}]"
+        f"cpu={s['cpu_pct']:.1f}%  {tc}mem={s['mem_pct']:.1f}%  disk={s['disk_pct']:.1f}%  "
+        f"net_tx={s['net_tx_kbs']:.1f}  net_rx={s['net_rx_kbs']:.1f}  "
+        f"proc_rss={s['proc_rss_mb']:.1f}MB  proc_cpu={s['proc_cpu_pct']:.1f}%"
     )
     sys.stdout.flush()
 
