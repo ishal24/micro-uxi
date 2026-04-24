@@ -14,7 +14,7 @@ Metrik yang diukur (per sampel):
   Bandwidth— net_tx_kbs, net_rx_kbs
   Suhu     — temp_c (jika didukung perangkat keras)
   Disk I/O — read_kb, write_kb (delta dari sampel sebelumnya)
-  Waktu    — ts (ISO UTC), elapsed_sec
+  Waktu    — ts (ISO Local), elapsed_sec
 
 Mode:
   default     — cetak ringkasan tiap N detik, simpan ke output
@@ -75,7 +75,7 @@ _MAG = "\033[95m"
 # ─── Helper ───────────────────────────────────────────────────────────────────
 
 def _now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
 def _parse_duration(s: str) -> float | None:
