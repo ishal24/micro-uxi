@@ -131,6 +131,13 @@ class OverheadSampler:
         self._last_io_read  = 0
         self._last_io_write = 0
         self._last_io_ts    = time.monotonic()
+        try:
+            io = psutil.disk_io_counters()
+            if io:
+                self._last_io_read  = io.read_bytes
+                self._last_io_write = io.write_bytes
+        except Exception:
+            pass
 
         # Baseline Network untuk delta
         self._last_net_tx = 0
