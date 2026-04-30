@@ -1,0 +1,14 @@
+{
+  "_comment": "Server-side configuration for Micro-UXI dashboard.",
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5000,
+    "debug": false
+  },
+  "api_key": "",
+  "_api_key_note": "Set a non-empty string to require X-API-Key header on ingest endpoints. Leave empty to disable auth.",
+  "database": {
+    "path": "./data/microuxi.db"
+  },
+  "device_offline_threshold_sec": 120
+}

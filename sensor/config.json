@@ -5,6 +5,12 @@
     "timezone": "Asia/Jakarta",
     "iface": "wlan0"
   },
+  "server": {
+    "url": "http://127.0.0.1:5000",
+    "upload_enabled": true,
+    "api_key": "",
+    "config_poll_interval_sec": 30
+  },
   "scheduler": {
     "telemetry_interval_sec": 30,
     "throughput_interval_sec": 60,

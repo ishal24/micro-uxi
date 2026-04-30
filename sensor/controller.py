@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 from fast_probe import FastProbe
 from telemetry_probe import TelemetryProbe
 from throughput_probe import ThroughputProbe
+from uploader import Uploader
 
 
 # ---------------------------------------------------------------------------
@@ -192,6 +193,8 @@ class MonitorController:
         # Threading
         self._stop       = threading.Event()
         self._print_lock = threading.Lock()
+        
+        self.uploader = Uploader(config)
 
         # Per-type lazy CSV writers
         self._csv: dict[str, CsvWriter] = {}
@@ -226,6 +229,7 @@ class MonitorController:
     # ------------------------------------------------------------------
 
     def _save(self, prefix: str, result: dict):
+        self.uploader.push_sensor(result)
         if not self.save_output:
             return
 
@@ -399,6 +403,32 @@ class MonitorController:
             elapsed = time.monotonic() - t0
             self._stop.wait(max(0, self.throughput_interval - elapsed))
 
+    def _config_worker(self):
+        """Polls server for configuration updates."""
+        srv = self.config.get("server", {})
+        poll_interval = srv.get("config_poll_interval_sec", 30)
+        device_id = self.config.get("device", {}).get("device_id", "unknown")
+        
+        # Initial wait to stagger
+        self._stop.wait(5.0)
+        
+        while not self._stop.is_set():
+            t0 = time.monotonic()
+            try:
+                data = self.uploader.get_config(device_id)
+                if data and data.get("config"):
+                    new_cfg = data["config"]
+                    # Apply simple live updates
+                    if "scheduler" in new_cfg:
+                        self.telemetry_interval = new_cfg["scheduler"].get("telemetry_interval_sec", self.telemetry_interval)
+                    if "fast_probe" in new_cfg:
+                        self.fast_enabled = new_cfg["fast_probe"].get("enabled", self.fast_enabled)
+            except Exception as e:
+                pass
+                
+            elapsed = time.monotonic() - t0
+            self._stop.wait(max(0, poll_interval - elapsed))
+
     # ------------------------------------------------------------------
     # Single-shot runners (for --mode once-*)
     # ------------------------------------------------------------------
@@ -492,6 +522,10 @@ class MonitorController:
         if throughput_enabled:
             threads.append(threading.Thread(
                 target=self._throughput_worker, daemon=True, name="throughput"))
+                
+        if self.uploader.enabled:
+            threads.append(threading.Thread(
+                target=self._config_worker, daemon=True, name="config"))
 
         for t in threads:
             t.start()
@@ -510,6 +544,7 @@ class MonitorController:
             self._print("\n[!] Stopped by user (Ctrl+C).")
 
         self._stop.set()
+        self.uploader.stop()
         for t in threads:
             t.join(timeout=10)
 

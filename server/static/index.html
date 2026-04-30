@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micro-UXI Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-yellow: #f59e0b;
+            --accent-purple: #8b5cf6;
+            --border-color: rgba(255, 255, 255, 0.1);
+            --glass-blur: blur(12px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-image: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+            background-attachment: fixed;
+        }
+
+        header {
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: var(--glass-blur);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .device-selector {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        select {
+            background: var(--bg-card);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-family: 'Inter', sans-serif;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
+        }
+
+        .status-badge.online .status-indicator {
+            background-color: var(--accent-green);
+            box-shadow: 0 0 10px var(--accent-green);
+        }
+
+        .status-badge.offline .status-indicator {
+            background-color: var(--accent-red);
+            box-shadow: 0 0 10px var(--accent-red);
+        }
+
+        main {
+            padding: 2rem;
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .charts-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            backdrop-filter: var(--glass-blur);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .control-panel .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .control-panel label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .control-panel input[type="text"],
+        .control-panel input[type="number"],
+        .control-panel select {
+            width: 100%;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 0.375rem;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255,255,255,0.1);
+            transition: .4s;
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 3px;
+            background-color: var(--text-muted);
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(24px);
+            background-color: white;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .event-feed {
+            max-height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            padding-right: 0.5rem;
+        }
+
+        .event-feed::-webkit-scrollbar {
+            width: 6px;
+        }
+        .event-feed::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+
+        .event-item {
+            padding: 1rem;
+            background: rgba(0,0,0,0.2);
+            border-radius: 0.5rem;
+            border-left: 4px solid var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .event-item.critical {
+            border-left-color: var(--accent-red);
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .event-item.warning {
+            border-left-color: var(--accent-yellow);
+            background: rgba(245, 158, 11, 0.1);
+        }
+
+        .event-time {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .event-title {
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.25rem;
+        }
+
+        .event-desc {
+            color: var(--text-muted);
+        }
+
+        .latest-stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            border-radius: 0.75rem;
+            min-width: 150px;
+            backdrop-filter: var(--glass-blur);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 1024px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Micro-UXI Control Center</h1>
+    <div class="device-selector">
+        <select id="deviceSelect" onchange="changeDevice()">
+            <option value="uno-q-01">uno-q-01 (Loading...)</option>
+        </select>
+        <div id="statusBadge" class="status-badge">
+            <div class="status-indicator"></div>
+            <span id="statusText">Connecting...</span>
+        </div>
+    </div>
+</header>
+
+<main>
+    <div class="main-content">
+        <div class="latest-stats" id="latestStats">
+            <div class="stat-card">
+                <div class="stat-label">Ping RTT</div>
+                <div class="stat-value" id="statRtt">-- ms</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Wi-Fi RSSI</div>
+                <div class="stat-value" id="statRssi">-- dBm</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Throughput</div>
+                <div class="stat-value" id="statTpt">-- Mbps</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">CPU Usage</div>
+                <div class="stat-value" id="statCpu">-- %</div>
+            </div>
+        </div>
+
+        <div class="charts-container">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Network Latency (RTT)</div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="rttChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Wi-Fi Signal (RSSI)</div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="rssiChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Download Throughput</div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="tptChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">System Overhead</div>
+                </div>
+                <div class="chart-wrapper">
+                    <canvas id="overheadChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="card control-panel">
+            <div class="card-header">
+                <div class="card-title">Remote Control</div>
+            </div>
+            
+            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
+                <label style="margin-bottom: 0;">Fast Probe (S2/S3/S6)</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="cfgFastEnabled" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
+                <label style="margin-bottom: 0;">Throughput Probe (S5)</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="cfgTptEnabled" checked>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>Telemetry Interval (sec)</label>
+                <select id="cfgTelInterval">
+                    <option value="10">10 seconds</option>
+                    <option value="30">30 seconds</option>
+                    <option value="60">60 seconds</option>
+                    <option value="120">2 minutes</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Ping Target</label>
+                <input type="text" id="cfgPingTarget" value="8.8.8.8">
+            </div>
+
+            <button class="btn" onclick="saveConfig()" id="btnSaveConfig">Push Configuration</button>
+            <p id="configStatus" style="font-size: 0.75rem; color: var(--accent-green); margin-top: 0.5rem; display: none;">Config updated successfully.</p>
+            
+            <hr style="border-color: var(--border-color); margin: 1.5rem 0;">
+            <button class="btn" style="background: linear-gradient(135deg, var(--accent-purple), #6d28d9);" onclick="injectDemoData()">Inject Demo Data</button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Event Feed (Anomalies)</div>
+            </div>
+            <div class="event-feed" id="eventFeed">
+                <div style="color: var(--text-muted); text-align: center; padding: 2rem;">Waiting for events...</div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    // --- Chart Setup ---
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { maxTicksLimit: 6 } },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+        },
+        elements: {
+            line: { tension: 0.4, borderWidth: 2 },
+            point: { radius: 0, hitRadius: 10, hoverRadius: 4 }
+        },
+        animation: { duration: 0 } // Disable animation for live updates
+    };
+
+    const charts = {
+        rtt: new Chart(document.getElementById('rttChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] },
+            options: commonOptions
+        }),
+        rssi: new Chart(document.getElementById('rssiChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [{ data: [], borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true }] },
+            options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, beginAtZero: false } } }
+        }),
+        tpt: new Chart(document.getElementById('tptChart'), {
+            type: 'bar',
+            data: { labels: [], datasets: [{ data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
+            options: commonOptions
+        }),
+        overhead: new Chart(document.getElementById('overheadChart'), {
+            type: 'line',
+            data: { labels: [], datasets: [
+                { label: 'CPU %', data: [], borderColor: '#ef4444', backgroundColor: 'transparent' },
+                { label: 'Mem %', data: [], borderColor: '#f59e0b', backgroundColor: 'transparent' }
+            ]},
+            options: { ...commonOptions, plugins: { legend: { display: true, position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } } }, scales: { y: { suggestedMax: 100 } } }
+        })
+    };
+
+    let currentDeviceId = 'uno-q-01';
+    let localConfigVersion = 0;
+
+    // --- Data Fetching ---
+
+    async function fetchStatus() {
+        try {
+            const res = await fetch('/api/status');
+            const data = await res.json();
+            const sel = document.getElementById('deviceSelect');
+            
+            if (data.devices.length > 0) {
+                // Update dropdown options if needed (simplified for demo)
+                const badge = document.getElementById('statusBadge');
+                const text = document.getElementById('statusText');
+                
+                const device = data.devices.find(d => d.device_id === currentDeviceId) || data.devices[0];
+                currentDeviceId = device.device_id;
+                
+                if (device.online) {
+                    badge.className = 'status-badge online';
+                    text.textContent = `Online (seen ${device.seconds_ago}s ago)`;
+                } else {
+                    badge.className = 'status-badge offline';
+                    text.textContent = `Offline (seen ${device.seconds_ago}s ago)`;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch status', e);
+        }
+    }
+
+    async function fetchHistory() {
+        try {
+            const [resTel, resOvh, resTpt] = await Promise.all([
+                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=telemetry&limit=30`),
+                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=overhead&limit=30`),
+                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=throughput&limit=15`)
+            ]);
+            
+            const telData = await resTel.json();
+            const ovhData = await resOvh.json();
+            const tptData = await resTpt.json();
+
+            // Update RTT and RSSI
+            const telLabels = telData.data.map(d => new Date(d.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
+            const rttVals = telData.data.map(d => d.telemetry?.ping?.rtt_avg_ms || null);
+            const rssiVals = telData.data.map(d => d.telemetry?.wifi?.wifi_rssi_dbm || null);
+            
+            updateChart(charts.rtt, telLabels, [rttVals]);
+            updateChart(charts.rssi, telLabels, [rssiVals]);
+            
+            if (rttVals.length > 0 && rttVals[rttVals.length-1] != null) {
+                document.getElementById('statRtt').textContent = rttVals[rttVals.length-1].toFixed(1) + ' ms';
+                document.getElementById('statRssi').textContent = rssiVals[rssiVals.length-1] + ' dBm';
+            }
+
+            // Update Overhead
+            const ovhLabels = ovhData.data.map(d => new Date(d.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
+            const cpuVals = ovhData.data.map(d => d.cpu_pct);
+            const memVals = ovhData.data.map(d => d.mem_pct);
+            
+            updateChart(charts.overhead, ovhLabels, [cpuVals, memVals]);
+            
+            if (cpuVals.length > 0) {
+                document.getElementById('statCpu').textContent = cpuVals[cpuVals.length-1].toFixed(1) + ' %';
+            }
+
+            // Update Throughput
+            const tptLabels = tptData.data.map(d => new Date(d.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
+            const tptVals = tptData.data.map(d => {
+                if (d.summary && d.summary.throughput_total_mbps) {
+                    return typeof d.summary.throughput_total_mbps === 'object' ? d.summary.throughput_total_mbps.avg : null;
+                }
+                return null;
+            });
+            
+            updateChart(charts.tpt, tptLabels, [tptVals]);
+            
+            if (tptVals.length > 0 && tptVals[tptVals.length-1] != null) {
+                document.getElementById('statTpt').textContent = tptVals[tptVals.length-1].toFixed(2) + ' Mbps';
+            }
+
+        } catch (e) {
+            console.error('Failed to fetch history', e);
+        }
+    }
+
+    async function fetchEvents() {
+        try {
+            const res = await fetch(`/api/data/events?device_id=${currentDeviceId}&limit=10`);
+            const data = await res.json();
+            const feed = document.getElementById('eventFeed');
+            
+            if (data.events.length === 0) {
+                feed.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">No anomalies detected.</div>';
+                return;
+            }
+            
+            feed.innerHTML = data.events.map(ev => `
+                <div class="event-item ${ev.severity}">
+                    <div class="event-time">${new Date(ev.ts).toLocaleString()}</div>
+                    <div class="event-title">${ev.event_type}</div>
+                    <div class="event-desc">${ev.description}</div>
+                </div>
+            `).join('');
+        } catch (e) {
+            console.error('Failed to fetch events', e);
+        }
+    }
+
+    async function fetchConfig() {
+        try {
+            const res = await fetch(`/api/config?device_id=${currentDeviceId}`);
+            const data = await res.json();
+            
+            if (data.config && data.version > localConfigVersion) {
+                localConfigVersion = data.version;
+                const cfg = data.config;
+                
+                if (cfg.fast_probe) {
+                    document.getElementById('cfgFastEnabled').checked = cfg.fast_probe.enabled;
+                    if (cfg.fast_probe.ping_target) {
+                        document.getElementById('cfgPingTarget').value = cfg.fast_probe.ping_target;
+                    }
+                }
+                if (cfg.scheduler) {
+                    const sel = document.getElementById('cfgTelInterval');
+                    const val = cfg.scheduler.telemetry_interval_sec.toString();
+                    if (Array.from(sel.options).some(o => o.value === val)) {
+                        sel.value = val;
+                    }
+                }
+                if (cfg.modules) {
+                    document.getElementById('cfgTptEnabled').checked = cfg.modules.throughput;
+                }
+            }
+        } catch (e) {
+            console.error('Failed to fetch config', e);
+        }
+    }
+
+    function updateChart(chart, labels, datasetDataArray) {
+        chart.data.labels = labels;
+        datasetDataArray.forEach((data, i) => {
+            if (chart.data.datasets[i]) {
+                chart.data.datasets[i].data = data;
+            }
+        });
+        chart.update();
+    }
+
+    // --- Actions ---
+
+    async function saveConfig() {
+        const btn = document.getElementById('btnSaveConfig');
+        const statusMsg = document.getElementById('configStatus');
+        
+        btn.textContent = "Saving...";
+        btn.disabled = true;
+        
+        // Fetch current config to merge changes
+        let currentCfg = {};
+        try {
+            const res = await fetch(`/api/config?device_id=${currentDeviceId}`);
+            const data = await res.json();
+            if (data.config) currentCfg = data.config;
+        } catch (e) {}
+
+        // Build new config
+        const newCfg = {
+            ...currentCfg,
+            fast_probe: {
+                ...(currentCfg.fast_probe || {}),
+                enabled: document.getElementById('cfgFastEnabled').checked,
+                ping_target: document.getElementById('cfgPingTarget').value
+            },
+            scheduler: {
+                ...(currentCfg.scheduler || {}),
+                telemetry_interval_sec: parseInt(document.getElementById('cfgTelInterval').value)
+            },
+            modules: {
+                ...(currentCfg.modules || {}),
+                throughput: document.getElementById('cfgTptEnabled').checked
+            }
+        };
+
+        try {
+            const res = await fetch('/api/config', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_id: currentDeviceId, config: newCfg })
+            });
+            const result = await res.json();
+            
+            if (result.ok) {
+                localConfigVersion = result.version;
+                statusMsg.style.display = 'block';
+                setTimeout(() => statusMsg.style.display = 'none', 3000);
+            }
+        } catch (e) {
+            alert("Failed to save config: " + e.message);
+        } finally {
+            btn.textContent = "Push Configuration";
+            btn.disabled = false;
+        }
+    }
+
+    async function injectDemoData() {
+        try {
+            await fetch('/api/demo/simulate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ device_id: currentDeviceId, n: 10 })
+            });
+            refreshAll();
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+    function changeDevice() {
+        currentDeviceId = document.getElementById('deviceSelect').value;
+        localConfigVersion = 0;
+        refreshAll();
+    }
+
+    function refreshAll() {
+        fetchStatus();
+        fetchHistory();
+        fetchEvents();
+        fetchConfig();
+    }
+
+    // --- Initialization ---
+    refreshAll();
+    setInterval(refreshAll, 5000); // Auto-refresh every 5s
+
+</script>
+</body>
+</html>

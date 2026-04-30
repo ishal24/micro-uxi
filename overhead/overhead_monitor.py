@@ -38,6 +38,7 @@ import os
 import signal
 import sys
 import time
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -393,6 +394,17 @@ def _print_summary(s: dict, seq: int):
 
 # ─── Main monitor loop ────────────────────────────────────────────────────────
 
+def _upload_overhead(url: str, device_id: str, sample: dict):
+    payload = {**sample, "device_id": device_id}
+    try:
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(f"{url}/api/ingest/overhead", data=data, method="POST")
+        req.add_header("Content-Type", "application/json")
+        with urllib.request.urlopen(req, timeout=2.0) as _:
+            pass
+    except Exception:
+        pass
+
 def run(args):
     # ── Resolve PID target ────────────────────────────────────────────────────
     sensor_pids = []
@@ -450,6 +462,14 @@ def run(args):
             seq   += 1
 
             writer.write(sample)
+            
+            if args.server_url:
+                import threading
+                threading.Thread(
+                    target=_upload_overhead, 
+                    args=(args.server_url.rstrip('/'), args.device_id, sample), 
+                    daemon=True
+                ).start()
 
             if not args.daemon:
                 if args.verbose:
@@ -555,6 +575,14 @@ Contoh:
     parser.add_argument(
         "--target-pid", type=int, default=None, metavar="PID",
         help="Pantau proses dengan PID tertentu (default: auto-deteksi proses sensor)",
+    )
+    parser.add_argument(
+        "--server-url", default=None, metavar="URL",
+        help="URL server untuk upload data (contoh: http://127.0.0.1:5000)",
+    )
+    parser.add_argument(
+        "--device-id", default="uno-q-01", metavar="ID",
+        help="Device ID untuk upload (default: uno-q-01)",
     )
 
     args = parser.parse_args()
