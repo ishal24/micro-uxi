@@ -208,6 +208,26 @@
             backdrop-filter: var(--glass-blur);
         }
 
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #b91c1c);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .btn-danger:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+        }
+
         .header-left {
             display: flex;
             align-items: center;
@@ -538,9 +558,14 @@
                 <div class="device-meta" id="headerDeviceMeta">--</div>
             </div>
         </div>
-        <div id="statusBadge" class="status-badge" style="display: none; padding: 0.5rem 1rem; border-radius: 2rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); align-items: center; gap: 0.5rem;">
-            <div class="status-indicator" id="statusDot" style="width:10px; height:10px; border-radius:50%; background:gray;"></div>
-            <span id="statusText" style="font-size:0.875rem; font-weight:600;">Offline</span>
+        <div style="display:flex; align-items:center; gap:1rem;">
+            <div id="statusBadge" class="status-badge" style="display: none; padding: 0.5rem 1rem; border-radius: 2rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); align-items: center; gap: 0.5rem;">
+                <div class="status-indicator" id="statusDot" style="width:10px; height:10px; border-radius:50%; background:gray;"></div>
+                <span id="statusText" style="font-size:0.875rem; font-weight:600;">Offline</span>
+            </div>
+            <button class="btn-danger" onclick="openClearDbModal()" title="Hapus semua data dari database">
+                <i class="fa-solid fa-trash-can"></i> Clear Database
+            </button>
         </div>
     </header>
 
@@ -697,6 +722,26 @@
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeGroupModal()">Cancel</button>
             <button class="btn-save" onclick="saveGroup()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Clear DB Modal -->
+<div id="clearDbModal" class="modal">
+    <div class="modal-content" style="width:380px;">
+        <h3 style="color: var(--accent-red); display:flex; align-items:center; gap:0.5rem;">
+            <i class="fa-solid fa-triangle-exclamation"></i> Hapus Semua Data
+        </h3>
+        <p style="color: var(--text-muted); font-size:0.875rem; margin-bottom:1rem; line-height:1.6;">
+            Tindakan ini akan <strong style="color:var(--text-main);">menghapus permanen</strong> semua data sensor, overhead, event, konfigurasi, dan status perangkat dari database.<br><br>
+            Ketik <strong style="color:var(--accent-red);">HAPUS</strong> untuk konfirmasi.
+        </p>
+        <input type="text" id="clearDbConfirmInput" placeholder="Ketik HAPUS untuk konfirmasi" style="margin-bottom:1rem;">
+        <div id="clearDbStatus" style="font-size:0.8rem; color:var(--accent-red); margin-bottom:0.5rem; display:none;"></div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeClearDbModal()">Batal</button>
+            <button id="btnConfirmClearDb" style="background: var(--accent-red); color:white; padding:0.5rem 1rem; border-radius:0.25rem; border:none; cursor:pointer; font-family:inherit; font-weight:600;"
+                onclick="confirmClearDb()">Hapus Semua Data</button>
         </div>
     </div>
 </div>
@@ -1048,22 +1093,34 @@
             const tptData = await resTpt.json();
 
             // Transform for time scale: {x: timestamp_iso, y: value}
-            const rttSet = telData.data.map(d => ({ x: d.ts, y: d.telemetry?.ping?.rtt_avg_ms || null }));
-            const rssiSet = telData.data.map(d => ({ x: d.ts, y: d.telemetry?.wifi?.wifi_rssi_dbm || null }));
-            
-            const cpuSet = ovhData.data.map(d => ({ x: d.ts, y: d.cpu_pct }));
-            const memSet = ovhData.data.map(d => ({ x: d.ts, y: d.mem_pct }));
-            
+            // Note: get_sensor_history spreads payload into the row dict,
+            // so telemetry probe data has {ts, telemetry:{...}, ...}
+            // throughput probe data has {ts, summary:{...}, ...}
+            const toMs = iso => new Date(iso).getTime(); // parse ISO to ms for Chart.js
+
+            const rttSet = telData.data.map(d => ({
+                x: toMs(d.ts),
+                y: d.telemetry?.ping?.rtt_avg_ms ?? null
+            }));
+            const rssiSet = telData.data.map(d => ({
+                x: toMs(d.ts),
+                y: d.telemetry?.wifi?.wifi_rssi_dbm ?? null
+            }));
+
+            const cpuSet = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.cpu_pct }));
+            const memSet = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.mem_pct }));
+
             const tptSet = tptData.data.map(d => {
                 const tp = d.summary?.throughput_total_mbps;
-                return { x: d.ts, y: (typeof tp === 'object' ? tp.avg : null) };
+                const val = typeof tp === 'object' ? (tp?.avg ?? null) : (tp ?? null);
+                return { x: toMs(d.ts), y: val };
             });
 
-            charts.rtt.data.datasets[0].data = rttSet; charts.rtt.update();
-            charts.rssi.data.datasets[0].data = rssiSet; charts.rssi.update();
-            charts.cpu.data.datasets[0].data = cpuSet; charts.cpu.update();
-            charts.mem.data.datasets[0].data = memSet; charts.mem.update();
-            charts.tpt.data.datasets[0].data = tptSet; charts.tpt.update();
+            charts.rtt.data.datasets[0].data = rttSet; charts.rtt.update('none');
+            charts.rssi.data.datasets[0].data = rssiSet; charts.rssi.update('none');
+            charts.cpu.data.datasets[0].data = cpuSet; charts.cpu.update('none');
+            charts.mem.data.datasets[0].data = memSet; charts.mem.update('none');
+            charts.tpt.data.datasets[0].data = tptSet; charts.tpt.update('none');
 
             // Fetch Events
             const resEvt = await fetch(`/api/data/events?device_id=${currentDeviceId}&limit=15`);
@@ -1153,6 +1210,57 @@
             alert("Failed to save config: " + e.message);
         } finally {
             btn.textContent = "Push Configuration"; btn.disabled = false;
+        }
+    }
+
+    // ==========================================
+    // CLEAR DATABASE
+    // ==========================================
+    function openClearDbModal() {
+        document.getElementById('clearDbConfirmInput').value = '';
+        document.getElementById('clearDbStatus').style.display = 'none';
+        document.getElementById('clearDbModal').style.display = 'flex';
+    }
+    function closeClearDbModal() {
+        document.getElementById('clearDbModal').style.display = 'none';
+    }
+    async function confirmClearDb() {
+        const val = document.getElementById('clearDbConfirmInput').value.trim();
+        const statusEl = document.getElementById('clearDbStatus');
+        if (val !== 'HAPUS') {
+            statusEl.textContent = 'Konfirmasi salah. Ketik tepat: HAPUS';
+            statusEl.style.display = 'block';
+            return;
+        }
+        const btn = document.getElementById('btnConfirmClearDb');
+        btn.textContent = 'Menghapus...'; btn.disabled = true;
+        try {
+            const res = await fetch('/api/database', { method: 'DELETE' });
+            const data = await res.json();
+            if (data.ok) {
+                closeClearDbModal();
+                // Reset local state
+                currentDeviceId = null;
+                devicesMap = {}; groupsMap = {};
+                document.getElementById('mainContent').style.display = 'none';
+                document.getElementById('statusBadge').style.display = 'none';
+                document.getElementById('headerDeviceName').innerText = 'Select a Device';
+                document.getElementById('headerDeviceMeta').innerText = '--';
+                Object.values(charts).forEach(c => {
+                    c.data.datasets[0].data = [];
+                    c.update('none');
+                });
+                fetchSidebarData();
+                alert(`Database berhasil dihapus. ${data.deleted_rows} baris data dihapus.`);
+            } else {
+                statusEl.textContent = 'Gagal menghapus: ' + (data.error || 'Unknown error');
+                statusEl.style.display = 'block';
+            }
+        } catch(e) {
+            statusEl.textContent = 'Error: ' + e.message;
+            statusEl.style.display = 'block';
+        } finally {
+            btn.textContent = 'Hapus Semua Data'; btn.disabled = false;
         }
     }
 

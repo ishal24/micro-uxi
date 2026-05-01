@@ -274,6 +274,18 @@ def api_config_put():
     return jsonify({"ok": True, "device_id": device_id, "version": version})
 
 
+# ── Routes — Database maintenance ────────────────────────────────────────────
+
+@app.delete("/api/database")
+def api_database_clear():
+    """Wipe all data from all tables. Use with caution — irreversible."""
+    try:
+        deleted = db.clear_all()
+        return jsonify({"ok": True, "deleted_rows": deleted})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
 # ── Routes — Groups ───────────────────────────────────────────────────────────
 
 @app.get("/api/groups")

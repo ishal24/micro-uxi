@@ -285,3 +285,25 @@ class Database:
     def get_groups(self) -> list[dict]:
         rows = self._conn().execute("SELECT id, name FROM device_groups ORDER BY name").fetchall()
         return [dict(r) for r in rows]
+
+    # ── Maintenance ───────────────────────────────────────────────────────────
+
+    def clear_all(self) -> int:
+        """Delete all data from all tables. Returns total rows deleted."""
+        tables = [
+            "sensor_data",
+            "overhead_data",
+            "events",
+            "device_config",
+            "device_status",
+            "device_groups",
+        ]
+        total = 0
+        with self._conn() as c:
+            # Disable FK enforcement temporarily so we can delete in any order
+            c.execute("PRAGMA foreign_keys=OFF")
+            for table in tables:
+                cur = c.execute(f"DELETE FROM {table}")
+                total += cur.rowcount
+            c.execute("PRAGMA foreign_keys=ON")
+        return total
