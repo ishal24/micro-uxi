@@ -82,13 +82,28 @@ class Database:
                 version     INTEGER NOT NULL DEFAULT 1
             );
 
+            CREATE TABLE IF NOT EXISTS device_groups (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS device_status (
                 device_id  TEXT PRIMARY KEY,
                 last_seen  TEXT NOT NULL,
                 ip_address TEXT,
-                status     TEXT NOT NULL DEFAULT 'unknown'
+                status     TEXT NOT NULL DEFAULT 'unknown',
+                group_id   INTEGER,
+                FOREIGN KEY (group_id) REFERENCES device_groups(id) ON DELETE SET NULL
             );
         """)
+        
+        # Add group_id column if it doesn't exist (for existing DBs)
+        try:
+            conn.execute("ALTER TABLE device_status ADD COLUMN group_id INTEGER REFERENCES device_groups(id) ON DELETE SET NULL")
+        except sqlite3.OperationalError:
+            pass # Column already exists
+            
         conn.commit()
         conn.close()
 
@@ -235,6 +250,38 @@ class Database:
 
     def get_all_status(self) -> list[dict]:
         rows = self._conn().execute(
-            "SELECT device_id,last_seen,ip_address,status FROM device_status"
+            "SELECT device_id,last_seen,ip_address,status,group_id FROM device_status"
         ).fetchall()
+        return [dict(r) for r in rows]
+
+    def set_device_group(self, device_id: str, group_id: int | None):
+        with self._conn() as c:
+            c.execute(
+                "UPDATE device_status SET group_id=? WHERE device_id=?",
+                (group_id, device_id)
+            )
+
+    # ── Device Groups ─────────────────────────────────────────────────────────
+
+    def create_group(self, name: str) -> int:
+        with self._conn() as c:
+            cur = c.execute(
+                "INSERT INTO device_groups (name, created_at) VALUES (?,?)",
+                (name, self._now())
+            )
+            return cur.lastrowid
+
+    def rename_group(self, group_id: int, name: str):
+        with self._conn() as c:
+            c.execute("UPDATE device_groups SET name=? WHERE id=?", (name, group_id))
+
+    def delete_group(self, group_id: int):
+        with self._conn() as c:
+            # ON DELETE SET NULL will handle the devices if FK is enforced.
+            # But just in case:
+            c.execute("UPDATE device_status SET group_id=NULL WHERE group_id=?", (group_id,))
+            c.execute("DELETE FROM device_groups WHERE id=?", (group_id,))
+
+    def get_groups(self) -> list[dict]:
+        rows = self._conn().execute("SELECT id, name FROM device_groups ORDER BY name").fetchall()
         return [dict(r) for r in rows]

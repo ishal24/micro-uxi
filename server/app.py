@@ -274,79 +274,43 @@ def api_config_put():
     return jsonify({"ok": True, "device_id": device_id, "version": version})
 
 
-# ── Routes — Demo / simulation ────────────────────────────────────────────────
+# ── Routes — Groups ───────────────────────────────────────────────────────────
 
-@app.post("/api/demo/simulate")
-def api_demo_simulate():
-    """Inject N synthetic samples for dashboard demo without real Arduino."""
-    body      = request.get_json(force=True, silent=True) or {}
-    device_id = body.get("device_id", "uno-q-01")
-    n         = min(int(body.get("n", 20)), 100)
+@app.get("/api/groups")
+def api_groups_get():
+    return jsonify({"groups": db.get_groups()})
 
-    now = time.time()
-    for i in range(n):
-        ts_dt = datetime.fromtimestamp(now - (n - i) * 30, tz=timezone.utc)
-        ts    = ts_dt.isoformat(timespec="seconds")
+@app.post("/api/groups")
+def api_groups_post():
+    body = request.get_json(force=True, silent=True)
+    name = body.get("name")
+    if not name:
+        return jsonify({"error": "Name required"}), 400
+    try:
+        group_id = db.create_group(name)
+        return jsonify({"ok": True, "id": group_id, "name": name})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
 
-        rssi     = random.uniform(-75, -40)
-        rtt      = random.uniform(20, 200)
-        loss_pct = random.choices([0, random.uniform(1, 30)], weights=[9, 1])[0]
+@app.put("/api/groups/<int:group_id>")
+def api_groups_put(group_id):
+    body = request.get_json(force=True, silent=True)
+    name = body.get("name")
+    if name:
+        db.rename_group(group_id, name)
+    return jsonify({"ok": True})
 
-        tel = {
-            "device_id": device_id, "site_name": "ITS-Demo",
-            "iface": "wlan0", "collected_at_utc": ts,
-            "telemetry": {
-                "wifi": {"wifi_connected": True, "wifi_ssid": "ITS-Net",
-                         "wifi_rssi_dbm": round(rssi, 1),
-                         "wifi_bitrate_mbps": random.uniform(30, 72),
-                         "wifi_freq_mhz": 5180},
-                "network": {"ip_address": "192.168.1.10",
-                            "gateway_ip": "192.168.1.1",
-                            "dns_resolvers": ["8.8.8.8"]},
-                "ping": {"ping_target": "8.8.8.8", "loss_pct": round(loss_pct, 1),
-                         "rtt_min_ms": round(rtt * 0.9, 2),
-                         "rtt_avg_ms": round(rtt, 2),
-                         "rtt_max_ms": round(rtt * 1.2, 2)},
-                "dns": [{"domain": "google.com", "dns_success": True,
-                         "dns_latency_ms": random.uniform(5, 30)}],
-                "http": [],
-            },
-        }
-        db.insert_sensor(device_id, "telemetry", ts, tel)
+@app.delete("/api/groups/<int:group_id>")
+def api_groups_delete(group_id):
+    db.delete_group(group_id)
+    return jsonify({"ok": True})
 
-        # Throughput every 5th
-        if i % 5 == 0:
-            tp_mbps = random.uniform(1, 15)
-            thr = {
-                "device_id": device_id, "collected_at_utc": ts,
-                "mode": "routine",
-                "summary": {
-                    "throughput_total_mbps": {"avg": round(tp_mbps, 3),
-                                              "p95": round(tp_mbps * 1.1, 3)},
-                    "run_health": {"total_runs": 3, "successful_http_runs": 3},
-                },
-            }
-            db.insert_sensor(device_id, "throughput", ts, thr)
-
-        # Overhead
-        ovh = {
-            "device_id": device_id, "ts": ts,
-            "cpu_pct": round(random.uniform(5, 40), 2),
-            "mem_pct": round(random.uniform(30, 70), 2),
-            "mem_used_mb": round(random.uniform(400, 900), 1),
-            "mem_avail_mb": round(random.uniform(200, 800), 1),
-            "disk_pct": round(random.uniform(20, 55), 2),
-            "net_tx_kbs": round(random.uniform(0, 50), 2),
-            "net_rx_kbs": round(random.uniform(0, 100), 2),
-            "temp_c": round(random.uniform(38, 65), 1),
-            "proc_cpu_pct": round(random.uniform(1, 15), 2),
-            "proc_rss_mb": round(random.uniform(40, 120), 2),
-        }
-        db.insert_overhead(device_id, ovh)
-        db.touch_status(device_id, "127.0.0.1")
-
-    return jsonify({"ok": True, "device_id": device_id, "samples_added": n})
-
+@app.put("/api/devices/<device_id>/group")
+def api_device_group_put(device_id):
+    body = request.get_json(force=True, silent=True)
+    group_id = body.get("group_id")
+    db.set_device_group(device_id, group_id)
+    return jsonify({"ok": True})
 
 # ── Entry point ───────────────────────────────────────────────────────────────
 

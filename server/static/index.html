@@ -4,12 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Micro-UXI Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js & Plugins -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+    <!-- Crosshair plugin for syncing tooltips -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-crosshair"></script>
+
     <style>
         :root {
             --bg-dark: #0f172a;
+            --bg-sidebar: #1e293b;
             --bg-card: rgba(30, 41, 59, 0.7);
+            --bg-hover: rgba(255, 255, 255, 0.05);
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
             --accent-blue: #3b82f6;
@@ -31,96 +40,212 @@
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-dark);
             color: var(--text-main);
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
             display: flex;
-            flex-direction: column;
-            background-image: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 40%),
-                              radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
-            background-attachment: fixed;
+            background-image: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                              radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
         }
 
-        header {
-            padding: 1.5rem 2rem;
+        /* ── Sidebar Layout ── */
+        .sidebar {
+            width: 280px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+            z-index: 200;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 1px solid var(--border-color);
-            background: rgba(15, 23, 42, 0.8);
-            backdrop-filter: var(--glass-blur);
-            position: sticky;
-            top: 0;
-            z-index: 100;
         }
 
-        h1 {
-            font-size: 1.5rem;
+        .sidebar-header h2 {
+            font-size: 1.25rem;
             font-weight: 700;
             background: linear-gradient(to right, #60a5fa, #a78bfa);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
-        .device-selector {
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        /* Grouping UI */
+        .group-container {
+            margin-bottom: 1rem;
+            background: rgba(0,0,0,0.15);
+            border-radius: 0.5rem;
+            border: 1px solid transparent;
+            transition: border-color 0.2s;
+            min-height: 40px;
+        }
+
+        .group-container.drag-over {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .group-header {
+            padding: 0.75rem 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .group-header:hover {
+            color: var(--text-main);
+        }
+
+        .group-actions {
+            display: none;
+            gap: 0.5rem;
+        }
+        .group-header:hover .group-actions {
+            display: flex;
+        }
+        .group-actions i {
+            cursor: pointer;
+            color: var(--text-muted);
+        }
+        .group-actions i:hover {
+            color: var(--text-main);
+        }
+
+        .device-list {
+            padding: 0.5rem;
+            min-height: 10px;
+        }
+
+        .device-item {
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.25rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: background 0.2s;
+        }
+        
+        .device-item:hover {
+            background: var(--bg-hover);
+        }
+        
+        .device-item.active {
+            background: rgba(59, 130, 246, 0.15);
+            border-left: 3px solid var(--accent-blue);
+        }
+
+        .device-item .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+        .device-item.online .status-dot {
+            background: var(--accent-green);
+            box-shadow: 0 0 6px var(--accent-green);
+        }
+        .device-item.offline .status-dot {
+            background: var(--accent-red);
+            box-shadow: 0 0 6px var(--accent-red);
+        }
+
+        .device-item .device-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .add-group-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: transparent;
+            border: 1px dashed var(--border-color);
+            color: var(--text-muted);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .add-group-btn:hover {
+            color: var(--text-main);
+            border-color: var(--text-muted);
+        }
+
+        /* ── Main Layout ── */
+        .main-wrapper {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        header {
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: var(--glass-blur);
+        }
+
+        .header-left {
             display: flex;
             align-items: center;
             gap: 1rem;
         }
 
-        select {
-            background: var(--bg-card);
+        .toggle-sidebar-btn {
+            background: transparent;
+            border: none;
             color: var(--text-main);
-            border: 1px solid var(--border-color);
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-family: 'Inter', sans-serif;
-            outline: none;
+            font-size: 1.25rem;
             cursor: pointer;
+            display: none; /* Only show on mobile, or keep it always for convenience */
         }
 
-        .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 2rem;
-            font-size: 0.875rem;
+        .device-title {
+            font-size: 1.25rem;
             font-weight: 600;
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            transition: all 0.3s ease;
         }
 
-        .status-indicator {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background-color: var(--text-muted);
-        }
-
-        .status-badge.online .status-indicator {
-            background-color: var(--accent-green);
-            box-shadow: 0 0 10px var(--accent-green);
-        }
-
-        .status-badge.offline .status-indicator {
-            background-color: var(--accent-red);
-            box-shadow: 0 0 10px var(--accent-red);
+        .device-meta {
+            font-size: 0.875rem;
+            color: var(--text-muted);
         }
 
         main {
-            padding: 2rem;
             flex: 1;
-            display: grid;
-            grid-template-columns: 1fr 350px;
+            overflow-y: auto;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
             gap: 2rem;
-            max-width: 1600px;
-            margin: 0 auto;
-            width: 100%;
         }
 
-        .charts-container {
+        /* ── Cards & Grid ── */
+        .top-cards {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
         }
 
@@ -130,7 +255,7 @@
             border-radius: 1rem;
             padding: 1.5rem;
             backdrop-filter: var(--glass-blur);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
             display: flex;
             flex-direction: column;
         }
@@ -146,6 +271,50 @@
             font-size: 1.125rem;
             font-weight: 600;
             color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        /* ── Charts Section ── */
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 0.5rem;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
         }
 
         .chart-wrapper {
@@ -154,9 +323,10 @@
             width: 100%;
         }
 
-        .sidebar {
-            display: flex;
-            flex-direction: column;
+        /* ── Controls & Events (Bottom area) ── */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 350px 1fr;
             gap: 1.5rem;
         }
 
@@ -253,7 +423,7 @@
         }
 
         .event-feed {
-            max-height: 400px;
+            max-height: 350px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -287,276 +457,589 @@
             background: rgba(245, 158, 11, 0.1);
         }
 
-        .event-time {
-            color: var(--text-muted);
-            font-size: 0.75rem;
-            margin-bottom: 0.25rem;
+        /* Modals */
+        .modal {
+            display: none; 
+            position: fixed; 
+            z-index: 1000; 
+            left: 0;
+            top: 0;
+            width: 100%; 
+            height: 100%; 
+            background-color: rgba(0,0,0,0.5); 
+            backdrop-filter: blur(4px);
+            align-items: center;
+            justify-content: center;
         }
 
-        .event-title {
-            font-weight: 600;
-            color: var(--text-main);
-            margin-bottom: 0.25rem;
-        }
-
-        .event-desc {
-            color: var(--text-muted);
-        }
-
-        .latest-stats {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2rem;
-            overflow-x: auto;
-            padding-bottom: 0.5rem;
-        }
-
-        .stat-card {
-            background: var(--bg-card);
+        .modal-content {
+            background-color: var(--bg-sidebar);
             border: 1px solid var(--border-color);
-            padding: 1rem 1.5rem;
-            border-radius: 0.75rem;
-            min-width: 150px;
-            backdrop-filter: var(--glass-blur);
+            padding: 20px;
+            border-radius: 1rem;
+            width: 300px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
         }
 
-        .stat-label {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
+        .modal h3 {
+            margin-bottom: 1rem;
         }
 
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-main);
+        .modal input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border-color);
+            color: white;
+            border-radius: 0.25rem;
         }
 
-        @media (max-width: 1024px) {
-            main {
-                grid-template-columns: 1fr;
-            }
-            .charts-container {
-                grid-template-columns: 1fr;
-            }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.5rem;
         }
+
+        .modal-actions button {
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            border: none;
+            cursor: pointer;
+            font-family: inherit;
+        }
+
+        .btn-cancel { background: rgba(255,255,255,0.1); color: white; }
+        .btn-save { background: var(--accent-blue); color: white; }
+
     </style>
 </head>
 <body>
 
-<header>
-    <h1>Micro-UXI Control Center</h1>
-    <div class="device-selector">
-        <select id="deviceSelect" onchange="changeDevice()">
-            <option value="uno-q-01">uno-q-01 (Loading...)</option>
-        </select>
-        <div id="statusBadge" class="status-badge">
-            <div class="status-indicator"></div>
-            <span id="statusText">Connecting...</span>
+<!-- ── Sidebar ── -->
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <h2>Micro-UXI</h2>
+    </div>
+    <div class="sidebar-content" id="sidebarContent">
+        <!-- Rendered by JS -->
+    </div>
+    <div style="padding: 1rem;">
+        <button class="add-group-btn" onclick="openGroupModal()"><i class="fa-solid fa-plus"></i> New Group</button>
+    </div>
+</aside>
+
+<!-- ── Main Area ── -->
+<div class="main-wrapper">
+    <header>
+        <div class="header-left">
+            <div>
+                <div class="device-title" id="headerDeviceName">Select a Device</div>
+                <div class="device-meta" id="headerDeviceMeta">--</div>
+            </div>
+        </div>
+        <div id="statusBadge" class="status-badge" style="display: none; padding: 0.5rem 1rem; border-radius: 2rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); align-items: center; gap: 0.5rem;">
+            <div class="status-indicator" id="statusDot" style="width:10px; height:10px; border-radius:50%; background:gray;"></div>
+            <span id="statusText" style="font-size:0.875rem; font-weight:600;">Offline</span>
+        </div>
+    </header>
+
+    <main id="mainContent" style="display: none;">
+        
+        <!-- Top Cards (Stats & WiFi Info) -->
+        <div class="top-cards">
+            <!-- Latest Stats Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fa-solid fa-bolt" style="color:var(--accent-yellow)"></i> Latest Snapshot</div>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Ping RTT</div>
+                        <div class="stat-value" id="statRtt">-- ms</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Packet Loss</div>
+                        <div class="stat-value" id="statLoss">-- %</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Throughput</div>
+                        <div class="stat-value" id="statTpt">-- Mbps</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Overhead CPU</div>
+                        <div class="stat-value" id="statCpu">-- %</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Wi-Fi Info Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fa-solid fa-wifi" style="color:var(--accent-green)"></i> Wi-Fi Connection</div>
+                </div>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">SSID</div>
+                        <div class="stat-value" id="wifiSsid" style="font-size: 1rem;">--</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">RSSI</div>
+                        <div class="stat-value" id="wifiRssi" style="font-size: 1rem;">-- dBm</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Freq / Band</div>
+                        <div class="stat-value" id="wifiFreq" style="font-size: 1rem;">-- MHz</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">IP Address</div>
+                        <div class="stat-value" id="wifiIp" style="font-size: 1rem;">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Telemetry Charts -->
+        <div>
+            <div class="section-title">Telemetry & Network Performance</div>
+            <div class="charts-grid">
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Network Latency (RTT)</div></div>
+                    <div class="chart-wrapper"><canvas id="rttChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Wi-Fi Signal (RSSI)</div></div>
+                    <div class="chart-wrapper"><canvas id="rssiChart"></canvas></div>
+                </div>
+                <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><div class="card-title">Download Throughput</div></div>
+                    <div class="chart-wrapper" style="height: 200px;"><canvas id="tptChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overhead Charts -->
+        <div>
+            <div class="section-title">System Overhead</div>
+            <div class="charts-grid">
+                <div class="card">
+                    <div class="card-header"><div class="card-title">CPU Usage</div></div>
+                    <div class="chart-wrapper"><canvas id="cpuChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Memory Usage</div></div>
+                    <div class="chart-wrapper"><canvas id="memChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Grid (Control + Events) -->
+        <div class="bottom-grid">
+            <div class="card control-panel">
+                <div class="card-header">
+                    <div class="card-title"><i class="fa-solid fa-sliders"></i> Remote Control</div>
+                </div>
+                
+                <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="margin-bottom: 0;">Fast Probe (S2/S3/S6)</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="cfgFastEnabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="margin-bottom: 0;">Throughput Probe (S5)</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="cfgTptEnabled">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="form-group">
+                    <label>Telemetry Interval (sec)</label>
+                    <select id="cfgTelInterval">
+                        <option value="10">10 seconds</option>
+                        <option value="30">30 seconds</option>
+                        <option value="60">60 seconds</option>
+                        <option value="120">2 minutes</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Ping Target</label>
+                    <input type="text" id="cfgPingTarget">
+                </div>
+
+                <button class="btn" onclick="saveConfig()" id="btnSaveConfig">Push Configuration</button>
+                <p id="configStatus" style="font-size: 0.75rem; color: var(--accent-green); margin-top: 0.5rem; display: none;">Config updated successfully.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fa-solid fa-triangle-exclamation" style="color:var(--accent-red)"></i> Event Feed (Anomalies)</div>
+                </div>
+                <div class="event-feed" id="eventFeed">
+                    <div style="color: var(--text-muted); text-align: center; padding: 2rem;">Waiting for events...</div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Group Modal -->
+<div id="groupModal" class="modal">
+    <div class="modal-content">
+        <h3 id="modalTitle">Create Group</h3>
+        <input type="hidden" id="modalGroupId">
+        <input type="text" id="modalGroupName" placeholder="Group Name">
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeGroupModal()">Cancel</button>
+            <button class="btn-save" onclick="saveGroup()">Save</button>
         </div>
     </div>
-</header>
-
-<main>
-    <div class="main-content">
-        <div class="latest-stats" id="latestStats">
-            <div class="stat-card">
-                <div class="stat-label">Ping RTT</div>
-                <div class="stat-value" id="statRtt">-- ms</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Wi-Fi RSSI</div>
-                <div class="stat-value" id="statRssi">-- dBm</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Throughput</div>
-                <div class="stat-value" id="statTpt">-- Mbps</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">CPU Usage</div>
-                <div class="stat-value" id="statCpu">-- %</div>
-            </div>
-        </div>
-
-        <div class="charts-container">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">Network Latency (RTT)</div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="rttChart"></canvas>
-                </div>
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">Wi-Fi Signal (RSSI)</div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="rssiChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">Download Throughput</div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="tptChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">System Overhead</div>
-                </div>
-                <div class="chart-wrapper">
-                    <canvas id="overheadChart"></canvas>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="sidebar">
-        <div class="card control-panel">
-            <div class="card-header">
-                <div class="card-title">Remote Control</div>
-            </div>
-            
-            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
-                <label style="margin-bottom: 0;">Fast Probe (S2/S3/S6)</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="cfgFastEnabled" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
-                <label style="margin-bottom: 0;">Throughput Probe (S5)</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="cfgTptEnabled" checked>
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <div class="form-group">
-                <label>Telemetry Interval (sec)</label>
-                <select id="cfgTelInterval">
-                    <option value="10">10 seconds</option>
-                    <option value="30">30 seconds</option>
-                    <option value="60">60 seconds</option>
-                    <option value="120">2 minutes</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Ping Target</label>
-                <input type="text" id="cfgPingTarget" value="8.8.8.8">
-            </div>
-
-            <button class="btn" onclick="saveConfig()" id="btnSaveConfig">Push Configuration</button>
-            <p id="configStatus" style="font-size: 0.75rem; color: var(--accent-green); margin-top: 0.5rem; display: none;">Config updated successfully.</p>
-            
-            <hr style="border-color: var(--border-color); margin: 1.5rem 0;">
-            <button class="btn" style="background: linear-gradient(135deg, var(--accent-purple), #6d28d9);" onclick="injectDemoData()">Inject Demo Data</button>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <div class="card-title">Event Feed (Anomalies)</div>
-            </div>
-            <div class="event-feed" id="eventFeed">
-                <div style="color: var(--text-muted); text-align: center; padding: 2rem;">Waiting for events...</div>
-            </div>
-        </div>
-    </div>
-</main>
+</div>
 
 <script>
-    // --- Chart Setup ---
+    // ==========================================
+    // STATE
+    // ==========================================
+    let currentDeviceId = null;
+    let localConfigVersion = 0;
+    
+    let devicesMap = {}; // device_id -> device info
+    let groupsMap = {};  // group_id -> group info
+    
+    // ==========================================
+    // CHART SETUP (With Crosshair & Time Scale)
+    // ==========================================
     Chart.defaults.color = '#94a3b8';
     Chart.defaults.font.family = "'Inter', sans-serif";
-    
-    const commonOptions = {
+
+    // Common options for time series
+    const commonTimeOptions = {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
+        interaction: {
+            mode: 'index',
+            intersect: false,
+        },
+        plugins: {
+            legend: { display: false },
+            crosshair: {
+                line: { color: 'rgba(255,255,255,0.2)', width: 1 },
+                sync: {
+                    enabled: true,
+                    group: 1, // Same group syncs crosshairs across multiple charts
+                    suppressTooltips: false
+                },
+                zoom: { enabled: false }
+            }
+        },
         scales: {
-            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { maxTicksLimit: 6 } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+            x: {
+                type: 'time',
+                time: {
+                    tooltipFormat: 'HH:mm:ss',
+                    displayFormats: {
+                        millisecond: 'HH:mm:ss',
+                        second: 'HH:mm:ss',
+                        minute: 'HH:mm',
+                        hour: 'HH:mm'
+                    }
+                },
+                grid: { color: 'rgba(255,255,255,0.05)' },
+                ticks: { maxTicksLimit: 6 }
+            },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' } }
         },
         elements: {
-            line: { tension: 0.4, borderWidth: 2 },
+            line: { tension: 0.3, borderWidth: 2 },
             point: { radius: 0, hitRadius: 10, hoverRadius: 4 }
         },
-        animation: { duration: 0 } // Disable animation for live updates
+        animation: { duration: 0 }
     };
 
     const charts = {
         rtt: new Chart(document.getElementById('rttChart'), {
             type: 'line',
-            data: { labels: [], datasets: [{ data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] },
-            options: commonOptions
+            data: { datasets: [{ data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] },
+            options: { ...commonTimeOptions, scales: { ...commonTimeOptions.scales, y: { ...commonTimeOptions.scales.y, beginAtZero: true } } }
         }),
         rssi: new Chart(document.getElementById('rssiChart'), {
             type: 'line',
-            data: { labels: [], datasets: [{ data: [], borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true }] },
-            options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, beginAtZero: false } } }
+            data: { datasets: [{ data: [], borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true }] },
+            options: commonTimeOptions
         }),
         tpt: new Chart(document.getElementById('tptChart'), {
-            type: 'bar',
-            data: { labels: [], datasets: [{ data: [], backgroundColor: '#10b981', borderRadius: 4 }] },
-            options: commonOptions
+            type: 'line', // Line is better for crosshair sync on time scale
+            data: { datasets: [{ data: [], borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, stepped: 'middle' }] },
+            options: { ...commonTimeOptions, scales: { ...commonTimeOptions.scales, y: { ...commonTimeOptions.scales.y, beginAtZero: true } } }
         }),
-        overhead: new Chart(document.getElementById('overheadChart'), {
+        cpu: new Chart(document.getElementById('cpuChart'), {
             type: 'line',
-            data: { labels: [], datasets: [
-                { label: 'CPU %', data: [], borderColor: '#ef4444', backgroundColor: 'transparent' },
-                { label: 'Mem %', data: [], borderColor: '#f59e0b', backgroundColor: 'transparent' }
-            ]},
-            options: { ...commonOptions, plugins: { legend: { display: true, position: 'top', align: 'end', labels: { boxWidth: 10, usePointStyle: true } } }, scales: { y: { suggestedMax: 100 } } }
+            data: { datasets: [{ data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true }] },
+            options: { ...commonTimeOptions, scales: { ...commonTimeOptions.scales, y: { ...commonTimeOptions.scales.y, suggestedMax: 100, beginAtZero: true } } }
+        }),
+        mem: new Chart(document.getElementById('memChart'), {
+            type: 'line',
+            data: { datasets: [{ data: [], borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true }] },
+            options: { ...commonTimeOptions, scales: { ...commonTimeOptions.scales, y: { ...commonTimeOptions.scales.y, suggestedMax: 100, beginAtZero: true } } }
         })
     };
 
-    let currentDeviceId = 'uno-q-01';
-    let localConfigVersion = 0;
-
-    // --- Data Fetching ---
-
-    async function fetchStatus() {
+    // ==========================================
+    // SIDEBAR & DEVICE MGMT
+    // ==========================================
+    async function fetchSidebarData() {
         try {
-            const res = await fetch('/api/status');
-            const data = await res.json();
-            const sel = document.getElementById('deviceSelect');
+            const [grpRes, statRes] = await Promise.all([
+                fetch('/api/groups'),
+                fetch('/api/status')
+            ]);
             
-            if (data.devices.length > 0) {
-                // Update dropdown options if needed (simplified for demo)
-                const badge = document.getElementById('statusBadge');
-                const text = document.getElementById('statusText');
-                
-                const device = data.devices.find(d => d.device_id === currentDeviceId) || data.devices[0];
-                currentDeviceId = device.device_id;
-                
-                if (device.online) {
-                    badge.className = 'status-badge online';
-                    text.textContent = `Online (seen ${device.seconds_ago}s ago)`;
-                } else {
-                    badge.className = 'status-badge offline';
-                    text.textContent = `Offline (seen ${device.seconds_ago}s ago)`;
-                }
+            const grpData = await grpRes.json();
+            const statData = await statRes.json();
+            
+            groupsMap = {};
+            grpData.groups.forEach(g => groupsMap[g.id] = g);
+            
+            devicesMap = {};
+            statData.devices.forEach(d => devicesMap[d.device_id] = d);
+            
+            renderSidebar();
+            
+            // If no device selected but we have devices, select the first one
+            if (!currentDeviceId && statData.devices.length > 0) {
+                selectDevice(statData.devices[0].device_id);
             }
-        } catch (e) {
-            console.error('Failed to fetch status', e);
+        } catch(e) {
+            console.error("Sidebar fetch error", e);
         }
     }
 
-    async function fetchHistory() {
+    function renderSidebar() {
+        const container = document.getElementById('sidebarContent');
+        container.innerHTML = '';
+        
+        // Group devices
+        const grouped = { 'ungrouped': [] };
+        Object.values(groupsMap).forEach(g => grouped[g.id] = []);
+        
+        Object.values(devicesMap).forEach(d => {
+            if (d.group_id && grouped[d.group_id]) {
+                grouped[d.group_id].push(d);
+            } else {
+                grouped['ungrouped'].push(d);
+            }
+        });
+
+        // Render Groups
+        Object.values(groupsMap).forEach(g => {
+            const grpEl = document.createElement('div');
+            grpEl.className = 'group-container';
+            grpEl.dataset.groupId = g.id;
+            grpEl.ondragover = handleDragOver;
+            grpEl.ondrop = handleDrop;
+            grpEl.ondragleave = handleDragLeave;
+
+            grpEl.innerHTML = `
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <span><i class="fa-solid fa-chevron-down" style="font-size:0.75rem; margin-right:0.5rem"></i> ${g.name}</span>
+                    <div class="group-actions" onclick="event.stopPropagation()">
+                        <i class="fa-solid fa-pen" onclick="openGroupModal(${g.id}, '${g.name}')" title="Edit"></i>
+                        <i class="fa-solid fa-trash" onclick="deleteGroup(${g.id})" title="Delete"></i>
+                    </div>
+                </div>
+                <div class="device-list">
+                    ${grouped[g.id].map(d => renderDeviceItem(d)).join('')}
+                </div>
+            `;
+            container.appendChild(grpEl);
+        });
+
+        // Render Ungrouped
+        if (grouped['ungrouped'].length > 0 || Object.keys(groupsMap).length === 0) {
+            const ungrpEl = document.createElement('div');
+            ungrpEl.className = 'group-container';
+            ungrpEl.dataset.groupId = 'null';
+            ungrpEl.ondragover = handleDragOver;
+            ungrpEl.ondrop = handleDrop;
+            ungrpEl.ondragleave = handleDragLeave;
+
+            ungrpEl.innerHTML = `
+                <div class="group-header" onclick="toggleGroup(this)">
+                    <span><i class="fa-solid fa-chevron-down" style="font-size:0.75rem; margin-right:0.5rem"></i> Ungrouped</span>
+                </div>
+                <div class="device-list">
+                    ${grouped['ungrouped'].map(d => renderDeviceItem(d)).join('')}
+                </div>
+            `;
+            container.appendChild(ungrpEl);
+        }
+    }
+
+    function renderDeviceItem(d) {
+        const isActive = d.device_id === currentDeviceId ? 'active' : '';
+        const isOnline = d.online ? 'online' : 'offline';
+        return `
+            <div class="device-item ${isActive} ${isOnline}" 
+                 draggable="true" 
+                 ondragstart="handleDragStart(event, '${d.device_id}')"
+                 onclick="selectDevice('${d.device_id}')">
+                <div class="status-dot"></div>
+                <div class="device-name" title="${d.device_id}">${d.device_id}</div>
+            </div>
+        `;
+    }
+
+    function toggleGroup(header) {
+        const list = header.nextElementSibling;
+        const icon = header.querySelector('i.fa-chevron-down, i.fa-chevron-right');
+        if (list.style.display === 'none') {
+            list.style.display = 'block';
+            icon.className = 'fa-solid fa-chevron-down';
+        } else {
+            list.style.display = 'none';
+            icon.className = 'fa-solid fa-chevron-right';
+        }
+    }
+
+    // --- Drag and Drop ---
+    function handleDragStart(e, deviceId) {
+        e.dataTransfer.setData('text/plain', deviceId);
+    }
+    function handleDragOver(e) {
+        e.preventDefault();
+        e.currentTarget.classList.add('drag-over');
+    }
+    function handleDragLeave(e) {
+        e.currentTarget.classList.remove('drag-over');
+    }
+    async function handleDrop(e) {
+        e.preventDefault();
+        e.currentTarget.classList.remove('drag-over');
+        const deviceId = e.dataTransfer.getData('text/plain');
+        let groupId = e.currentTarget.dataset.groupId;
+        groupId = groupId === 'null' ? null : parseInt(groupId);
+
         try {
+            await fetch(`/api/devices/${deviceId}/group`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ group_id: groupId })
+            });
+            fetchSidebarData();
+        } catch(err) { console.error("Drop error", err); }
+    }
+
+    // --- Modal Logic ---
+    function openGroupModal(id = null, name = '') {
+        document.getElementById('modalGroupId').value = id || '';
+        document.getElementById('modalGroupName').value = name;
+        document.getElementById('modalTitle').innerText = id ? 'Edit Group' : 'Create Group';
+        document.getElementById('groupModal').style.display = 'flex';
+    }
+    function closeGroupModal() {
+        document.getElementById('groupModal').style.display = 'none';
+    }
+    async function saveGroup() {
+        const id = document.getElementById('modalGroupId').value;
+        const name = document.getElementById('modalGroupName').value.trim();
+        if (!name) return;
+
+        try {
+            if (id) {
+                await fetch(`/api/groups/${id}`, {
+                    method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name})
+                });
+            } else {
+                await fetch(`/api/groups`, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({name})
+                });
+            }
+            closeGroupModal();
+            fetchSidebarData();
+        } catch(e) { alert("Error saving group"); }
+    }
+    async function deleteGroup(id) {
+        if (!confirm("Delete this group? Devices will be moved to Ungrouped.")) return;
+        try {
+            await fetch(`/api/groups/${id}`, { method: 'DELETE' });
+            fetchSidebarData();
+        } catch(e) { console.error("Error deleting group", e); }
+    }
+
+
+    // ==========================================
+    // MAIN CONTENT DATA
+    // ==========================================
+    function selectDevice(deviceId) {
+        currentDeviceId = deviceId;
+        localConfigVersion = 0;
+        
+        // Update header UI
+        document.getElementById('mainContent').style.display = 'flex';
+        document.getElementById('headerDeviceName').innerText = deviceId;
+        const dev = devicesMap[deviceId];
+        if (dev) {
+            document.getElementById('headerDeviceMeta').innerText = `IP: ${dev.ip_address || 'Unknown'}`;
+            const badge = document.getElementById('statusBadge');
+            const dot = document.getElementById('statusDot');
+            const txt = document.getElementById('statusText');
+            badge.style.display = 'flex';
+            if (dev.online) {
+                dot.style.background = 'var(--accent-green)';
+                dot.style.boxShadow = '0 0 10px var(--accent-green)';
+                txt.innerText = 'Online';
+            } else {
+                dot.style.background = 'var(--accent-red)';
+                dot.style.boxShadow = '0 0 10px var(--accent-red)';
+                txt.innerText = 'Offline';
+            }
+        }
+
+        renderSidebar(); // refresh active state
+        refreshData();
+    }
+
+    async function refreshData() {
+        if (!currentDeviceId) return;
+
+        try {
+            // Fetch Latest (for Wi-Fi card & stats)
+            const resLatest = await fetch(`/api/data/latest?device_id=${currentDeviceId}`);
+            const dataLatestMap = await resLatest.json();
+            const latest = dataLatestMap[currentDeviceId];
+
+            if (latest && latest.telemetry) {
+                const wifi = latest.telemetry.telemetry?.wifi || {};
+                const ping = latest.telemetry.telemetry?.ping || {};
+                const net = latest.telemetry.telemetry?.network || {};
+                
+                document.getElementById('statRtt').innerText = ping.rtt_avg_ms ? ping.rtt_avg_ms.toFixed(1) + ' ms' : '-- ms';
+                document.getElementById('statLoss').innerText = ping.loss_pct !== undefined ? ping.loss_pct + ' %' : '-- %';
+                
+                document.getElementById('wifiSsid').innerText = wifi.wifi_ssid || '--';
+                document.getElementById('wifiRssi').innerText = wifi.wifi_rssi_dbm ? wifi.wifi_rssi_dbm + ' dBm' : '-- dBm';
+                document.getElementById('wifiFreq').innerText = wifi.wifi_freq_mhz ? wifi.wifi_freq_mhz + ' MHz' : '--';
+                document.getElementById('wifiIp').innerText = net.ip_address || '--';
+            }
+
+            if (latest && latest.overhead) {
+                document.getElementById('statCpu').innerText = latest.overhead.cpu_pct !== undefined ? latest.overhead.cpu_pct + ' %' : '-- %';
+            }
+            if (latest && latest.throughput && latest.throughput.summary) {
+                const tp = latest.throughput.summary.throughput_total_mbps;
+                const tpVal = typeof tp === 'object' ? tp.avg : tp;
+                document.getElementById('statTpt').innerText = tpVal ? tpVal.toFixed(2) + ' Mbps' : '-- Mbps';
+            }
+
+            // Fetch History for Charts
             const [resTel, resOvh, resTpt] = await Promise.all([
                 fetch(`/api/data/history?device_id=${currentDeviceId}&probe=telemetry&limit=30`),
-                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=overhead&limit=30`),
+                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=overhead&limit=100`),
                 fetch(`/api/data/history?device_id=${currentDeviceId}&probe=throughput&limit=15`)
             ]);
             
@@ -564,124 +1047,73 @@
             const ovhData = await resOvh.json();
             const tptData = await resTpt.json();
 
-            // Update RTT and RSSI
-            const telLabels = telData.data.map(d => new Date(d.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
-            const rttVals = telData.data.map(d => d.telemetry?.ping?.rtt_avg_ms || null);
-            const rssiVals = telData.data.map(d => d.telemetry?.wifi?.wifi_rssi_dbm || null);
+            // Transform for time scale: {x: timestamp_iso, y: value}
+            const rttSet = telData.data.map(d => ({ x: d.ts, y: d.telemetry?.ping?.rtt_avg_ms || null }));
+            const rssiSet = telData.data.map(d => ({ x: d.ts, y: d.telemetry?.wifi?.wifi_rssi_dbm || null }));
             
-            updateChart(charts.rtt, telLabels, [rttVals]);
-            updateChart(charts.rssi, telLabels, [rssiVals]);
+            const cpuSet = ovhData.data.map(d => ({ x: d.ts, y: d.cpu_pct }));
+            const memSet = ovhData.data.map(d => ({ x: d.ts, y: d.mem_pct }));
             
-            if (rttVals.length > 0 && rttVals[rttVals.length-1] != null) {
-                document.getElementById('statRtt').textContent = rttVals[rttVals.length-1].toFixed(1) + ' ms';
-                document.getElementById('statRssi').textContent = rssiVals[rssiVals.length-1] + ' dBm';
-            }
-
-            // Update Overhead
-            const ovhLabels = ovhData.data.map(d => new Date(d.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'}));
-            const cpuVals = ovhData.data.map(d => d.cpu_pct);
-            const memVals = ovhData.data.map(d => d.mem_pct);
-            
-            updateChart(charts.overhead, ovhLabels, [cpuVals, memVals]);
-            
-            if (cpuVals.length > 0) {
-                document.getElementById('statCpu').textContent = cpuVals[cpuVals.length-1].toFixed(1) + ' %';
-            }
-
-            // Update Throughput
-            const tptLabels = tptData.data.map(d => new Date(d.ts).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}));
-            const tptVals = tptData.data.map(d => {
-                if (d.summary && d.summary.throughput_total_mbps) {
-                    return typeof d.summary.throughput_total_mbps === 'object' ? d.summary.throughput_total_mbps.avg : null;
-                }
-                return null;
+            const tptSet = tptData.data.map(d => {
+                const tp = d.summary?.throughput_total_mbps;
+                return { x: d.ts, y: (typeof tp === 'object' ? tp.avg : null) };
             });
-            
-            updateChart(charts.tpt, tptLabels, [tptVals]);
-            
-            if (tptVals.length > 0 && tptVals[tptVals.length-1] != null) {
-                document.getElementById('statTpt').textContent = tptVals[tptVals.length-1].toFixed(2) + ' Mbps';
-            }
 
-        } catch (e) {
-            console.error('Failed to fetch history', e);
-        }
-    }
+            charts.rtt.data.datasets[0].data = rttSet; charts.rtt.update();
+            charts.rssi.data.datasets[0].data = rssiSet; charts.rssi.update();
+            charts.cpu.data.datasets[0].data = cpuSet; charts.cpu.update();
+            charts.mem.data.datasets[0].data = memSet; charts.mem.update();
+            charts.tpt.data.datasets[0].data = tptSet; charts.tpt.update();
 
-    async function fetchEvents() {
-        try {
-            const res = await fetch(`/api/data/events?device_id=${currentDeviceId}&limit=10`);
-            const data = await res.json();
+            // Fetch Events
+            const resEvt = await fetch(`/api/data/events?device_id=${currentDeviceId}&limit=15`);
+            const evtData = await resEvt.json();
             const feed = document.getElementById('eventFeed');
             
-            if (data.events.length === 0) {
+            if (evtData.events.length === 0) {
                 feed.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">No anomalies detected.</div>';
-                return;
+            } else {
+                feed.innerHTML = evtData.events.map(ev => `
+                    <div class="event-item ${ev.severity}">
+                        <div class="event-time">${new Date(ev.ts).toLocaleString()}</div>
+                        <div class="event-title">${ev.event_type}</div>
+                        <div class="event-desc">${ev.description}</div>
+                    </div>
+                `).join('');
             }
-            
-            feed.innerHTML = data.events.map(ev => `
-                <div class="event-item ${ev.severity}">
-                    <div class="event-time">${new Date(ev.ts).toLocaleString()}</div>
-                    <div class="event-title">${ev.event_type}</div>
-                    <div class="event-desc">${ev.description}</div>
-                </div>
-            `).join('');
-        } catch (e) {
-            console.error('Failed to fetch events', e);
-        }
-    }
 
-    async function fetchConfig() {
-        try {
-            const res = await fetch(`/api/config?device_id=${currentDeviceId}`);
-            const data = await res.json();
+            // Fetch Config
+            const resCfg = await fetch(`/api/config?device_id=${currentDeviceId}`);
+            const cfgData = await resCfg.json();
             
-            if (data.config && data.version > localConfigVersion) {
-                localConfigVersion = data.version;
-                const cfg = data.config;
-                
+            if (cfgData.config && cfgData.version > localConfigVersion) {
+                localConfigVersion = cfgData.version;
+                const cfg = cfgData.config;
                 if (cfg.fast_probe) {
                     document.getElementById('cfgFastEnabled').checked = cfg.fast_probe.enabled;
-                    if (cfg.fast_probe.ping_target) {
-                        document.getElementById('cfgPingTarget').value = cfg.fast_probe.ping_target;
-                    }
+                    if (cfg.fast_probe.ping_target) document.getElementById('cfgPingTarget').value = cfg.fast_probe.ping_target;
                 }
                 if (cfg.scheduler) {
                     const sel = document.getElementById('cfgTelInterval');
                     const val = cfg.scheduler.telemetry_interval_sec.toString();
-                    if (Array.from(sel.options).some(o => o.value === val)) {
-                        sel.value = val;
-                    }
+                    if (Array.from(sel.options).some(o => o.value === val)) sel.value = val;
                 }
                 if (cfg.modules) {
                     document.getElementById('cfgTptEnabled').checked = cfg.modules.throughput;
                 }
             }
-        } catch (e) {
-            console.error('Failed to fetch config', e);
-        }
+
+        } catch(e) { console.error("Refresh data error", e); }
     }
 
-    function updateChart(chart, labels, datasetDataArray) {
-        chart.data.labels = labels;
-        datasetDataArray.forEach((data, i) => {
-            if (chart.data.datasets[i]) {
-                chart.data.datasets[i].data = data;
-            }
-        });
-        chart.update();
-    }
-
-    // --- Actions ---
-
+    // --- Control Actions ---
     async function saveConfig() {
+        if (!currentDeviceId) return;
         const btn = document.getElementById('btnSaveConfig');
         const statusMsg = document.getElementById('configStatus');
         
-        btn.textContent = "Saving...";
-        btn.disabled = true;
+        btn.textContent = "Saving..."; btn.disabled = true;
         
-        // Fetch current config to merge changes
         let currentCfg = {};
         try {
             const res = await fetch(`/api/config?device_id=${currentDeviceId}`);
@@ -689,7 +1121,6 @@
             if (data.config) currentCfg = data.config;
         } catch (e) {}
 
-        // Build new config
         const newCfg = {
             ...currentCfg,
             fast_probe: {
@@ -709,12 +1140,10 @@
 
         try {
             const res = await fetch('/api/config', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ device_id: currentDeviceId, config: newCfg })
             });
             const result = await res.json();
-            
             if (result.ok) {
                 localConfigVersion = result.version;
                 statusMsg.style.display = 'block';
@@ -723,40 +1152,18 @@
         } catch (e) {
             alert("Failed to save config: " + e.message);
         } finally {
-            btn.textContent = "Push Configuration";
-            btn.disabled = false;
+            btn.textContent = "Push Configuration"; btn.disabled = false;
         }
     }
 
-    async function injectDemoData() {
-        try {
-            await fetch('/api/demo/simulate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ device_id: currentDeviceId, n: 10 })
-            });
-            refreshAll();
-        } catch (e) {
-            console.error(e);
-        }
-    }
-
-    function changeDevice() {
-        currentDeviceId = document.getElementById('deviceSelect').value;
-        localConfigVersion = 0;
-        refreshAll();
-    }
-
-    function refreshAll() {
-        fetchStatus();
-        fetchHistory();
-        fetchEvents();
-        fetchConfig();
-    }
-
-    // --- Initialization ---
-    refreshAll();
-    setInterval(refreshAll, 5000); // Auto-refresh every 5s
+    // ==========================================
+    // INIT LOOP
+    // ==========================================
+    fetchSidebarData();
+    setInterval(() => {
+        fetchSidebarData();
+        refreshData();
+    }, 5000);
 
 </script>
 </body>
