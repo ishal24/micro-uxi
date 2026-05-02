@@ -167,24 +167,32 @@ def _eval_dns_delay(sample: dict, cond: dict):
 
 
 def _eval_throttle(sample: dict, cond: dict):
-    """S5 — Throughput probe reports low bandwidth."""
-    summary = sample.get("summary") or {}
-    tp      = summary.get("throughput_total_mbps") or {}
-    rh      = summary.get("run_health") or {}
-    tp_avg  = tp.get("avg") if isinstance(tp, dict) else None
-    total   = rh.get("total_runs", 1) or 1
-    ok      = rh.get("successful_http_runs", 0)
+    """S5 — Throughput probe reports low bandwidth.
+
+    Supports both schema versions:
+      - New: summary = {"download": {...}, "upload": {...}}
+      - Old: summary = {"throughput_total_mbps": {...}, "run_health": {...}}
+    """
+    summary  = sample.get("summary") or {}
+    # New schema: use summary.download; fall back to flat summary for old schema
+    dl_sum   = summary.get("download") or summary
+
+    tp       = dl_sum.get("throughput_total_mbps") or {}
+    rh       = dl_sum.get("run_health") or {}
+    tp_avg   = tp.get("avg") if isinstance(tp, dict) else None
+    total    = rh.get("total_runs", 1) or 1
+    ok       = rh.get("successful_http_runs", 0)
     thresh_tp = cond.get("throughput_avg_mbps_lt", 3.0)
 
-    # All runs failed — server unreachable or throttled to 0
+    # All download runs failed — server unreachable or throttled to 0
     if tp_avg is None:
         if ok == 0 and total > 0:
-            return True, f"all {total} runs failed (server down or throttled to 0)"
+            return True, f"all {total} DL runs failed (server down or throttled to 0)"
         return False, "no throughput data"
 
     if tp_avg < thresh_tp:
-        return True, f"tp_avg={tp_avg:.2f}Mbps < {thresh_tp}Mbps  runs={ok}/{total}"
-    return False, f"tp_avg={tp_avg:.2f}Mbps (ok)"
+        return True, f"dl_avg={tp_avg:.2f}Mbps < {thresh_tp}Mbps  runs={ok}/{total}"
+    return False, f"dl_avg={tp_avg:.2f}Mbps (ok)"
 
 
 def _eval_flap(sample: dict, cond: dict):
@@ -390,8 +398,10 @@ class EventDetector:
 
         elif probe == "throughput":
             summary = sample.get("summary") or {}
-            tp      = summary.get("throughput_total_mbps") or {}
-            tp_avg  = tp.get("avg") if isinstance(tp, dict) else None
+            # New schema: summary.download; fall back to flat summary
+            dl_sum = summary.get("download") or summary
+            tp     = dl_sum.get("throughput_total_mbps") or {}
+            tp_avg = tp.get("avg") if isinstance(tp, dict) else None
 
         row = {
             "ts":                 sample.get("ts") or sample.get("collected_at_utc"),

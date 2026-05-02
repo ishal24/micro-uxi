@@ -119,28 +119,55 @@ def flatten_telemetry(result: dict) -> dict:
 
 def flatten_throughput(result: dict) -> dict:
     cfg = result.get("config_used") or {}
+    dl_cfg = cfg.get("download") or cfg  # backward-compat: old cfg had url/runs at top level
+    ul_cfg = cfg.get("upload")  or {}
     row = {
-        "collected_at_utc": result.get("collected_at_utc"),
-        "device_id":        result.get("device_id"),
-        "site_name":        result.get("site_name"),
-        "iface":            result.get("iface"),
-        "mode":             result.get("mode"),
-        "url":              cfg.get("url"),
-        "runs":             cfg.get("runs"),
+        "collected_at_utc":   result.get("collected_at_utc"),
+        "device_id":          result.get("device_id"),
+        "site_name":          result.get("site_name"),
+        "iface":              result.get("iface"),
+        "mode":               result.get("mode"),
+        "download_url":       dl_cfg.get("url"),
+        "download_runs":      dl_cfg.get("runs"),
+        "upload_url":         ul_cfg.get("url"),
+        "upload_runs":        ul_cfg.get("runs"),
+        "upload_enabled":     ul_cfg.get("enabled", False),
     }
+
     summary = result.get("summary") or {}
+    dl_sum  = summary.get("download") or summary  # backward-compat: flat summary
+    ul_sum  = summary.get("upload")  or {}
+
+    # Download metrics
     for metric in ["throughput_total_mbps", "throughput_transfer_mbps",
                    "http_total_ms", "http_ttfb_ms", "http_dns_ms",
-                   "http_download_bytes", "transfer_only_ms"]:
-        m = summary.get(metric)
+                   "http_download_bytes", "transfer_only_ms",
+                   "dns_duration_ms", "tcp_duration_ms", "tls_duration_ms", "server_wait_ms"]:
+        m = dl_sum.get(metric)
         for stat in ["avg", "median", "p95", "min", "max"]:
-            row[f"{metric}_{stat}"] = m.get(stat) if isinstance(m, dict) else None
-    rh = summary.get("run_health") or {}
-    row["run_health_total"]        = rh.get("total_runs")
-    row["run_health_successful"]   = rh.get("successful_http_runs")
-    row["run_health_failed"]       = rh.get("failed_runs")
-    row["download_complete_true"]  = rh.get("download_complete_true")
-    row["download_complete_false"] = rh.get("download_complete_false")
+            row[f"dl_{metric}_{stat}"] = m.get(stat) if isinstance(m, dict) else None
+    dl_rh = dl_sum.get("run_health") or {}
+    row["dl_run_health_total"]       = dl_rh.get("total_runs")
+    row["dl_run_health_successful"]  = dl_rh.get("successful_http_runs")
+    row["dl_run_health_failed"]      = dl_rh.get("failed_runs")
+    row["dl_download_complete_true"] = dl_rh.get("download_complete_true")
+    row["dl_download_complete_false"]= dl_rh.get("download_complete_false")
+
+    # Upload metrics
+    for metric in ["upload_throughput_total_mbps", "upload_throughput_transfer_mbps",
+                   "http_total_ms", "http_ttfb_ms", "http_dns_ms",
+                   "http_upload_bytes", "transfer_only_ms",
+                   "dns_duration_ms", "tcp_duration_ms", "tls_duration_ms", "server_wait_ms"]:
+        m = ul_sum.get(metric)
+        for stat in ["avg", "median", "p95", "min", "max"]:
+            row[f"ul_{metric}_{stat}"] = m.get(stat) if isinstance(m, dict) else None
+    ul_rh = ul_sum.get("run_health") or {}
+    row["ul_run_health_total"]      = ul_rh.get("total_runs")
+    row["ul_run_health_successful"] = ul_rh.get("successful_http_runs")
+    row["ul_run_health_failed"]     = ul_rh.get("failed_runs")
+    row["ul_upload_complete_true"]  = ul_rh.get("upload_complete_true")
+    row["ul_upload_complete_false"] = ul_rh.get("upload_complete_false")
+
     return row
 
 
@@ -318,22 +345,38 @@ class MonitorController:
     def _thr_line(self, result: dict) -> str:
         ts   = (result.get("collected_at_utc") or "?")[-15:-7]
         summ = result.get("summary") or {}
-        tp   = summ.get("throughput_total_mbps")
-        rh   = summ.get("run_health") or {}
 
-        tp_avg = tp.get("avg") if isinstance(tp, dict) else None
-        tp_p95 = tp.get("p95") if isinstance(tp, dict) else None
-        ok     = rh.get("successful_http_runs", 0)
-        total  = rh.get("total_runs", 0)
+        # New schema: summary.download / summary.upload sub-dicts
+        # Backward-compat: old schema had metrics flat in summary
+        dl_sum = summ.get("download") or summ
+        ul_sum = summ.get("upload")  or {}
 
-        status = "FAIL" if ok == 0 else ("PARTIAL" if ok < total else "OK")
+        dl_tp  = dl_sum.get("throughput_total_mbps")
+        ul_tp  = ul_sum.get("upload_throughput_total_mbps")
+        dl_rh  = dl_sum.get("run_health") or {}
+        ul_rh  = ul_sum.get("run_health") or {}
 
-        return (
-            f"[THR #{self.thr_count:>4}] {ts}"
-            f"  avg={self._fmt(tp_avg, '{:>7.3f}Mbps')}"
-            f"  p95={self._fmt(tp_p95, '{:>7.3f}Mbps')}"
-            f"  runs={ok}/{total} [{status}]"
-        )
+        dl_avg = dl_tp.get("avg") if isinstance(dl_tp, dict) else None
+        dl_p95 = dl_tp.get("p95") if isinstance(dl_tp, dict) else None
+        ul_avg = ul_tp.get("avg") if isinstance(ul_tp, dict) else None
+
+        dl_ok    = dl_rh.get("successful_http_runs", 0)
+        dl_total = dl_rh.get("total_runs", 0)
+        ul_ok    = ul_rh.get("successful_http_runs", 0)
+        ul_total = ul_rh.get("total_runs", 0)
+
+        dl_status = "FAIL" if dl_ok == 0 and dl_total > 0 else ("PARTIAL" if dl_ok < dl_total else "OK")
+
+        parts = [
+            f"[THR #{self.thr_count:>4}] {ts}",
+            f"  DL avg={self._fmt(dl_avg, '{:>7.3f}Mbps')}",
+            f"  p95={self._fmt(dl_p95, '{:>7.3f}Mbps')}",
+            f"  runs={dl_ok}/{dl_total} [{dl_status}]",
+        ]
+        if ul_total > 0:
+            ul_status = "FAIL" if ul_ok == 0 else ("PARTIAL" if ul_ok < ul_total else "OK")
+            parts.append(f"  UL avg={self._fmt(ul_avg, '{:>7.3f}Mbps')}  runs={ul_ok}/{ul_total} [{ul_status}]")
+        return "".join(parts)
 
     # ------------------------------------------------------------------
     # Worker threads
@@ -501,7 +544,7 @@ class MonitorController:
               f"  (full snapshot — S1/S4)")
         if throughput_enabled:
             print(f"  Throughput  : every {self.throughput_interval}s"
-                  f"  (download — S5)")
+                  f"  (download + upload — S5)")
         else:
             print(f"  Throughput  : disabled")
         print(f"  Duration    : {dur_label}")
