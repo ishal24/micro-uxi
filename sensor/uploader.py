@@ -88,7 +88,7 @@ class Uploader:
             with urllib.request.urlopen(req, timeout=5.0) as response:
                 return response.status in (200, 201)
         except Exception as e:
-            # Silently fail or log debug
+            print(f"[Uploader] Gagal POST ke {endpoint}: {e}")
             return False
 
     def get_config(self, device_id: str) -> dict | None:

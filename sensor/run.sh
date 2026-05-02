@@ -57,14 +57,18 @@ else
     exit 1
 fi
 
-# ── Auto-detect device_id ─────────────────────────────────────
+# ── Auto-detect config values ─────────────────────────────────
 CFG="$SCRIPT_DIR/config.json"
 if [ -f "$CFG" ]; then
     OVERHEAD_DEVICE_ID=$($PYTHON -c \
         "import json; c=json.load(open('$CFG')); print(c.get('device',{}).get('device_id','uno-q-01'))" \
         2>/dev/null || echo "uno-q-01")
+    SERVER_URL=$($PYTHON -c \
+        "import json; c=json.load(open('$CFG')); print(c.get('server',{}).get('url',''))" \
+        2>/dev/null || echo "")
 else
     OVERHEAD_DEVICE_ID="uno-q-01"
+    SERVER_URL=""
 fi
 
 # ── Output dirs (only needed when --save) ────────────────────
@@ -126,7 +130,10 @@ OVERHEAD_SCRIPT="$OVERHEAD_DIR/overhead_monitor.py"
 if [ ! -f "$OVERHEAD_SCRIPT" ]; then
     warn "overhead_monitor.py not found at: $OVERHEAD_SCRIPT — skipping."
 else
-    OVERHEAD_CMD="$PYTHON $OVERHEAD_SCRIPT --device-id $OVERHEAD_DEVICE_ID --interval $OVERHEAD_INTERVAL --config $CFG"
+    OVERHEAD_CMD="$PYTHON $OVERHEAD_SCRIPT --device-id $OVERHEAD_DEVICE_ID --interval $OVERHEAD_INTERVAL"
+    if [ -n "$SERVER_URL" ]; then
+        OVERHEAD_CMD="$OVERHEAD_CMD --server-url $SERVER_URL"
+    fi
     if [[ "$SAVE_OUTPUT" == "true" ]]; then
         $OVERHEAD_CMD >> "$OVERHEAD_LOG" 2>&1 &
         ok "Overhead started (PID $!) → $OVERHEAD_LOG"
