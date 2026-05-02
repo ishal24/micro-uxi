@@ -655,6 +655,8 @@ Modes (--mode):
                         help="Print full JSON for every sample")
     parser.add_argument("--no-fast",  action="store_true",
                         help="Disable the fast probe thread")
+    parser.add_argument("--no-output", action="store_true",
+                        help="Disable all file output — stream to stdout only")
     args = parser.parse_args()
 
     config = load_config(args.config)
@@ -664,6 +666,9 @@ Modes (--mode):
 
     if args.no_fast:
         config.setdefault("fast_probe", {})["enabled"] = False
+
+    if args.no_output:
+        config.setdefault("output", {})["save_output"] = False
 
     out = config.get("output") or {}
     fmt = args.format or out.get("format", "jsonl")
