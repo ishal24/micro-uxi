@@ -69,20 +69,48 @@
     "mode": "routine",
     "connect_timeout_sec": 5,
     "routine": {
-      "url": "https://speed.cloudflare.com/__down?bytes=10000000",
-      "expected_bytes": 10000000,
-      "runs": 3,
-      "warmup": 1,
-      "pause_sec": 2,
-      "max_time_sec": 60
+      "download": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__down?bytes=10000000",
+        "expected_bytes": 10000000,
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 60
+      },
+      "upload": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__up",
+        "expected_bytes": 5000000,
+        "payload_path": "./out/payloads/upload_5mb.bin",
+        "payload_source": "zero",
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 60
+      }
     },
     "stress": {
-      "url": "https://speed.cloudflare.com/__down?bytes=25000000",
-      "expected_bytes": 25000000,
-      "runs": 3,
-      "warmup": 1,
-      "pause_sec": 2,
-      "max_time_sec": 120
+      "download": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+        "expected_bytes": 25000000,
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 120
+      },
+      "upload": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__up",
+        "expected_bytes": 10000000,
+        "payload_path": "./out/payloads/upload_10mb.bin",
+        "payload_source": "zero",
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 120
+      }
     }
   }
 }
