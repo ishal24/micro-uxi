@@ -6,7 +6,7 @@
     "iface": "wlan0"
   },
   "server": {
-    "url": "http://127.0.0.1:5000",
+    "url": "http://192.168.110.186:5000/",
     "upload_enabled": true,
     "api_key": "",
     "config_poll_interval_sec": 30

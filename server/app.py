@@ -118,12 +118,14 @@ def _detect_anomalies(device_id: str, probe_type: str, payload: dict):
                             f"Sustained high RTT: {rtt:.1f} ms", payload)
 
     elif probe_type == "throughput":
-        summ = payload.get("summary") or {}
-        tp = summ.get("throughput_total_mbps")
-        avg = tp.get("avg") if isinstance(tp, dict) else None
+        summ   = payload.get("summary") or {}
+        # New schema: summary.download; fall back to flat for old schema
+        dl_sum = summ.get("download") or summ
+        tp     = dl_sum.get("throughput_total_mbps")
+        avg    = tp.get("avg") if isinstance(tp, dict) else None
         if avg is not None and avg < 3.0:
             db.insert_event(device_id, "S5_THROTTLE", "warning", ts,
-                            f"Low throughput: {avg:.2f} Mbps", payload)
+                            f"Low download throughput: {avg:.2f} Mbps", payload)
 
 # ── Routes — Dashboard ────────────────────────────────────────────────────────
 
@@ -169,17 +171,29 @@ def api_data_latest():
 
 @app.get("/api/data/history")
 def api_data_history():
-    device_id = request.args.get("device_id", "uno-q-01")
-    probe     = request.args.get("probe", "telemetry")
-    limit     = min(int(request.args.get("limit", 100)), 500)
+    device_id   = request.args.get("device_id", "uno-q-01")
+    probe       = request.args.get("probe", "telemetry")
+    limit       = min(int(request.args.get("limit", 500)), 2000)
+    since_hours = request.args.get("since_hours", None)
+
+    since_iso = None
+    if since_hours:
+        try:
+            hrs = float(since_hours)
+            from datetime import timedelta
+            since_dt  = datetime.now(timezone.utc) - timedelta(hours=hrs)
+            since_iso = since_dt.isoformat(timespec="seconds")
+        except ValueError:
+            pass
 
     if probe == "overhead":
-        data = db.get_overhead_history(device_id, limit)
+        data = db.get_overhead_history(device_id, limit, since=since_iso)
     else:
-        data = db.get_sensor_history(device_id, probe, limit)
+        data = db.get_sensor_history(device_id, probe, limit, since=since_iso)
 
     return jsonify({"device_id": device_id, "probe": probe,
-                    "count": len(data), "data": data})
+                    "count": len(data), "data": data,
+                    "since_iso": since_iso})
 
 
 @app.get("/api/data/events")
@@ -272,6 +286,37 @@ def api_config_put():
     config    = body.get("config", body)
     version   = db.set_config(device_id, config)
     return jsonify({"ok": True, "device_id": device_id, "version": version})
+
+
+# ── Routes — Debug / Inspection ──────────────────────────────────────────────
+
+@app.get("/api/debug")
+def api_debug():
+    """
+    Dev endpoint: returns latest raw payloads + recent events + config + status.
+    GET /api/debug?device_id=uno-q-01
+    """
+    device_id = request.args.get("device_id", "uno-q-01")
+    limit     = min(int(request.args.get("limit", 5)), 20)
+
+    out = {
+        "device_id":  device_id,
+        "server_time": _now_iso(),
+        "status":     next((s for s in db.get_all_status() if s["device_id"] == device_id), None),
+        "config":     db.get_config(device_id),
+        "latest": {
+            "telemetry":  db.get_latest_sensor(device_id, "telemetry"),
+            "fast":       db.get_latest_sensor(device_id, "fast"),
+            "throughput": db.get_latest_sensor(device_id, "throughput"),
+            "overhead":   (db.get_overhead_history(device_id, 1) or [None])[0],
+        },
+        "recent_events": db.get_events(device_id, limit),
+        "history_counts": {
+            probe: len(db.get_sensor_history(device_id, probe, 500))
+            for probe in ("telemetry", "fast", "throughput")
+        },
+    }
+    return jsonify(out)
 
 
 # ── Routes — Database maintenance ────────────────────────────────────────────

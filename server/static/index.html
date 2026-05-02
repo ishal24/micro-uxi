@@ -477,6 +477,105 @@
             background: rgba(245, 158, 11, 0.1);
         }
 
+        /* ── Activity Log Panel ── */
+        .log-panel {
+            background: rgba(0,0,0,0.35);
+            border: 1px solid var(--border-color);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        .log-panel-header {
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            user-select: none;
+        }
+        .log-panel-header:hover { background: rgba(255,255,255,0.03); }
+        .log-panel-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .log-panel-title .log-dot {
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--accent-green);
+            box-shadow: 0 0 6px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%,100% { opacity:1; }
+            50% { opacity:0.4; }
+        }
+        .log-body {
+            max-height: 160px;
+            overflow-y: auto;
+            padding: 0.5rem 0;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+        }
+        .log-body::-webkit-scrollbar { width: 4px; }
+        .log-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius:2px; }
+        .log-entry {
+            padding: 0.2rem 1.25rem;
+            display: flex;
+            gap: 0.75rem;
+            align-items: baseline;
+            line-height: 1.5;
+        }
+        .log-entry:hover { background: rgba(255,255,255,0.03); }
+        .log-time { color: #475569; flex-shrink:0; }
+        .log-level { flex-shrink:0; font-weight:600; width:4.5rem; }
+        .log-level.info    { color: #60a5fa; }
+        .log-level.success { color: #34d399; }
+        .log-level.warn    { color: #fbbf24; }
+        .log-level.error   { color: #f87171; }
+        .log-msg { color: #94a3b8; }
+        .log-actions { display:flex; gap:0.5rem; align-items:center; }
+        .log-actions button {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+        .log-actions button:hover { color: var(--text-main); }
+
+        /* ── Time range filter ── */
+        .time-filter {
+            display: flex;
+            gap: 0.25rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border-color);
+            border-radius: 0.5rem;
+            padding: 0.2rem;
+        }
+        .tf-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.3rem 0.65rem;
+            border-radius: 0.35rem;
+            cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+            letter-spacing: 0.03em;
+        }
+        .tf-btn:hover { color: var(--text-main); background: rgba(255,255,255,0.07); }
+        .tf-btn.active { color: #fff; background: var(--accent-blue); }
+
         /* Modals */
         .modal {
             display: none; 
@@ -566,14 +665,37 @@
             <button class="btn-danger" onclick="openClearDbModal()" title="Hapus semua data dari database">
                 <i class="fa-solid fa-trash-can"></i> Clear Database
             </button>
+            <!-- Time range filter -->
+            <div class="time-filter" id="timeFilter">
+                <button class="tf-btn active" data-hrs="" onclick="setTimeFilter(this)">All</button>
+                <button class="tf-btn" data-hrs="24"  onclick="setTimeFilter(this)">24h</button>
+                <button class="tf-btn" data-hrs="12"  onclick="setTimeFilter(this)">12h</button>
+                <button class="tf-btn" data-hrs="6"   onclick="setTimeFilter(this)">6h</button>
+                <button class="tf-btn" data-hrs="1"   onclick="setTimeFilter(this)">1h</button>
+            </div>
         </div>
     </header>
 
     <main id="mainContent" style="display: none;">
-        
+
+        <!-- Activity Log Panel -->
+        <div class="log-panel" id="logPanel">
+            <div class="log-panel-header" onclick="toggleLog()">
+                <div class="log-panel-title">
+                    <span class="log-dot"></span>
+                    Activity Log
+                </div>
+                <div class="log-actions" onclick="event.stopPropagation()">
+                    <button onclick="clearLog()">Clear</button>
+                    <i id="logChevron" class="fa-solid fa-chevron-up" style="color:var(--text-muted);font-size:0.75rem;"></i>
+                </div>
+            </div>
+            <div class="log-body" id="logBody"></div>
+        </div>
+
         <!-- Top Cards (Stats & WiFi Info) -->
         <div class="top-cards">
-            <!-- Latest Stats Card -->
+            <!-- Latest Snapshot Card -->
             <div class="card">
                 <div class="card-header">
                     <div class="card-title"><i class="fa-solid fa-bolt" style="color:var(--accent-yellow)"></i> Latest Snapshot</div>
@@ -602,6 +724,9 @@
             <div class="card">
                 <div class="card-header">
                     <div class="card-title"><i class="fa-solid fa-wifi" style="color:var(--accent-green)"></i> Wi-Fi Connection</div>
+                    <div id="wifiNoDataBadge" style="display:none; font-size:0.7rem; background:rgba(245,158,11,0.15); color:var(--accent-yellow); border:1px solid rgba(245,158,11,0.3); padding:0.2rem 0.5rem; border-radius:0.5rem;">
+                        <i class="fa-solid fa-circle-exclamation"></i> Telemetry tidak tersedia
+                    </div>
                 </div>
                 <div class="stat-grid">
                     <div class="stat-item">
@@ -622,23 +747,89 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Overhead Resource Card -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title"><i class="fa-solid fa-microchip" style="color:var(--accent-purple)"></i> System Resources</div>
+                </div>
+                <div class="stat-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                    <div class="stat-item">
+                        <div class="stat-label">CPU</div>
+                        <div class="stat-value" id="ovhCpu">-- %</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Memory</div>
+                        <div class="stat-value" id="ovhMem">-- %</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Suhu</div>
+                        <div class="stat-value" id="ovhTemp">-- °C</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Disk</div>
+                        <div class="stat-value" id="ovhDisk">-- %</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Net RX</div>
+                        <div class="stat-value" id="ovhRx" style="font-size:1rem;">-- KB/s</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Net TX</div>
+                        <div class="stat-value" id="ovhTx" style="font-size:1rem;">-- KB/s</div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Telemetry Charts -->
         <div>
-            <div class="section-title">Telemetry & Network Performance</div>
+            <div class="section-title">Telemetry &amp; Network Performance</div>
             <div class="charts-grid">
                 <div class="card">
-                    <div class="card-header"><div class="card-title">Network Latency (RTT)</div></div>
+                    <div class="card-header"><div class="card-title">Ping RTT Avg (ms)</div></div>
                     <div class="chart-wrapper"><canvas id="rttChart"></canvas></div>
                 </div>
                 <div class="card">
-                    <div class="card-header"><div class="card-title">Wi-Fi Signal (RSSI)</div></div>
+                    <div class="card-header"><div class="card-title">Packet Loss (%)</div></div>
+                    <div class="chart-wrapper"><canvas id="lossChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Ping RTT Detail (ms)</div></div>
+                    <div class="chart-wrapper"><canvas id="rttDetailChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Wi-Fi Signal (RSSI dBm)</div></div>
                     <div class="chart-wrapper"><canvas id="rssiChart"></canvas></div>
                 </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Wi-Fi Bitrate (Mbps)</div></div>
+                    <div class="chart-wrapper"><canvas id="bitrateChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">DNS Latency avg (ms)</div></div>
+                    <div class="chart-wrapper"><canvas id="dnsChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">HTTP TTFB (ms)</div></div>
+                    <div class="chart-wrapper"><canvas id="httpTtfbChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">HTTP Total (ms)</div></div>
+                    <div class="chart-wrapper"><canvas id="httpTotalChart"></canvas></div>
+                </div>
                 <div class="card" style="grid-column: 1 / -1;">
-                    <div class="card-header"><div class="card-title">Download Throughput</div></div>
-                    <div class="chart-wrapper" style="height: 200px;"><canvas id="tptChart"></canvas></div>
+                    <div class="card-header"><div class="card-title">Throughput (Mbps)</div></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; padding:0 0 0.5rem;">
+                        <div>
+                            <div style="font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:0.25rem; padding-left:0.25rem;">&#8595; Download</div>
+                            <div class="chart-wrapper" style="height: 180px;"><canvas id="tptChart"></canvas></div>
+                        </div>
+                        <div>
+                            <div style="font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:0.25rem; padding-left:0.25rem;">&#8593; Upload</div>
+                            <div class="chart-wrapper" style="height: 180px;"><canvas id="tptUploadChart"></canvas></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -648,12 +839,28 @@
             <div class="section-title">System Overhead</div>
             <div class="charts-grid">
                 <div class="card">
-                    <div class="card-header"><div class="card-title">CPU Usage</div></div>
+                    <div class="card-header"><div class="card-title">CPU Usage (%)</div></div>
                     <div class="chart-wrapper"><canvas id="cpuChart"></canvas></div>
                 </div>
                 <div class="card">
-                    <div class="card-header"><div class="card-title">Memory Usage</div></div>
+                    <div class="card-header"><div class="card-title">Memory Usage (%)</div></div>
                     <div class="chart-wrapper"><canvas id="memChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">CPU Temperature (°C)</div></div>
+                    <div class="chart-wrapper"><canvas id="tempChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Network Bandwidth (KB/s)</div></div>
+                    <div class="chart-wrapper"><canvas id="bwChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Disk Usage (%)</div></div>
+                    <div class="chart-wrapper"><canvas id="diskChart"></canvas></div>
+                </div>
+                <div class="card">
+                    <div class="card-header"><div class="card-title">Process RSS Memory (MB)</div></div>
+                    <div class="chart-wrapper"><canvas id="procRssChart"></canvas></div>
                 </div>
             </div>
         </div>
@@ -752,86 +959,215 @@
     // ==========================================
     let currentDeviceId = null;
     let localConfigVersion = 0;
-    
-    let devicesMap = {}; // device_id -> device info
-    let groupsMap = {};  // group_id -> group info
-    
+    let configDirty = false;   // Fix #4: track if user has edited config form
+    let currentSinceHours = '';  // '' = All, '1'/'6'/'12'/'24' = filter
+
+    let devicesMap = {};
+    let groupsMap  = {};
+
     // ==========================================
-    // CHART SETUP (With Crosshair & Time Scale)
+    // ACTIVITY LOG  (Fix #3)
+    // ==========================================
+    const MAX_LOG = 80;
+    let logCollapsed = false;
+
+    function _ts() {
+        return new Date().toLocaleTimeString('id-ID', { hour12: false });
+    }
+
+    function addLog(level, msg) {
+        // level: 'info' | 'success' | 'warn' | 'error'
+        const body = document.getElementById('logBody');
+        if (!body) return;
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        entry.innerHTML = `<span class="log-time">${_ts()}</span><span class="log-level ${level}">${level.toUpperCase()}</span><span class="log-msg">${msg}</span>`;
+        body.appendChild(entry);
+        // Trim old entries
+        while (body.children.length > MAX_LOG) body.removeChild(body.firstChild);
+        // Auto-scroll
+        if (!logCollapsed) body.scrollTop = body.scrollHeight;
+    }
+
+    function toggleLog() {
+        logCollapsed = !logCollapsed;
+        const body = document.getElementById('logBody');
+        const icon = document.getElementById('logChevron');
+        body.style.display = logCollapsed ? 'none' : '';
+        icon.className = logCollapsed ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up';
+        if (!logCollapsed) body.scrollTop = body.scrollHeight;
+    }
+
+    function clearLog() {
+        const body = document.getElementById('logBody');
+        if (body) body.innerHTML = '';
+    }
+
+    function setTimeFilter(btn) {
+        document.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentSinceHours = btn.dataset.hrs || '';
+        addLog('info', `Time filter → ${currentSinceHours ? 'last ' + currentSinceHours + 'h' : 'All time'}`);
+        if (currentDeviceId) refreshData();
+    }
+
+    // ==========================================
+    // CHART SETUP
     // ==========================================
     Chart.defaults.color = '#94a3b8';
     Chart.defaults.font.family = "'Inter', sans-serif";
 
-    // Common options for time series
-    const commonTimeOptions = {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-            mode: 'index',
-            intersect: false,
-        },
-        plugins: {
-            legend: { display: false },
-            crosshair: {
-                line: { color: 'rgba(255,255,255,0.2)', width: 1 },
-                sync: {
-                    enabled: true,
-                    group: 1, // Same group syncs crosshairs across multiple charts
-                    suppressTooltips: false
-                },
-                zoom: { enabled: false }
-            }
-        },
-        scales: {
-            x: {
-                type: 'time',
-                time: {
-                    tooltipFormat: 'HH:mm:ss',
-                    displayFormats: {
-                        millisecond: 'HH:mm:ss',
-                        second: 'HH:mm:ss',
-                        minute: 'HH:mm',
-                        hour: 'HH:mm'
-                    }
-                },
-                grid: { color: 'rgba(255,255,255,0.05)' },
-                ticks: { maxTicksLimit: 6 }
-            },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' } }
-        },
-        elements: {
-            line: { tension: 0.3, borderWidth: 2 },
-            point: { radius: 0, hitRadius: 10, hoverRadius: 4 }
-        },
-        animation: { duration: 0 }
+    // Crosshair options (only for telemetry group)
+    const telCrosshair = {
+        crosshair: {
+            line: { color: 'rgba(255,255,255,0.15)', width: 1 },
+            sync: { enabled: true, group: 1, suppressTooltips: false },
+            zoom: { enabled: false }
+        }
     };
 
+    // Base options WITHOUT crosshair (for overhead)
+    function makeOpts(extra = {}) {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            spanGaps: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: { legend: { display: false } },
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        tooltipFormat: 'HH:mm:ss',
+                        displayFormats: { millisecond:'HH:mm:ss', second:'HH:mm:ss', minute:'HH:mm', hour:'HH:mm' }
+                    },
+                    grid: { color: 'rgba(255,255,255,0.05)' },
+                    ticks: { maxTicksLimit: 6 }
+                },
+                y: { grid: { color: 'rgba(255,255,255,0.05)' }, ...extra.y }
+            },
+            elements: { line: { tension: 0.25, borderWidth: 2 }, point: { radius: 2, hitRadius: 10, hoverRadius: 5 } },
+            animation: false,
+            ...extra
+        };
+    }
+
+    // Options WITH crosshair (telemetry)
+    function makeOptsTel(extra = {}) {
+        const base = makeOpts(extra);
+        base.plugins = { ...base.plugins, ...telCrosshair };
+        return base;
+    }
+
+    function mkDs(color, label, extra={}) {
+        const hex = color;
+        const rgb = hex.slice(1).match(/.{2}/g).map(h => parseInt(h,16)).join(',');
+        return { label, data: [], borderColor: hex, backgroundColor: `rgba(${rgb},0.1)`, fill: true, spanGaps: true, ...extra };
+    }
+
+    // Helper to make multi-dataset legend chart
+    function makeLegendOpts(extra = {}) {
+        const o = makeOpts(extra);
+        o.plugins.legend = { display: true, labels: { color: '#94a3b8', boxWidth: 12, padding: 8 } };
+        return o;
+    }
+    function makeLegendOptsTel(extra = {}) {
+        const o = makeOptsTel(extra);
+        o.plugins.legend = { display: true, labels: { color: '#94a3b8', boxWidth: 12, padding: 8 } };
+        return o;
+    }
+
     const charts = {
-        rtt: new Chart(document.getElementById('rttChart'), {
+        // ── Telemetry ──
+        rtt:       new Chart(document.getElementById('rttChart'), {
             type: 'line',
-            data: { datasets: [{ data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true }] },
-            options: { ...commonTimeOptions, scales: { ...commonTimeOptions.scales, y: { ...commonTimeOptions.scales.y, beginAtZero: true } } }
+            data: { datasets: [mkDs('#3b82f6', 'RTT Avg')] },
+            options: makeOptsTel({ y: { beginAtZero: true } })
         }),
-        rssi: new Chart(document.getElementById('rssiChart'), {
+        loss:      new Chart(document.getElementById('lossChart'), {
             type: 'line',
-            data: { datasets: [{ data: [], borderColor: '#8b5cf6', backgroundColor: 'rgba(139, 92, 246, 0.1)', fill: true }] },
-            options: commonTimeOptions
+            data: { datasets: [mkDs('#f87171', 'Loss %')] },
+            options: makeOptsTel({ y: { beginAtZero: true, suggestedMax: 100 } })
         }),
-        tpt: new Chart(document.getElementById('tptChart'), {
-            type: 'line', // Line is better for crosshair sync on time scale
-            data: { datasets: [{ data: [], borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', fill: true, stepped: 'middle' }] },
-            options: { ...commonTimeOptions, scales: { ...commonTimeOptions.scales, y: { ...commonTimeOptions.scales.y, beginAtZero: true } } }
-        }),
-        cpu: new Chart(document.getElementById('cpuChart'), {
+        rttDetail: new Chart(document.getElementById('rttDetailChart'), {
             type: 'line',
-            data: { datasets: [{ data: [], borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', fill: true }] },
-            options: { ...commonTimeOptions, scales: { ...commonTimeOptions.scales, y: { ...commonTimeOptions.scales.y, suggestedMax: 100, beginAtZero: true } } }
+            data: { datasets: [
+                { label:'Min', data:[], borderColor:'#34d399', backgroundColor:'rgba(52,211,153,0.05)', fill:false, spanGaps:true },
+                { label:'Avg', data:[], borderColor:'#3b82f6', backgroundColor:'rgba(59,130,246,0.05)', fill:false, spanGaps:true },
+                { label:'Max', data:[], borderColor:'#f87171', backgroundColor:'rgba(248,113,113,0.05)', fill:false, spanGaps:true },
+            ]},
+            options: makeLegendOptsTel({ y: { beginAtZero: true } })
         }),
-        mem: new Chart(document.getElementById('memChart'), {
+        rssi:      new Chart(document.getElementById('rssiChart'), {
             type: 'line',
-            data: { datasets: [{ data: [], borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.1)', fill: true }] },
-            options: { ...commonTimeOptions, scales: { ...commonTimeOptions.scales, y: { ...commonTimeOptions.scales.y, suggestedMax: 100, beginAtZero: true } } }
-        })
+            data: { datasets: [mkDs('#8b5cf6', 'RSSI dBm')] },
+            options: makeOptsTel()
+        }),
+        bitrate:   new Chart(document.getElementById('bitrateChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#06b6d4', 'Bitrate Mbps')] },
+            options: makeOptsTel({ y: { beginAtZero: true } })
+        }),
+        dns:       new Chart(document.getElementById('dnsChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#fbbf24', 'DNS Latency')] },
+            options: makeOptsTel({ y: { beginAtZero: true } })
+        }),
+        httpTtfb:  new Chart(document.getElementById('httpTtfbChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#f97316', 'TTFB ms')] },
+            options: makeOptsTel({ y: { beginAtZero: true } })
+        }),
+        httpTotal: new Chart(document.getElementById('httpTotalChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#ec4899', 'Total ms')] },
+            options: makeOptsTel({ y: { beginAtZero: true } })
+        }),
+        tpt:       new Chart(document.getElementById('tptChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#10b981', 'DL Mbps', { stepped:'middle' })] },
+            options: makeOptsTel({ y: { beginAtZero: true } })
+        }),
+        tptUpload: new Chart(document.getElementById('tptUploadChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#f97316', 'UL Mbps', { stepped:'middle' })] },
+            options: makeOptsTel({ y: { beginAtZero: true } })
+        }),
+
+        // ── Overhead (NO crosshair) ──
+        cpu:     new Chart(document.getElementById('cpuChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#ef4444', 'CPU %')] },
+            options: makeOpts({ y: { suggestedMax: 100, beginAtZero: true } })
+        }),
+        mem:     new Chart(document.getElementById('memChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#f59e0b', 'Mem %')] },
+            options: makeOpts({ y: { suggestedMax: 100, beginAtZero: true } })
+        }),
+        temp:    new Chart(document.getElementById('tempChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#f97316', 'Suhu \u00b0C')] },
+            options: makeOpts({ y: { beginAtZero: false } })
+        }),
+        bw:      new Chart(document.getElementById('bwChart'), {
+            type: 'line',
+            data: { datasets: [
+                { label:'RX', data:[], borderColor:'#22d3ee', backgroundColor:'rgba(34,211,238,0.08)', fill:true, spanGaps:true },
+                { label:'TX', data:[], borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,0.08)', fill:true, spanGaps:true },
+            ]},
+            options: makeLegendOpts({ y: { beginAtZero: true } })
+        }),
+        disk:    new Chart(document.getElementById('diskChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#fb923c', 'Disk %')] },
+            options: makeOpts({ y: { suggestedMax: 100, beginAtZero: true } })
+        }),
+        procRss: new Chart(document.getElementById('procRssChart'), {
+            type: 'line',
+            data: { datasets: [mkDs('#c084fc', 'RSS MB')] },
+            options: makeOpts({ y: { beginAtZero: true } })
+        }),
     };
 
     // ==========================================
@@ -849,17 +1185,19 @@
             
             groupsMap = {};
             grpData.groups.forEach(g => groupsMap[g.id] = g);
-            
+
             devicesMap = {};
             statData.devices.forEach(d => devicesMap[d.device_id] = d);
-            
+
             renderSidebar();
-            
+            addLog('info', `Status poll — ${statData.devices.length} device, ${grpData.groups.length} group`);
+
             // If no device selected but we have devices, select the first one
             if (!currentDeviceId && statData.devices.length > 0) {
                 selectDevice(statData.devices[0].device_id);
             }
         } catch(e) {
+            addLog('error', 'fetchSidebar gagal: ' + e.message);
             console.error("Sidebar fetch error", e);
         }
     }
@@ -1044,89 +1382,139 @@
                 txt.innerText = 'Offline';
             }
         }
-
-        renderSidebar(); // refresh active state
+        configDirty = false; // new device selected, reset dirty flag
+        renderSidebar();
         refreshData();
     }
 
     async function refreshData() {
         if (!currentDeviceId) return;
-
         try {
-            // Fetch Latest (for Wi-Fi card & stats)
+            // ── Latest snapshot ──────────────────────────────────────────────
             const resLatest = await fetch(`/api/data/latest?device_id=${currentDeviceId}`);
+            if (!resLatest.ok) { addLog('error', `latest → HTTP ${resLatest.status}`); return; }
             const dataLatestMap = await resLatest.json();
             const latest = dataLatestMap[currentDeviceId];
 
             if (latest && latest.telemetry) {
                 const wifi = latest.telemetry.telemetry?.wifi || {};
                 const ping = latest.telemetry.telemetry?.ping || {};
-                const net = latest.telemetry.telemetry?.network || {};
-                
-                document.getElementById('statRtt').innerText = ping.rtt_avg_ms ? ping.rtt_avg_ms.toFixed(1) + ' ms' : '-- ms';
-                document.getElementById('statLoss').innerText = ping.loss_pct !== undefined ? ping.loss_pct + ' %' : '-- %';
-                
-                document.getElementById('wifiSsid').innerText = wifi.wifi_ssid || '--';
-                document.getElementById('wifiRssi').innerText = wifi.wifi_rssi_dbm ? wifi.wifi_rssi_dbm + ' dBm' : '-- dBm';
-                document.getElementById('wifiFreq').innerText = wifi.wifi_freq_mhz ? wifi.wifi_freq_mhz + ' MHz' : '--';
-                document.getElementById('wifiIp').innerText = net.ip_address || '--';
+                const net  = latest.telemetry.telemetry?.network || {};
+                document.getElementById('statRtt').innerText  = ping.rtt_avg_ms  != null ? ping.rtt_avg_ms.toFixed(1)  + ' ms' : '-- ms';
+                document.getElementById('statLoss').innerText = ping.loss_pct     != null ? ping.loss_pct               + ' %'  : '-- %';
+                document.getElementById('wifiSsid').innerText = wifi.wifi_ssid  || '--';
+                document.getElementById('wifiRssi').innerText = wifi.wifi_rssi_dbm  != null ? wifi.wifi_rssi_dbm  + ' dBm' : '-- dBm';
+                document.getElementById('wifiFreq').innerText = wifi.wifi_freq_mhz  != null ? wifi.wifi_freq_mhz  + ' MHz' : '--';
+                document.getElementById('wifiIp').innerText   = net.ip_address || '--';
+                document.getElementById('wifiNoDataBadge').style.display = 'none';
+                addLog('success', `Telemetry OK — RTT ${ping.rtt_avg_ms?.toFixed(1) ?? '--'} ms, Loss ${ping.loss_pct ?? '--'}%`);
+            } else {
+                document.getElementById('wifiNoDataBadge').style.display = 'inline-flex';
+                addLog('warn', 'Telemetry belum tersedia untuk ' + currentDeviceId);
             }
 
             if (latest && latest.overhead) {
-                document.getElementById('statCpu').innerText = latest.overhead.cpu_pct !== undefined ? latest.overhead.cpu_pct + ' %' : '-- %';
+                const o = latest.overhead;
+                const fmt = (v, dec=1) => v != null ? Number(v).toFixed(dec) : '--';
+                document.getElementById('statCpu').innerText = fmt(o.cpu_pct) + ' %';
+                document.getElementById('ovhCpu').innerText  = fmt(o.cpu_pct) + ' %';
+                document.getElementById('ovhMem').innerText  = fmt(o.mem_pct) + ' %';
+                document.getElementById('ovhTemp').innerText = o.temp_c != null ? fmt(o.temp_c) + ' °C' : '-- °C';
+                document.getElementById('ovhDisk').innerText = fmt(o.disk_pct) + ' %';
+                document.getElementById('ovhRx').innerText   = fmt(o.net_rx_kbs) + ' KB/s';
+                document.getElementById('ovhTx').innerText   = fmt(o.net_tx_kbs) + ' KB/s';
             }
             if (latest && latest.throughput && latest.throughput.summary) {
-                const tp = latest.throughput.summary.throughput_total_mbps;
-                const tpVal = typeof tp === 'object' ? tp.avg : tp;
-                document.getElementById('statTpt').innerText = tpVal ? tpVal.toFixed(2) + ' Mbps' : '-- Mbps';
+                const summ  = latest.throughput.summary;
+                // New schema: summary.download; fallback to flat
+                const dlSum = summ.download || summ;
+                const tp    = dlSum.throughput_total_mbps;
+                const tpVal = typeof tp === 'object' ? tp?.avg : tp;
+                document.getElementById('statTpt').innerText = tpVal != null ? Number(tpVal).toFixed(2) + ' Mbps' : '-- Mbps';
             }
 
-            // Fetch History for Charts
+            // ── History for charts ───────────────────────────────────────────
+            const sinceParam = currentSinceHours ? `&since_hours=${currentSinceHours}` : '';
             const [resTel, resOvh, resTpt] = await Promise.all([
-                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=telemetry&limit=30`),
-                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=overhead&limit=100`),
-                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=throughput&limit=15`)
+                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=telemetry&limit=2000${sinceParam}`),
+                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=overhead&limit=2000${sinceParam}`),
+                fetch(`/api/data/history?device_id=${currentDeviceId}&probe=throughput&limit=500${sinceParam}`)
             ]);
-            
             const telData = await resTel.json();
             const ovhData = await resOvh.json();
             const tptData = await resTpt.json();
 
-            // Transform for time scale: {x: timestamp_iso, y: value}
-            // Note: get_sensor_history spreads payload into the row dict,
-            // so telemetry probe data has {ts, telemetry:{...}, ...}
-            // throughput probe data has {ts, summary:{...}, ...}
-            const toMs = iso => new Date(iso).getTime(); // parse ISO to ms for Chart.js
+            addLog('info', `History — tel:${telData.count} ovh:${ovhData.count} tpt:${tptData.count}${currentSinceHours ? ' (last '+currentSinceHours+'h)' : ''}`);
 
-            const rttSet = telData.data.map(d => ({
-                x: toMs(d.ts),
-                y: d.telemetry?.ping?.rtt_avg_ms ?? null
-            }));
-            const rssiSet = telData.data.map(d => ({
-                x: toMs(d.ts),
-                y: d.telemetry?.wifi?.wifi_rssi_dbm ?? null
-            }));
+            const toMs = iso => new Date(iso).getTime();
 
-            const cpuSet = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.cpu_pct }));
-            const memSet = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.mem_pct }));
+            // Telemetry charts
+            const rttSet       = telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.ping?.rtt_avg_ms         ?? null }));
+            const lossSet      = telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.ping?.loss_pct           ?? null }));
+            const rttMinSet    = telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.ping?.rtt_min_ms         ?? null }));
+            const rttAvgSet    = telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.ping?.rtt_avg_ms         ?? null }));
+            const rttMaxSet    = telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.ping?.rtt_max_ms         ?? null }));
+            const rssiSet      = telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.wifi?.wifi_rssi_dbm      ?? null }));
+            const bitrateSet   = telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.wifi?.wifi_bitrate_mbps  ?? null }));
+            const dnsSet       = telData.data.map(d => {
+                const arr = d.telemetry?.dns;
+                if (!arr || !arr.length) return { x: toMs(d.ts), y: null };
+                const vals = arr.filter(e => e.dns_success && e.dns_latency_ms != null).map(e => e.dns_latency_ms);
+                return { x: toMs(d.ts), y: vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : null };
+            });
+            const httpTtfbSet  = telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.http?.[0]?.http_ttfb_ms  ?? null }));
+            const httpTotalSet = telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.http?.[0]?.http_total_ms ?? null }));
 
+            // Throughput — new schema: summary.download / summary.upload
             const tptSet = tptData.data.map(d => {
-                const tp = d.summary?.throughput_total_mbps;
-                const val = typeof tp === 'object' ? (tp?.avg ?? null) : (tp ?? null);
-                return { x: toMs(d.ts), y: val };
+                const summ = d.summary || {};
+                const dlSum = summ.download || summ;  // backward compat
+                const tp = dlSum.throughput_total_mbps;
+                return { x: toMs(d.ts), y: typeof tp === 'object' ? (tp?.avg ?? null) : (tp ?? null) };
+            });
+            const tptUpSet = tptData.data.map(d => {
+                const summ  = d.summary || {};
+                const ulSum = summ.upload || {};
+                const tp    = ulSum.upload_throughput_total_mbps;
+                return { x: toMs(d.ts), y: typeof tp === 'object' ? (tp?.avg ?? null) : (tp ?? null) };
             });
 
-            charts.rtt.data.datasets[0].data = rttSet; charts.rtt.update('none');
-            charts.rssi.data.datasets[0].data = rssiSet; charts.rssi.update('none');
-            charts.cpu.data.datasets[0].data = cpuSet; charts.cpu.update('none');
-            charts.mem.data.datasets[0].data = memSet; charts.mem.update('none');
-            charts.tpt.data.datasets[0].data = tptSet; charts.tpt.update('none');
+            // Overhead charts
+            const cpuSet     = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.cpu_pct }));
+            const memSet     = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.mem_pct }));
+            const tempSet    = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.temp_c }));
+            const rxSet      = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.net_rx_kbs }));
+            const txSet      = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.net_tx_kbs }));
+            const diskSet    = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.disk_pct }));
+            const procRssSet = ovhData.data.map(d => ({ x: toMs(d.ts), y: d.proc_rss_mb }));
 
-            // Fetch Events
+            // Update telemetry charts
+            charts.rtt.data.datasets[0].data       = rttSet;       charts.rtt.update('none');
+            charts.loss.data.datasets[0].data      = lossSet;      charts.loss.update('none');
+            charts.rttDetail.data.datasets[0].data = rttMinSet;
+            charts.rttDetail.data.datasets[1].data = rttAvgSet;
+            charts.rttDetail.data.datasets[2].data = rttMaxSet;    charts.rttDetail.update('none');
+            charts.rssi.data.datasets[0].data      = rssiSet;      charts.rssi.update('none');
+            charts.bitrate.data.datasets[0].data   = bitrateSet;   charts.bitrate.update('none');
+            charts.dns.data.datasets[0].data       = dnsSet;       charts.dns.update('none');
+            charts.httpTtfb.data.datasets[0].data  = httpTtfbSet;  charts.httpTtfb.update('none');
+            charts.httpTotal.data.datasets[0].data = httpTotalSet;  charts.httpTotal.update('none');
+            charts.tpt.data.datasets[0].data       = tptSet;        charts.tpt.update('none');
+            charts.tptUpload.data.datasets[0].data = tptUpSet;       charts.tptUpload.update('none');
+
+            // Update overhead charts
+            charts.cpu.data.datasets[0].data     = cpuSet;     charts.cpu.update('none');
+            charts.mem.data.datasets[0].data     = memSet;     charts.mem.update('none');
+            charts.temp.data.datasets[0].data    = tempSet;    charts.temp.update('none');
+            charts.bw.data.datasets[0].data      = rxSet;
+            charts.bw.data.datasets[1].data      = txSet;      charts.bw.update('none');
+            charts.disk.data.datasets[0].data    = diskSet;    charts.disk.update('none');
+            charts.procRss.data.datasets[0].data = procRssSet; charts.procRss.update('none');
+
+            // ── Events ───────────────────────────────────────────────────────
             const resEvt = await fetch(`/api/data/events?device_id=${currentDeviceId}&limit=15`);
             const evtData = await resEvt.json();
             const feed = document.getElementById('eventFeed');
-            
             if (evtData.events.length === 0) {
                 feed.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 2rem;">No anomalies detected.</div>';
             } else {
@@ -1137,30 +1525,34 @@
                         <div class="event-desc">${ev.description}</div>
                     </div>
                 `).join('');
+                if (evtData.events.length) addLog('warn', `${evtData.events.length} anomali aktif (latest: ${evtData.events[0].event_type})`);
             }
 
-            // Fetch Config
-            const resCfg = await fetch(`/api/config?device_id=${currentDeviceId}`);
-            const cfgData = await resCfg.json();
-            
-            if (cfgData.config && cfgData.version > localConfigVersion) {
-                localConfigVersion = cfgData.version;
-                const cfg = cfgData.config;
-                if (cfg.fast_probe) {
-                    document.getElementById('cfgFastEnabled').checked = cfg.fast_probe.enabled;
-                    if (cfg.fast_probe.ping_target) document.getElementById('cfgPingTarget').value = cfg.fast_probe.ping_target;
-                }
-                if (cfg.scheduler) {
-                    const sel = document.getElementById('cfgTelInterval');
-                    const val = cfg.scheduler.telemetry_interval_sec.toString();
-                    if (Array.from(sel.options).some(o => o.value === val)) sel.value = val;
-                }
-                if (cfg.modules) {
-                    document.getElementById('cfgTptEnabled').checked = cfg.modules.throughput;
+            // ── Config — only overwrite form if user hasn't edited it ────────
+            if (!configDirty) {
+                const resCfg  = await fetch(`/api/config?device_id=${currentDeviceId}`);
+                const cfgData = await resCfg.json();
+                if (cfgData.config && cfgData.version > localConfigVersion) {
+                    localConfigVersion = cfgData.version;
+                    const cfg = cfgData.config;
+                    if (cfg.fast_probe) {
+                        document.getElementById('cfgFastEnabled').checked = cfg.fast_probe.enabled;
+                        if (cfg.fast_probe.ping_target) document.getElementById('cfgPingTarget').value = cfg.fast_probe.ping_target;
+                    }
+                    if (cfg.scheduler) {
+                        const sel = document.getElementById('cfgTelInterval');
+                        const val = cfg.scheduler.telemetry_interval_sec?.toString();
+                        if (val && Array.from(sel.options).some(o => o.value === val)) sel.value = val;
+                    }
+                    if (cfg.modules) document.getElementById('cfgTptEnabled').checked = cfg.modules.throughput;
+                    addLog('info', `Config v${cfgData.version} dimuat dari server`);
                 }
             }
 
-        } catch(e) { console.error("Refresh data error", e); }
+        } catch(e) {
+            addLog('error', 'refreshData gagal: ' + e.message);
+            console.error('Refresh data error', e);
+        }
     }
 
     // --- Control Actions ---
@@ -1168,50 +1560,50 @@
         if (!currentDeviceId) return;
         const btn = document.getElementById('btnSaveConfig');
         const statusMsg = document.getElementById('configStatus');
-        
-        btn.textContent = "Saving..."; btn.disabled = true;
-        
+        btn.textContent = 'Saving...'; btn.disabled = true;
+
         let currentCfg = {};
         try {
             const res = await fetch(`/api/config?device_id=${currentDeviceId}`);
             const data = await res.json();
             if (data.config) currentCfg = data.config;
-        } catch (e) {}
+        } catch(e) {}
 
         const newCfg = {
             ...currentCfg,
-            fast_probe: {
-                ...(currentCfg.fast_probe || {}),
-                enabled: document.getElementById('cfgFastEnabled').checked,
-                ping_target: document.getElementById('cfgPingTarget').value
-            },
-            scheduler: {
-                ...(currentCfg.scheduler || {}),
-                telemetry_interval_sec: parseInt(document.getElementById('cfgTelInterval').value)
-            },
-            modules: {
-                ...(currentCfg.modules || {}),
-                throughput: document.getElementById('cfgTptEnabled').checked
-            }
+            fast_probe: { ...(currentCfg.fast_probe||{}), enabled: document.getElementById('cfgFastEnabled').checked, ping_target: document.getElementById('cfgPingTarget').value },
+            scheduler:  { ...(currentCfg.scheduler ||{}), telemetry_interval_sec: parseInt(document.getElementById('cfgTelInterval').value) },
+            modules:    { ...(currentCfg.modules   ||{}), throughput: document.getElementById('cfgTptEnabled').checked }
         };
 
         try {
             const res = await fetch('/api/config', {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                method: 'PUT', headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({ device_id: currentDeviceId, config: newCfg })
             });
             const result = await res.json();
             if (result.ok) {
                 localConfigVersion = result.version;
+                configDirty = false;  // form synced with server again
                 statusMsg.style.display = 'block';
                 setTimeout(() => statusMsg.style.display = 'none', 3000);
+                addLog('success', `Config v${result.version} berhasil di-push ke server`);
+            } else {
+                addLog('error', 'Push config gagal: ' + JSON.stringify(result));
             }
-        } catch (e) {
-            alert("Failed to save config: " + e.message);
+        } catch(e) {
+            addLog('error', 'Push config error: ' + e.message);
+            alert('Failed to save config: ' + e.message);
         } finally {
-            btn.textContent = "Push Configuration"; btn.disabled = false;
+            btn.textContent = 'Push Configuration'; btn.disabled = false;
         }
     }
+
+    // Mark configDirty when user edits any form field
+    ['cfgFastEnabled','cfgTptEnabled','cfgTelInterval','cfgPingTarget'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', () => { configDirty = true; addLog('info', `Config field "${id}" diubah — belum di-push`); });
+    });
 
     // ==========================================
     // CLEAR DATABASE
@@ -1247,7 +1639,7 @@
                 document.getElementById('headerDeviceName').innerText = 'Select a Device';
                 document.getElementById('headerDeviceMeta').innerText = '--';
                 Object.values(charts).forEach(c => {
-                    c.data.datasets[0].data = [];
+                    c.data.datasets.forEach(ds => { ds.data = []; });
                     c.update('none');
                 });
                 fetchSidebarData();

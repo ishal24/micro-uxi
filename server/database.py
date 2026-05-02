@@ -134,12 +134,19 @@ class Database:
         return json.loads(row["payload"]) if row else None
 
     def get_sensor_history(self, device_id: str, probe_type: str,
-                           limit: int = 100) -> list[dict]:
-        rows = self._conn().execute(
-            "SELECT ts, payload FROM sensor_data"
-            " WHERE device_id=? AND probe_type=? ORDER BY ts DESC LIMIT ?",
-            (device_id, probe_type, limit),
-        ).fetchall()
+                           limit: int = 100, since: str | None = None) -> list[dict]:
+        if since:
+            rows = self._conn().execute(
+                "SELECT ts, payload FROM sensor_data"
+                " WHERE device_id=? AND probe_type=? AND ts >= ? ORDER BY ts DESC LIMIT ?",
+                (device_id, probe_type, since, limit),
+            ).fetchall()
+        else:
+            rows = self._conn().execute(
+                "SELECT ts, payload FROM sensor_data"
+                " WHERE device_id=? AND probe_type=? ORDER BY ts DESC LIMIT ?",
+                (device_id, probe_type, limit),
+            ).fetchall()
         return [{"ts": r["ts"], **json.loads(r["payload"])} for r in reversed(rows)]
 
     # ── Overhead data ─────────────────────────────────────────────────────────
@@ -162,13 +169,22 @@ class Database:
             )
             return cur.lastrowid
 
-    def get_overhead_history(self, device_id: str, limit: int = 100) -> list[dict]:
-        rows = self._conn().execute(
-            "SELECT ts,cpu_pct,mem_pct,mem_used_mb,mem_avail_mb,disk_pct,"
-            "       net_tx_kbs,net_rx_kbs,temp_c,proc_cpu_pct,proc_rss_mb,proc_threads"
-            " FROM overhead_data WHERE device_id=? ORDER BY ts DESC LIMIT ?",
-            (device_id, limit),
-        ).fetchall()
+    def get_overhead_history(self, device_id: str, limit: int = 100,
+                             since: str | None = None) -> list[dict]:
+        if since:
+            rows = self._conn().execute(
+                "SELECT ts,cpu_pct,mem_pct,mem_used_mb,mem_avail_mb,disk_pct,"
+                "       net_tx_kbs,net_rx_kbs,temp_c,proc_cpu_pct,proc_rss_mb,proc_threads"
+                " FROM overhead_data WHERE device_id=? AND ts >= ? ORDER BY ts DESC LIMIT ?",
+                (device_id, since, limit),
+            ).fetchall()
+        else:
+            rows = self._conn().execute(
+                "SELECT ts,cpu_pct,mem_pct,mem_used_mb,mem_avail_mb,disk_pct,"
+                "       net_tx_kbs,net_rx_kbs,temp_c,proc_cpu_pct,proc_rss_mb,proc_threads"
+                " FROM overhead_data WHERE device_id=? ORDER BY ts DESC LIMIT ?",
+                (device_id, limit),
+            ).fetchall()
         return [dict(r) for r in reversed(rows)]
 
     # ── Events ────────────────────────────────────────────────────────────────
