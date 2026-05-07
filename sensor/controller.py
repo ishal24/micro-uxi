@@ -461,11 +461,14 @@ class MonitorController:
                 data = self.uploader.get_config(device_id)
                 if data and data.get("config"):
                     new_cfg = data["config"]
-                    # Apply simple live updates
                     if "scheduler" in new_cfg:
                         self.telemetry_interval = new_cfg["scheduler"].get("telemetry_interval_sec", self.telemetry_interval)
+                        self.throughput_interval = new_cfg["scheduler"].get("throughput_interval_sec", self.throughput_interval)
+                        if "throughput" in self.config:
+                            self.config["throughput"]["mode"] = "stress" if self.throughput_interval >= 1800 else "routine"
                     if "fast_probe" in new_cfg:
                         self.fast_enabled = new_cfg["fast_probe"].get("enabled", self.fast_enabled)
+                        self.fast_interval = new_cfg["fast_probe"].get("interval_sec", self.fast_interval)
             except Exception as e:
                 pass
                 

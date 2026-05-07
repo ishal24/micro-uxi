@@ -1015,35 +1015,34 @@
                         <div class="card-title"><i class="fa-solid fa-sliders"></i> Remote Control</div>
                     </div>
 
-                    <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
-                        <label style="margin-bottom: 0;">Fast Probe (S2/S3/S6)</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="cfgFastEnabled">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
-                    <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
-                        <label style="margin-bottom: 0;">Throughput Probe (S5)</label>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="cfgTptEnabled">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-
                     <div class="form-group">
-                        <label>Telemetry Interval (sec)</label>
-                        <select id="cfgTelInterval">
-                            <option value="10">10 seconds</option>
-                            <option value="30">30 seconds</option>
-                            <option value="60">60 seconds</option>
-                            <option value="120">2 minutes</option>
+                        <label>Overhead Frequency (sec)</label>
+                        <input type="number" id="cfgOverheadInterval" min="1" step="1">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Throughput Frequency</label>
+                        <select id="cfgThroughputInterval">
+                            <optgroup label="Normal">
+                                <option value="300">5 minutes</option>
+                                <option value="600">10 minutes</option>
+                                <option value="900">15 minutes</option>
+                            </optgroup>
+                            <optgroup label="Stress">
+                                <option value="1800">30 minutes</option>
+                                <option value="3600">1 hour</option>
+                            </optgroup>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label>Ping Target</label>
-                        <input type="text" id="cfgPingTarget">
+                        <label>Fast Probe Frequency (sec)</label>
+                        <input type="number" id="cfgFastInterval" min="1" step="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Telemetry Probe Frequency (sec)</label>
+                        <input type="number" id="cfgTelInterval" min="1" step="1">
                     </div>
 
                     <button class="btn" onclick="saveConfig()" id="btnSaveConfig">Push Configuration</button>
@@ -1795,16 +1794,14 @@
                     if (cfgData.config && cfgData.version > localConfigVersion) {
                         localConfigVersion = cfgData.version;
                         const cfg = cfgData.config;
-                        if (cfg.fast_probe) {
-                            document.getElementById('cfgFastEnabled').checked = cfg.fast_probe.enabled;
-                            if (cfg.fast_probe.ping_target) document.getElementById('cfgPingTarget').value = cfg.fast_probe.ping_target;
-                        }
                         if (cfg.scheduler) {
-                            const sel = document.getElementById('cfgTelInterval');
-                            const val = cfg.scheduler.telemetry_interval_sec?.toString();
-                            if (val && Array.from(sel.options).some(o => o.value === val)) sel.value = val;
+                            if (cfg.scheduler.overhead_interval_sec) document.getElementById('cfgOverheadInterval').value = cfg.scheduler.overhead_interval_sec;
+                            if (cfg.scheduler.throughput_interval_sec) document.getElementById('cfgThroughputInterval').value = cfg.scheduler.throughput_interval_sec;
+                            if (cfg.scheduler.telemetry_interval_sec) document.getElementById('cfgTelInterval').value = cfg.scheduler.telemetry_interval_sec;
                         }
-                        if (cfg.modules) document.getElementById('cfgTptEnabled').checked = cfg.modules.throughput;
+                        if (cfg.fast_probe && cfg.fast_probe.interval_sec) {
+                            document.getElementById('cfgFastInterval').value = cfg.fast_probe.interval_sec;
+                        }
                         addLog('info', `Config v${cfgData.version} dimuat dari server`);
                     }
                 }
@@ -1831,9 +1828,16 @@
 
             const newCfg = {
                 ...currentCfg,
-                fast_probe: { ...(currentCfg.fast_probe || {}), enabled: document.getElementById('cfgFastEnabled').checked, ping_target: document.getElementById('cfgPingTarget').value },
-                scheduler: { ...(currentCfg.scheduler || {}), telemetry_interval_sec: parseInt(document.getElementById('cfgTelInterval').value) },
-                modules: { ...(currentCfg.modules || {}), throughput: document.getElementById('cfgTptEnabled').checked }
+                fast_probe: { 
+                    ...(currentCfg.fast_probe || {}), 
+                    interval_sec: parseInt(document.getElementById('cfgFastInterval').value) || 2
+                },
+                scheduler: { 
+                    ...(currentCfg.scheduler || {}), 
+                    overhead_interval_sec: parseInt(document.getElementById('cfgOverheadInterval').value) || 30,
+                    throughput_interval_sec: parseInt(document.getElementById('cfgThroughputInterval').value) || 300,
+                    telemetry_interval_sec: parseInt(document.getElementById('cfgTelInterval').value) || 30
+                }
             };
 
             try {
@@ -1860,7 +1864,7 @@
         }
 
         // Mark configDirty when user edits any form field
-        ['cfgFastEnabled', 'cfgTptEnabled', 'cfgTelInterval', 'cfgPingTarget'].forEach(id => {
+        ['cfgOverheadInterval', 'cfgThroughputInterval', 'cfgFastInterval', 'cfgTelInterval'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', () => { configDirty = true; addLog('info', `Config field "${id}" diubah — belum di-push`); });
         });

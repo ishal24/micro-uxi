@@ -405,6 +405,29 @@ def _upload_overhead(url: str, device_id: str, sample: dict):
     except Exception:
         pass
 
+def _config_worker_thread(args):
+    """Secara berkala menarik config dari server untuk meng-update interval secara dinamis."""
+    import urllib.request
+    import json
+    import time
+    
+    url = args.server_url.rstrip('/')
+    endpoint = f"{url}/api/config?device_id={args.device_id}"
+    
+    while True:
+        try:
+            req = urllib.request.Request(endpoint)
+            with urllib.request.urlopen(req, timeout=5.0) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode("utf-8"))
+                    if data and data.get("config"):
+                        new_interval = data["config"].get("scheduler", {}).get("overhead_interval_sec")
+                        if new_interval is not None and new_interval > 0:
+                            args.interval = float(new_interval)
+        except Exception:
+            pass
+        time.sleep(30)
+
 def run(args):
     # ── Resolve PID target ────────────────────────────────────────────────────
     sensor_pids = []
@@ -420,6 +443,14 @@ def run(args):
 
     sampler = OverheadSampler(sensor_pids)
     writer  = _OutputWriter(args.output, args.csv)
+
+    if args.server_url:
+        import threading
+        threading.Thread(
+            target=_config_worker_thread,
+            args=(args,),
+            daemon=True
+        ).start()
 
     duration_sec = _parse_duration(args.duration)
     t_start      = time.monotonic()
