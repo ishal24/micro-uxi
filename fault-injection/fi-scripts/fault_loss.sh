@@ -1,31 +1,7 @@
 #!/usr/bin/env bash
-# =============================================================================
-# fault_loss.sh
-#
-# Tujuan:
-#   Mensimulasikan packet loss pada jalur upstream.
-#
-# Cara kerja:
-#   Script ini memasang `tc netem loss` pada interface upstream.
-#   Semua trafik keluar dari laptop lewat interface itu akan mengalami loss
-#   sesuai persen yang kamu tentukan.
-#
-# Contoh:
-#   sudo ./fault_loss.sh start 15
-#     -> loss 15%
-#
-#   sudo ./fault_loss.sh stop
-#     -> hapus loss injection
-#
-# Catatan:
-#   Untuk "burst" paling sederhana, aktifkan selama beberapa detik lalu stop.
-#   Atau bungkus dari shell:
-#     sudo ./fault_loss.sh start 15
-#     sleep 10
-#     sudo ./fault_loss.sh stop
-# =============================================================================
+# S3 injector: tambahkan packet loss pada jalur upstream.
 
-set -e
+set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/fault_common.sh"
 
@@ -47,11 +23,9 @@ start_fault() {
 
   require_root
   check_interface_exists "${UPSTREAM_IF}"
-
   remove_tc_root_if_exists "${UPSTREAM_IF}"
   tc qdisc add dev "${UPSTREAM_IF}" root netem loss "${loss_pct}%"
-
-  echo "[OK] Packet loss fault aktif: loss=${loss_pct}% di ${UPSTREAM_IF}"
+  echo "[OK] S3 LOSS_BURST aktif: loss=${loss_pct}% iface=${UPSTREAM_IF}"
   tc qdisc show dev "${UPSTREAM_IF}"
 }
 
@@ -59,7 +33,7 @@ stop_fault() {
   require_root
   check_interface_exists "${UPSTREAM_IF}"
   remove_tc_root_if_exists "${UPSTREAM_IF}"
-  echo "[OK] Packet loss fault dihentikan."
+  echo "[OK] S3 LOSS_BURST dihentikan."
 }
 
 case "${1:-}" in

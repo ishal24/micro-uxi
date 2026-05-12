@@ -1,29 +1,7 @@
 #!/usr/bin/env bash
-# =============================================================================
-# fault_flap.sh
-#
-# Tujuan:
-#   Mensimulasikan connectivity flap dengan cara mematikan lalu menyalakan lagi
-#   interface upstream. Hotspot tetap ada, tapi jalur keluar putus.
-#
-# Mode:
-#   1) once   -> flap satu kali
-#   2) repeat -> flap berulang
-#   3) down   -> paksa interface down
-#   4) up     -> paksa interface up
-#
-# Contoh:
-#   sudo ./fault_flap.sh once 5
-#     -> upstream down 5 detik lalu up lagi
-#
-#   sudo ./fault_flap.sh repeat 3 5 10
-#     -> 3 kali, tiap kali down 5 detik, lalu jeda 10 detik setelah up
-#
-#   sudo ./fault_flap.sh down
-#   sudo ./fault_flap.sh up
-# =============================================================================
+# S6 injector: flap konektivitas dengan menurunkan interface upstream.
 
-set -e
+set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/fault_common.sh"
 
@@ -45,12 +23,12 @@ EOF
 
 do_down() {
   ip link set dev "${UPSTREAM_IF}" down
-  echo "[OK] ${UPSTREAM_IF} -> DOWN"
+  echo "[OK] S6 ${UPSTREAM_IF} -> DOWN"
 }
 
 do_up() {
   ip link set dev "${UPSTREAM_IF}" up
-  echo "[OK] ${UPSTREAM_IF} -> UP"
+  echo "[OK] S6 ${UPSTREAM_IF} -> UP"
 }
 
 once_flap() {
@@ -58,17 +36,17 @@ once_flap() {
   do_down
   sleep "${down_s}"
   do_up
-  echo "[OK] Connectivity flap once selesai."
+  echo "[OK] S6 CONNECTIVITY_FLAP once selesai."
 }
 
 repeat_flap() {
   local count="$1"
   local down_s="$2"
   local up_gap_s="$3"
-
   local i
+
   for ((i=1; i<=count; i++)); do
-    echo "[INFO] Flap ${i}/${count}"
+    echo "[INFO] S6 flap ${i}/${count}"
     do_down
     sleep "${down_s}"
     do_up
@@ -77,7 +55,7 @@ repeat_flap() {
     fi
   done
 
-  echo "[OK] Connectivity flap repeat selesai."
+  echo "[OK] S6 CONNECTIVITY_FLAP repeat selesai."
 }
 
 require_root

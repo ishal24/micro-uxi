@@ -1,30 +1,7 @@
 #!/usr/bin/env bash
-# =============================================================================
-# fault_dns_outage.sh
-#
-# Tujuan:
-#   Mensimulasikan DNS outage / DNS timeout dengan cara DROP trafik DNS
-#   (UDP/TCP port 53) dari client hotspot.
-#
-# Cara kerja:
-#   - Buat chain iptables custom: FI_DNS_OUTAGE
-#   - Hook chain itu ke FORWARD untuk trafik yang datang dari HOTSPOT_IF
-#   - Semua paket DNS dari client hotspot akan di-drop
-#
-# Mode:
-#   start -> aktifkan outage
-#   stop  -> hapus outage
-#   burst -> outage beberapa kali secara otomatis
-#
-# Contoh:
-#   sudo ./fault_dns_outage.sh start
-#   sudo ./fault_dns_outage.sh stop
-#
-#   sudo ./fault_dns_outage.sh burst 3 8 5
-#     -> 3 burst, tiap burst aktif 8 detik, jeda 5 detik antar burst
-# =============================================================================
+# S2 injector: putuskan DNS dari klien hotspot secara burst.
 
-set -e
+set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SCRIPT_DIR}/fault_common.sh"
 
@@ -45,18 +22,16 @@ EOF
 start_fault() {
   require_root
   check_interface_exists "${HOTSPOT_IF}"
-
   create_dns_outage_chain_if_needed
   attach_dns_outage_chain
-
-  echo "[OK] S2 DNS outage aktif. DNS dari client hotspot sekarang di-DROP (nft priority -1)."
+  echo "[OK] S2 DNS_TIMEOUT_BURST aktif."
 }
 
 stop_fault() {
   require_root
   detach_dns_outage_chain
   destroy_dns_outage_chain
-  echo "[OK] DNS outage dihentikan."
+  echo "[OK] S2 DNS_TIMEOUT_BURST dihentikan."
 }
 
 burst_fault() {
@@ -67,19 +42,16 @@ burst_fault() {
 
   require_root
   for ((i=1; i<=count; i++)); do
-    echo "[INFO] DNS outage burst ${i}/${count}: ON"
+    echo "[INFO] S2 burst ${i}/${count}: ON"
     start_fault
     sleep "${outage_s}"
-
-    echo "[INFO] DNS outage burst ${i}/${count}: OFF"
+    echo "[INFO] S2 burst ${i}/${count}: OFF"
     stop_fault
-
     if [[ "${i}" -lt "${count}" ]]; then
       sleep "${gap_s}"
     fi
   done
-
-  echo "[OK] DNS outage burst selesai."
+  echo "[OK] S2 DNS_TIMEOUT_BURST selesai."
 }
 
 case "${1:-}" in
