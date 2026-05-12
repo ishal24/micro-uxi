@@ -90,6 +90,46 @@ sudo ./rollback_all_faults.sh
 
 4. Untuk `S5_HTTP_SLOW`, target HTTP monitoring dan target fault injection harus selaras.
 
+### 3.4 Hubungan Fault Injection dengan Interval Monitoring
+
+Parameter fault injection yang ideal tidak bisa dipilih secara terpisah dari konfigurasi `monitoring`. Durasi injeksi harus cukup panjang agar probe sempat mengambil sampel, detector sempat memenuhi `confirm_consecutive`, dan recovery sempat terlihat.
+
+Dengan default monitoring saat ini:
+
+- `fast_interval_sec = 5`
+- `telemetry_interval_sec = 30`
+- `throughput_interval_sec = 900`
+
+rule praktis yang aman adalah:
+
+- event berbasis `fast_probe` sebaiknya aktif minimal `3 x fast_interval`
+- event berbasis `telemetry_probe` sebaiknya aktif minimal `3 x telemetry_interval`
+- baseline sebelum fault sebaiknya minimal `30-60s`
+- untuk mode `dynamic`, warm-up baseline harus lebih panjang daripada mode `static`
+
+Ringkasan parameter waktu yang aman:
+
+| Event | Probe Utama | Kondisi Aman Awal |
+| --- | --- | --- |
+| `S1_DNS_DEGRADED` | fast | delay aktif `30-60s` |
+| `S2_DNS_TIMEOUT_BURST` | fast | tiap burst aktif `>=15s` |
+| `S3_LOSS_BURST` | fast | butuh sinkronisasi khusus dengan `loss_window_sec` |
+| `S4_HIGH_RTT` | telemetry | delay aktif `90-120s` |
+| `S5_HTTP_SLOW` | telemetry | slow aktif `90-180s` |
+| `S6_CONNECTIVITY_FLAP` | fast | down duration `10-15s`, repeat `3x` |
+
+Catatan penting untuk mode `dynamic`:
+
+- baseline DNS butuh minimal `5` healthy fast samples, jadi secara praktis siapkan `60-120s` kondisi normal
+- baseline RTT dan HTTP butuh minimal `5` healthy telemetry samples, jadi secara praktis siapkan `180-300s` kondisi normal
+
+Catatan penting untuk `S3_LOSS_BURST`:
+
+- dengan default `fast_interval_sec = 5`, `loss_window_sec = 10`, dan `minimum_samples = 5`, detector `LOSS_BURST` tidak punya cukup sampel untuk memutuskan event secara andal
+- supaya `S3` ideal, gunakan salah satu dari dua opsi ini:
+  - kecilkan `fast_interval_sec` menjadi `2s`
+  - atau naikkan `loss_window_sec` menjadi `25-30s`
+
 ## 4. Mapping Skenario ke Monitoring
 
 Mapping fault injector ke event monitoring:
@@ -156,14 +196,71 @@ Mensimulasikan kondisi resolusi DNS yang lambat, tetapi tidak sepenuhnya gagal.
 
 ### Mekanisme
 
-Langkah implementasi:
+Langkah implementasi detail di script:
 
-1. Trafik DNS dari klien hotspot ditandai dengan `meta mark 53` menggunakan `nft`.
-2. Root qdisc `prio` dipasang pada `UPSTREAM_IF`.
-3. Paket yang bertanda `53` diarahkan ke band yang diberi `netem delay`.
-4. Trafik selain DNS dibiarkan lewat tanpa modifikasi khusus.
+1. Bersihkan qdisc lama pada interface upstream supaya tidak bentrok dengan fault lain:
 
-Secara efek, request DNS dari Uno Q menjadi lebih lambat, tetapi tidak otomatis gagal.
+```bash
+tc qdisc del dev "${UPSTREAM_IF}" root
+```
+
+2. Buat table `nft` khusus fault injection jika belum ada:
+
+```bash
+nft add table ip fi_fault
+```
+
+3. Buat chain `FI_MANGLE` yang di-hook ke `prerouting` dengan priority `-150`, lalu kosongkan isi chain agar state selalu konsisten:
+
+```bash
+nft add chain ip fi_fault FI_MANGLE '{ type filter hook prerouting priority -150; policy accept; }'
+nft flush chain ip fi_fault FI_MANGLE
+```
+
+4. Tandai trafik DNS dari Uno Q dengan `mark 53`. Yang ditandai hanya paket dari `HOTSPOT_IF` dan `CLIENT_SUBNET`, jadi trafik lain milik laptop tidak ikut terpengaruh:
+
+```bash
+nft add rule ip fi_fault FI_MANGLE iifname "${HOTSPOT_IF}" ip saddr "${CLIENT_SUBNET}" udp dport 53 meta mark set 53
+nft add rule ip fi_fault FI_MANGLE iifname "${HOTSPOT_IF}" ip saddr "${CLIENT_SUBNET}" tcp dport 53 meta mark set 53
+```
+
+5. Pasang root qdisc `prio` pada `UPSTREAM_IF`:
+
+```bash
+tc qdisc add dev "${UPSTREAM_IF}" root handle 1: prio
+```
+
+6. Pasang `netem delay` hanya pada band `1:1`. Delay inilah yang menjadi fault utama:
+
+```bash
+tc qdisc add dev "${UPSTREAM_IF}" parent 1:1 handle 10: netem delay "${delay_ms}ms"
+```
+
+Jika memakai jitter:
+
+```bash
+tc qdisc add dev "${UPSTREAM_IF}" parent 1:1 handle 10: netem delay "${delay_ms}ms" "${jitter_ms}ms"
+```
+
+7. Arahkan hanya paket yang sudah diberi `mark 53` ke band `1:1`:
+
+```bash
+tc filter add dev "${UPSTREAM_IF}" parent 1: protocol ip prio 1 handle 53 fw flowid 1:1
+```
+
+Secara efek:
+
+- DNS dari Uno Q menjadi lambat
+- ping, HTTP, dan trafik lain tidak sengaja dilambatkan oleh fault ini
+- detektor S1 bisa melihat kenaikan `dns_latency_ms` tanpa harus melihat banyak packet loss
+
+Perintah stop yang dilakukan script:
+
+```bash
+tc qdisc del dev "${UPSTREAM_IF}" root
+nft flush chain ip fi_fault FI_MANGLE
+nft delete chain ip fi_fault FI_MANGLE
+```
 
 ### Parameter
 
@@ -189,6 +286,27 @@ sudo ./fault_dns_delay.sh stop
 
 Skema ini cukup representatif untuk `DNS_DEGRADED` karena fokus event memang pada kenaikan latensi DNS. Namun skema ini lebih merepresentasikan delay di jalur DNS daripada masalah resolver yang selektif, overload resolver, atau isu DNS aplikasi tertentu.
 
+### Kondisi Ideal Awal
+
+Parameter awal yang direkomendasikan:
+
+- `delay_ms = 400-600`
+- `jitter_ms = 0-50`
+- durasi fault `30-60s`
+- baseline sebelum fault `30-60s`
+
+Alasan:
+
+- threshold static DNS saat ini `300ms`, jadi injeksi `400ms` sudah cukup jelas melewati threshold
+- dengan `fast_interval_sec = 5` dan `confirm_consecutive = 2`, durasi `15s` sebenarnya sudah bisa memicu event, tetapi `30-60s` lebih aman dan memberi cukup sampel untuk evidence
+- jitter tidak wajib; nilai `0-50ms` cukup untuk membuat delay lebih natural tanpa mengaburkan gejala utama
+
+Mode uji yang disarankan:
+
+- untuk validasi dasar detector, mulai dari `400ms` selama `45s`
+- untuk uji yang lebih agresif, gunakan `600ms` selama `60s`
+- untuk mode `dynamic`, siapkan warm-up DNS normal minimal `60s`, idealnya `120s`
+
 ### Hal yang Perlu Dijaga
 
 - Jangan jalankan bersamaan dengan `S4`, karena keduanya sama-sama memakai root qdisc di `UPSTREAM_IF`.
@@ -206,12 +324,46 @@ Mensimulasikan kondisi DNS timeout atau outage secara burst.
 
 ### Mekanisme
 
-Langkah implementasi:
+Langkah implementasi detail di script:
 
-1. Script membuat chain `FI_FORWARD` pada `nft`.
-2. Chain di-hook ke `forward` dengan priority lebih awal.
-3. Trafik UDP/TCP port `53` dari `HOTSPOT_IF` dan `CLIENT_SUBNET` di-drop.
-4. Outage dapat dijalankan manual atau berulang menggunakan mode burst.
+1. Buat table `nft` fault injection bila belum ada:
+
+```bash
+nft add table ip fi_fault
+```
+
+2. Buat chain `FI_FORWARD` yang di-hook ke jalur `forward` dengan priority `-1`, lalu kosongkan isi chain:
+
+```bash
+nft add chain ip fi_fault FI_FORWARD '{ type filter hook forward priority -1; policy accept; }'
+nft flush chain ip fi_fault FI_FORWARD
+```
+
+3. Tambahkan rule `drop` untuk trafik DNS dari klien hotspot:
+
+```bash
+nft add rule ip fi_fault FI_FORWARD iifname "${HOTSPOT_IF}" ip saddr "${CLIENT_SUBNET}" udp dport 53 drop
+nft add rule ip fi_fault FI_FORWARD iifname "${HOTSPOT_IF}" ip saddr "${CLIENT_SUBNET}" tcp dport 53 drop
+```
+
+4. Jika mode yang dipakai adalah `burst`, script menjalankan pola berikut:
+
+```bash
+start -> sleep "${outage_seconds}" -> stop -> sleep "${gap_seconds}" -> ulangi
+```
+
+Secara efek:
+
+- DNS query dari Uno Q tidak mendapat jawaban
+- ping ke target ICMP bisa tetap normal
+- masalah tampak jelas sebagai fault DNS, bukan fault link total
+
+Perintah stop yang dilakukan script:
+
+```bash
+nft flush chain ip fi_fault FI_FORWARD
+nft delete table ip fi_fault
+```
 
 ### Parameter
 
@@ -238,6 +390,26 @@ sudo ./fault_dns_outage.sh burst 3 8 5
 
 Skema ini sangat cocok untuk memvalidasi `DNS_TIMEOUT_BURST` karena pattern gejalanya jelas. Kekurangannya, implementasi sekarang cenderung all-or-nothing, jadi belum mewakili kasus partial DNS failure yang lebih realistis.
 
+### Kondisi Ideal Awal
+
+Parameter awal yang direkomendasikan:
+
+- `burst_count = 2-3`
+- `outage_seconds = 15s`
+- `gap_seconds = 5-8s` jika ingin satu episode outage yang tetap terasa menyambung
+- `gap_seconds = 20-30s` jika ingin tiap burst lebih berpeluang terbaca sebagai episode yang terpisah
+
+Alasan:
+
+- dengan `fast_interval_sec = 5` dan `confirm_consecutive = 2`, outage `15s` memberi cukup waktu untuk minimal dua sampel gagal
+- gap pendek cenderung membuat beberapa burst tergabung sebagai satu event yang sama
+- gap panjang lebih cocok jika tujuan eksperimen adalah melihat apakah detector bisa membuka dan menutup event berkali-kali
+
+Mode uji yang disarankan:
+
+- validasi default: `3 burst`, `15s outage`, `8s gap`
+- validasi per-burst terpisah: `3 burst`, `15s outage`, `25s gap`
+
 ### Hal yang Perlu Dijaga
 
 - Pastikan monitoring benar-benar melakukan DNS query saat burst aktif.
@@ -255,11 +427,33 @@ Mensimulasikan packet loss pada jalur upstream.
 
 ### Mekanisme
 
-Langkah implementasi:
+Langkah implementasi detail di script:
 
-1. Root qdisc lama pada `UPSTREAM_IF` dihapus.
-2. `tc netem loss` dipasang pada `UPSTREAM_IF`.
-3. Semua trafik yang keluar melalui upstream mengalami loss sesuai persentase yang ditentukan.
+1. Bersihkan root qdisc lama pada `UPSTREAM_IF`:
+
+```bash
+tc qdisc del dev "${UPSTREAM_IF}" root
+```
+
+2. Pasang `netem loss` langsung sebagai root qdisc:
+
+```bash
+tc qdisc add dev "${UPSTREAM_IF}" root netem loss "${loss_percent}%"
+```
+
+3. Selama fault aktif, seluruh trafik yang keluar lewat `UPSTREAM_IF` akan mengalami probabilistic packet loss sesuai parameter.
+
+Secara efek:
+
+- ping dari Uno Q menjadi sering gagal
+- sample loss pada telemetry meningkat
+- DNS dan HTTP bisa ikut rusak sebagai dampak turunan
+
+Perintah stop yang dilakukan script:
+
+```bash
+tc qdisc del dev "${UPSTREAM_IF}" root
+```
 
 ### Parameter
 
@@ -291,6 +485,32 @@ sudo ./fault_loss.sh stop
 
 Skema ini cukup akurat untuk `LOSS_BURST` karena metrik loss memang akan naik. Namun ini lebih mewakili loss di jalur forwarding/upstream daripada loss akibat interferensi radio, weak signal, roaming, atau masalah access point.
 
+### Kondisi Ideal Awal
+
+Parameter awal yang direkomendasikan untuk fault injection:
+
+- `loss_percent = 40-60%` untuk validasi yang jelas
+- `loss_percent = 20-30%` untuk uji dekat threshold
+- durasi fault `20-30s` jika monitoring sudah selaras
+
+Tetapi ada syarat penting di sisi monitoring:
+
+- default saat ini adalah `fast_interval_sec = 5`
+- default saat ini juga `loss_window_sec = 10`
+- default `minimum_samples = 5`
+
+Dengan kombinasi itu, `S3` tidak ideal karena window `10s` terlalu pendek untuk mengumpulkan `5` sampel fast jika intervalnya `5s`.
+
+Supaya `S3` benar-benar bisa diuji dengan baik, pilih salah satu:
+
+- ubah `fast_interval_sec` menjadi `2s`
+- atau ubah `loss_window_sec` menjadi `25-30s`
+
+Profil uji yang disarankan:
+
+- jika `fast_interval_sec = 2s`, pakai `loss_percent = 40%` selama `20s`
+- jika `fast_interval_sec = 5s`, pakai `loss_percent = 40-60%` dan naikkan `loss_window_sec` menjadi `25-30s`
+
 ### Hal yang Perlu Dijaga
 
 - Threshold loss di monitoring harus cukup rendah untuk menangkap injeksi yang dipilih.
@@ -308,17 +528,62 @@ Mensimulasikan latency umum pada jalur network tanpa membuat DNS ikut tampak lam
 
 ### Mekanisme
 
-Langkah implementasi:
+Langkah implementasi detail di script:
 
-1. Trafik DNS dari klien ditandai dengan `mark 53`.
-2. Root qdisc `prio` dipasang di `UPSTREAM_IF` dengan dua band.
-3. Band default diberi `netem delay`.
-4. Paket DNS diarahkan ke band tanpa delay.
+1. Bersihkan qdisc lama pada `UPSTREAM_IF`:
+
+```bash
+tc qdisc del dev "${UPSTREAM_IF}" root
+```
+
+2. Buat chain `FI_MANGLE` pada `nft`, lalu tandai hanya trafik DNS dari Uno Q dengan `mark 53`:
+
+```bash
+nft add table ip fi_fault
+nft add chain ip fi_fault FI_MANGLE '{ type filter hook prerouting priority -150; policy accept; }'
+nft flush chain ip fi_fault FI_MANGLE
+nft add rule ip fi_fault FI_MANGLE iifname "${HOTSPOT_IF}" ip saddr "${CLIENT_SUBNET}" udp dport 53 meta mark set 53
+nft add rule ip fi_fault FI_MANGLE iifname "${HOTSPOT_IF}" ip saddr "${CLIENT_SUBNET}" tcp dport 53 meta mark set 53
+```
+
+3. Pasang root qdisc `prio` dengan dua band pada `UPSTREAM_IF`. Semua trafik default diarahkan ke band `1:2` yang nanti akan diberi delay:
+
+```bash
+tc qdisc add dev "${UPSTREAM_IF}" root handle 1: prio bands 2 \
+  priomap 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1
+```
+
+4. Pasang `netem delay` pada band `1:2`:
+
+```bash
+tc qdisc add dev "${UPSTREAM_IF}" parent 1:2 handle 20: netem delay "${delay_ms}ms"
+```
+
+Jika memakai jitter:
+
+```bash
+tc qdisc add dev "${UPSTREAM_IF}" parent 1:2 handle 20: netem delay "${delay_ms}ms" "${jitter_ms}ms"
+```
+
+5. Arahkan paket DNS yang sudah diberi `mark 53` ke band `1:1`, yaitu band tanpa delay:
+
+```bash
+tc filter add dev "${UPSTREAM_IF}" parent 1: protocol ip prio 1 handle 53 fw flowid 1:1
+```
 
 Akibatnya:
 
 - ping dan HTTP melambat
 - DNS relatif tetap cepat
+- S4 bisa dibedakan dari S1 karena fault utamanya bukan pada DNS
+
+Perintah stop yang dilakukan script:
+
+```bash
+tc qdisc del dev "${UPSTREAM_IF}" root
+nft flush chain ip fi_fault FI_MANGLE
+nft delete chain ip fi_fault FI_MANGLE
+```
 
 ### Parameter
 
@@ -344,6 +609,27 @@ sudo ./fault_rtt.sh stop
 
 Skema ini bagus untuk memvalidasi `HIGH_RTT` karena membantu membedakan latency umum dari `DNS_DEGRADED`. Dibanding kondisi nyata, implementasi sekarang masih lebih bersih karena belum selalu menambahkan jitter atau loss kecil yang sering muncul bersama latency tinggi.
 
+### Kondisi Ideal Awal
+
+Parameter awal yang direkomendasikan:
+
+- `delay_ms = 200-300`
+- `jitter_ms = 0-30`
+- durasi fault `90-120s`
+- baseline sebelum fault `60s` untuk static, `180-300s` untuk dynamic
+
+Alasan:
+
+- threshold static RTT saat ini `150ms`, jadi injeksi `200ms` sudah cukup jelas
+- event S4 dievaluasi dari `telemetry_probe` dengan interval `30s` dan `confirm_consecutive = 2`, jadi durasi `90s` adalah titik aman agar minimal ada tiga sampel telemetry selama fault
+- jitter kecil membantu realism, tetapi tidak wajib untuk validasi awal
+
+Mode uji yang disarankan:
+
+- validasi dasar: `200ms` selama `90s`
+- validasi lebih tegas: `250-300ms` selama `120s`
+- jika ingin isolasi S4 yang bersih, jangan kombinasikan dengan loss atau DNS fault lain
+
 ### Hal yang Perlu Dijaga
 
 - Durasi S4 sebaiknya cukup panjang agar minimal ada dua cycle telemetry.
@@ -364,12 +650,70 @@ Mensimulasikan perlambatan transaksi HTTP/application-layer tanpa harus menjatuh
 
 Implementasi S5 saat ini bekerja seperti ini:
 
-1. Root qdisc `prio` dipasang pada `HOTSPOT_IF`.
-2. Band default dibiarkan tidak dibatasi.
-3. Band kedua diberi `tbf rate`.
-4. Hanya traffic response TCP dengan `sport` pada port HTTP target yang diarahkan ke band terbatas.
+1. Siapkan target HTTP lebih dulu. Untuk mode yang paling stabil, jalankan server lokal:
 
-Artinya, script ini tidak men-throttle semua network traffic. Script ini secara sengaja men-slow down flow HTTP tertentu agar gejala utama yang terlihat adalah `HTTP_SLOW`, bukan `LOSS_BURST` atau `DNS_DEGRADED`.
+```bash
+ip -4 addr show "${HOTSPOT_IF}" | awk '/inet / {print $2}' | cut -d/ -f1 | head -n 1
+dd if=/dev/urandom of="testfile_1mb.bin" bs=1M count=1 status=none
+python3 -m http.server 8080 --bind "${LAPTOP_IP}"
+```
+
+Dalam script [setup_http_server.sh](../fault-injection/fi-scripts/setup_http_server.sh), langkah ini dibungkus otomatis dan file uji default adalah `testfile_1mb.bin`.
+
+2. Sebelum menjalankan fault, `run_all_faults.sh` mencoba memastikan target HTTP benar-benar bisa diakses:
+
+```bash
+curl -sf --max-time 10 -o /dev/null "${S5_TEST_URL}"
+```
+
+3. Bersihkan qdisc lama pada `HOTSPOT_IF`:
+
+```bash
+tc qdisc del dev "${HOTSPOT_IF}" root
+```
+
+4. Pasang root qdisc `prio` dengan dua band. Semua trafik default tetap lewat band `1:1` tanpa rate limit:
+
+```bash
+tc qdisc add dev "${HOTSPOT_IF}" root handle 1: prio bands 2 \
+  priomap 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+```
+
+5. Pasang `tbf` pada band `1:2` sebagai limiter:
+
+```bash
+tc qdisc add dev "${HOTSPOT_IF}" parent 1:2 handle 20: \
+  tbf rate "${rate}" burst 15000 latency 200ms
+```
+
+6. Arahkan hanya response TCP yang keluar dari port target HTTP ke band terbatas tersebut:
+
+```bash
+tc filter add dev "${HOTSPOT_IF}" parent 1:0 protocol ip prio 1 \
+  u32 match ip protocol 6 0xff match ip sport "${port}" 0xffff flowid 1:2
+```
+
+Contoh jika target lokal memakai port `8080`:
+
+```bash
+tc filter add dev "${HOTSPOT_IF}" parent 1:0 protocol ip prio 1 \
+  u32 match ip protocol 6 0xff match ip sport 8080 0xffff flowid 1:2
+```
+
+Contoh jika target HTTPS external memakai port `443`:
+
+```bash
+tc filter add dev "${HOTSPOT_IF}" parent 1:0 protocol ip prio 1 \
+  u32 match ip protocol 6 0xff match ip sport 443 0xffff flowid 1:2
+```
+
+Artinya, script ini tidak men-throttle semua network traffic. Script ini sengaja hanya memperlambat flow HTTP tertentu agar gejala utama yang terlihat adalah `HTTP_SLOW`, bukan `LOSS_BURST` atau `DNS_DEGRADED`.
+
+Perintah stop yang dilakukan script:
+
+```bash
+tc qdisc del dev "${HOTSPOT_IF}" root
+```
 
 ### Parameter
 
@@ -416,6 +760,34 @@ Alasan:
 
 Skema ini cukup cocok untuk `HTTP_SLOW` selama target monitoring selaras dengan target fault injection. Namun penting dipahami bahwa implementasi sekarang lebih dekat ke response shaping pada flow HTTP tertentu, bukan model umum untuk semua penyebab aplikasi lambat. Jadi ini sangat baik untuk validasi detector, tetapi belum mewakili semua root cause aplikasi slow.
 
+### Kondisi Ideal Awal
+
+Parameter awal yang direkomendasikan:
+
+- target HTTP: server lokal hotspot, port `8080`
+- file uji: `1MB`
+- `rate = 1mbit` untuk validasi yang jelas tetapi masih relatif aman
+- durasi fault `90-180s`
+- baseline sebelum fault `60s` untuk static, `180-300s` untuk dynamic
+
+Alasan:
+
+- threshold static HTTP total saat ini `2000ms`, jadi file `1MB` dengan limiter `1mbit` secara kasar memberi waktu transfer sekitar `8s`, cukup jauh di atas threshold
+- `telemetry_probe` berjalan tiap `30s` dan butuh `2` sampel berturut-turut, jadi `90s` adalah durasi aman
+- `1mbit` biasanya masih membuat request terlihat sebagai slow response, bukan langsung timeout
+
+Profil uji yang disarankan:
+
+- validasi dasar: file `1MB`, port `8080`, `rate = 1mbit`, durasi `120s`
+- uji dekat threshold: `rate = 2mbit`, durasi `90s`
+- uji agresif: `rate = 500kbit`, tetapi ini bisa mendorong request mendekati timeout bila `http_max_time_sec` kecil
+
+Catatan praktis penting:
+
+- URL di `monitoring/default_config.json` harus sama dengan target yang diperlambat
+- jika target memakai HTTPS publik, set `HTTP_SLOW_PORTS=443`
+- untuk hasil paling repeatable, jangan mulai dari target web publik; mulai dari target lokal dulu
+
 ### Hal yang Perlu Dijaga
 
 1. URL di `monitoring/default_config.json` harus cocok dengan target yang benar-benar diperlambat.
@@ -434,13 +806,33 @@ Mensimulasikan konektivitas yang naik-turun berulang dalam jendela waktu singkat
 
 ### Mekanisme
 
-Langkah implementasi:
+Langkah implementasi detail di script:
 
-1. `UPSTREAM_IF` diturunkan dengan `ip link set down`.
-2. Setelah beberapa detik, interface dinaikkan lagi.
-3. Proses bisa dilakukan satu kali atau berulang.
+1. Untuk mode satu kali, script menurunkan interface upstream:
 
-Hotspot dapat tetap aktif, tetapi jalur ke luar menjadi putus-nyambung.
+```bash
+ip link set dev "${UPSTREAM_IF}" down
+```
+
+2. Script menunggu sesuai `down_seconds`:
+
+```bash
+sleep "${down_seconds}"
+```
+
+3. Script menaikkan lagi interface upstream:
+
+```bash
+ip link set dev "${UPSTREAM_IF}" up
+```
+
+4. Untuk mode `repeat`, pola di atas diulang:
+
+```bash
+down -> sleep "${down_seconds}" -> up -> sleep "${up_gap_seconds}" -> ulangi
+```
+
+Hotspot tetap dapat terlihat aktif, tetapi jalur dari laptop ke upstream menjadi putus-nyambung. Ini membuat event flap tampak sebagai perubahan berulang pada `connectivity_ok`, bukan sekadar satu kegagalan sesaat.
 
 ### Parameter
 
@@ -467,6 +859,27 @@ sudo ./fault_flap.sh up
 ### Kesesuaian terhadap Event
 
 Skema ini cukup akurat untuk `CONNECTIVITY_FLAP` pada layer upstream. Kekurangannya, ia belum mewakili flap pada sisi Wi-Fi association klien atau access point. Jadi event yang divalidasi di sini lebih tepat dibaca sebagai upstream connectivity flap.
+
+### Kondisi Ideal Awal
+
+Parameter awal yang direkomendasikan:
+
+- `repeat_count = 3`
+- `down_seconds = 10-15`
+- `up_gap_seconds = 5-10`
+- baseline sebelum fault `30-60s`
+
+Alasan:
+
+- dengan `fast_interval_sec = 5`, durasi down yang lebih pendek dari `5s` berisiko tidak tertangkap
+- `10-15s` memberi cukup waktu agar ada minimal satu sampai dua sampel gagal saat interface turun
+- `3` flap biasanya cukup untuk menghasilkan lebih dari `2` transisi dalam `flap_window_sec = 30`
+
+Mode uji yang disarankan:
+
+- validasi dasar: `3x flap`, `down 15s`, `gap 10s`
+- uji yang lebih cepat: `3x flap`, `down 10s`, `gap 5s`
+- jika ingin tiap episode flap lebih mungkin tertutup dulu sebelum episode berikutnya, beri quiet gap yang jauh lebih panjang, misalnya `>40s`
 
 ### Hal yang Perlu Dijaga
 
