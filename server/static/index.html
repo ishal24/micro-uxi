@@ -1822,6 +1822,7 @@
                         if (cfg.scheduler) {
                             if (cfg.scheduler.overhead_interval_sec) document.getElementById('cfgOverheadInterval').value = cfg.scheduler.overhead_interval_sec;
                             if (cfg.scheduler.throughput_interval_sec) document.getElementById('cfgThroughputInterval').value = cfg.scheduler.throughput_interval_sec;
+                            if (cfg.scheduler.fast_interval_sec) document.getElementById('cfgFastInterval').value = cfg.scheduler.fast_interval_sec;
                             if (cfg.scheduler.telemetry_interval_sec) document.getElementById('cfgTelInterval').value = cfg.scheduler.telemetry_interval_sec;
                         }
                         if (cfg.fast_probe && cfg.fast_probe.interval_sec) {
@@ -1857,9 +1858,18 @@
                     ...(currentCfg.fast_probe || {}), 
                     interval_sec: parseInt(document.getElementById('cfgFastInterval').value) || 2
                 },
+                throughput_probe: {
+                    ...(currentCfg.throughput_probe || {}),
+                    mode: (parseInt(document.getElementById('cfgThroughputInterval').value) || 300) >= 1800 ? 'stress' : 'routine'
+                },
+                overhead_probe: {
+                    ...(currentCfg.overhead_probe || {}),
+                    enabled: true
+                },
                 scheduler: { 
                     ...(currentCfg.scheduler || {}), 
-                    overhead_interval_sec: parseInt(document.getElementById('cfgOverheadInterval').value) || 30,
+                    fast_interval_sec: parseInt(document.getElementById('cfgFastInterval').value) || 2,
+                    overhead_interval_sec: parseInt(document.getElementById('cfgOverheadInterval').value) || 2,
                     throughput_interval_sec: parseInt(document.getElementById('cfgThroughputInterval').value) || 300,
                     telemetry_interval_sec: parseInt(document.getElementById('cfgTelInterval').value) || 30
                 }

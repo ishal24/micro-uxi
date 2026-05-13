@@ -17,8 +17,8 @@ if __package__ in (None, ""):
 from monitoring.config import load_config
 from monitoring.detector import EventDetector
 from monitoring.evidence import EvidenceManager
-from monitoring.probes import FastProbe, TelemetryProbe, ThroughputProbe
-from monitoring.stream import SampleStreamer
+from monitoring.probes import FastProbe, OverheadProbe, TelemetryProbe, ThroughputProbe
+from monitoring.stream import RemoteConfigClient, SampleStreamer
 from monitoring.utils import append_jsonl, safe_mkdir
 
 
@@ -48,6 +48,7 @@ class RunOptions:
     fast_interval_sec: float
     telemetry_interval_sec: float
     throughput_interval_sec: float
+    overhead_interval_sec: float
     output_dir: str | None
     duration_raw: str
     detection_mode: str
@@ -66,10 +67,26 @@ class MonitorController:
         self.detector = EventDetector(config, self.run_id)
         self.evidence = EvidenceManager(config, self.run_id)
         self.streamer = SampleStreamer(config, self._print)
+        self.remote_config = RemoteConfigClient(config, self._print)
+        self.remote_config_version = 0
         self.sample_queue: queue.Queue = queue.Queue()
         self.stop_event = threading.Event()
         self.print_lock = threading.Lock()
-        self.sample_counts = {"fast": 0, "telemetry": 0, "throughput": 0}
+        self.config_lock = threading.Lock()
+        sched = config["scheduler"]
+        self.worker_intervals = {
+            "fast": float(sched.get("fast_interval_sec", 5)),
+            "telemetry": float(sched.get("telemetry_interval_sec", 30)),
+            "throughput": float(sched.get("throughput_interval_sec", 900)),
+            "overhead": float(sched.get("overhead_interval_sec", 2)),
+        }
+        self.worker_enabled = {
+            "fast": bool(config.get("fast_probe", {}).get("enabled", True)),
+            "telemetry": bool(config.get("telemetry_probe", {}).get("enabled", True)),
+            "throughput": bool(config.get("throughput_probe", {}).get("enabled", False)),
+            "overhead": bool(config.get("overhead_probe", {}).get("enabled", True)),
+        }
+        self.sample_counts = {"fast": 0, "telemetry": 0, "throughput": 0, "overhead": 0}
         self.event_count = 0
         self.raw_dir = safe_mkdir(self.output_dir / "samples") if self.output_enabled else None
         self.event_log_path = (self.output_dir / f"events_{self.run_id}.jsonl") if self.output_enabled else None
@@ -78,6 +95,7 @@ class MonitorController:
                 "fast": self.raw_dir / f"fast_{self.run_id}.jsonl",
                 "telemetry": self.raw_dir / f"telemetry_{self.run_id}.jsonl",
                 "throughput": self.raw_dir / f"throughput_{self.run_id}.jsonl",
+                "overhead": self.raw_dir / f"overhead_{self.run_id}.jsonl",
             }
             if self.output_enabled
             else {}
@@ -85,12 +103,11 @@ class MonitorController:
 
     def build_workers(self) -> list[WorkerSpec]:
         workers: list[WorkerSpec] = []
-        sched = self.config["scheduler"]
         if self.config.get("fast_probe", {}).get("enabled", True):
             workers.append(
                 WorkerSpec(
                     name="fast",
-                    interval_sec=float(sched.get("fast_interval_sec", 2)),
+                    interval_sec=self.worker_intervals["fast"],
                     probe=FastProbe(self.config),
                 )
             )
@@ -98,7 +115,7 @@ class MonitorController:
             workers.append(
                 WorkerSpec(
                     name="telemetry",
-                    interval_sec=float(sched.get("telemetry_interval_sec", 30)),
+                    interval_sec=self.worker_intervals["telemetry"],
                     probe=TelemetryProbe(self.config),
                 )
             )
@@ -106,8 +123,16 @@ class MonitorController:
             workers.append(
                 WorkerSpec(
                     name="throughput",
-                    interval_sec=float(sched.get("throughput_interval_sec", 300)),
+                    interval_sec=self.worker_intervals["throughput"],
                     probe=ThroughputProbe(self.config),
+                )
+            )
+        if self.config.get("overhead_probe", {}).get("enabled", True):
+            workers.append(
+                WorkerSpec(
+                    name="overhead",
+                    interval_sec=self.worker_intervals["overhead"],
+                    probe=OverheadProbe(self.config),
                 )
             )
         return workers
@@ -116,13 +141,78 @@ class MonitorController:
         while not self.stop_event.is_set():
             started = time.monotonic()
             try:
-                sample = spec.probe.collect()
-                self.sample_queue.put(sample)
+                if self.worker_enabled.get(spec.name, True):
+                    sample = spec.probe.collect()
+                    self.sample_queue.put(sample)
             except Exception as exc:  # pragma: no cover - target-runtime dependent
                 self._print(f"[{spec.name.upper()} ERROR] {exc}")
 
             elapsed = time.monotonic() - started
-            self.stop_event.wait(max(0.0, spec.interval_sec - elapsed))
+            interval_sec = self.worker_intervals.get(spec.name, spec.interval_sec)
+            self.stop_event.wait(max(0.0, interval_sec - elapsed))
+
+    def _remote_config_loop(self) -> None:
+        if not self.remote_config.enabled:
+            return
+
+        poll_interval = float(self.config.get("remote_control", {}).get("poll_interval_sec", 30))
+        device_id = self.config.get("device", {}).get("device_id", "unknown")
+        self.stop_event.wait(5.0)
+
+        while not self.stop_event.is_set():
+            data = self.remote_config.fetch(device_id)
+            if data and data.get("config"):
+                version = int(data.get("version") or 0)
+                if version > self.remote_config_version:
+                    self._apply_remote_config(data["config"], version)
+            self.stop_event.wait(poll_interval)
+
+    @staticmethod
+    def _deep_update(target: dict, patch: dict) -> None:
+        for key, value in patch.items():
+            if isinstance(value, dict) and isinstance(target.get(key), dict):
+                MonitorController._deep_update(target[key], value)
+            else:
+                target[key] = value
+
+    def _set_worker_interval(self, name: str, value) -> None:
+        if value is None:
+            return
+        try:
+            parsed = float(value)
+        except (TypeError, ValueError):
+            return
+        if parsed > 0:
+            self.worker_intervals[name] = parsed
+
+    def _apply_remote_config(self, remote_cfg: dict, version: int) -> None:
+        with self.config_lock:
+            self._deep_update(self.config, remote_cfg)
+            sched = remote_cfg.get("scheduler", {})
+            fast_cfg = remote_cfg.get("fast_probe", {})
+
+            self._set_worker_interval("fast", sched.get("fast_interval_sec", fast_cfg.get("interval_sec")))
+            self._set_worker_interval("telemetry", sched.get("telemetry_interval_sec"))
+            self._set_worker_interval("throughput", sched.get("throughput_interval_sec"))
+            self._set_worker_interval("overhead", sched.get("overhead_interval_sec"))
+
+            for name, cfg_key in (
+                ("fast", "fast_probe"),
+                ("telemetry", "telemetry_probe"),
+                ("throughput", "throughput_probe"),
+                ("overhead", "overhead_probe"),
+            ):
+                if cfg_key in remote_cfg and "enabled" in remote_cfg[cfg_key]:
+                    self.worker_enabled[name] = bool(remote_cfg[cfg_key]["enabled"])
+
+            self.remote_config_version = version
+            self._print(
+                "[REMOTE CONFIG] "
+                f"v{version} applied: fast={self.worker_intervals['fast']:g}s "
+                f"telemetry={self.worker_intervals['telemetry']:g}s "
+                f"throughput={self.worker_intervals['throughput']:g}s "
+                f"overhead={self.worker_intervals['overhead']:g}s"
+            )
 
     def process_sample(self, sample: dict, print_sample_line: bool = True) -> None:
         probe_type = sample["probe_type"]
@@ -130,6 +220,11 @@ class MonitorController:
         if self.output_enabled:
             append_jsonl(self.sample_paths[probe_type], sample)
         self.streamer.enqueue(sample)
+
+        if probe_type == "overhead":
+            if print_sample_line:
+                self._print_sample_line(sample)
+            return
 
         notices = self.detector.handle_sample(sample)
         self.evidence.capture(sample, notices)
@@ -154,6 +249,10 @@ class MonitorController:
 
         self._print_banner(workers, duration_sec)
         self.streamer.start()
+        config_thread = None
+        if self.remote_config.enabled:
+            config_thread = threading.Thread(target=self._remote_config_loop, daemon=True, name="remote-config")
+            config_thread.start()
         for thread in threads:
             thread.start()
 
@@ -176,6 +275,8 @@ class MonitorController:
             self.stop_event.set()
             for thread in threads:
                 thread.join(timeout=10)
+            if config_thread:
+                config_thread.join(timeout=5)
             self.streamer.stop()
 
             remaining = self.detector.force_close_all()
@@ -194,6 +295,7 @@ class MonitorController:
             "once-fast": FastProbe,
             "once-telemetry": TelemetryProbe,
             "once-throughput": ThroughputProbe,
+            "once-overhead": OverheadProbe,
         }
         try:
             if mode == "once-all":
@@ -204,6 +306,10 @@ class MonitorController:
                     samples.append(ThroughputProbe(self.config).collect())
                 else:
                     self._print("[INFO] Throughput probe disabled in config, skipped in once-all.")
+                if self.config.get("overhead_probe", {}).get("enabled", True):
+                    samples.append(OverheadProbe(self.config).collect())
+                else:
+                    self._print("[INFO] Overhead probe disabled in config, skipped in once-all.")
                 for sample in samples:
                     print(json.dumps(sample, indent=2))
                     self.process_sample(sample, print_sample_line=False)
@@ -252,7 +358,9 @@ class MonitorController:
             stream_stats = self.streamer.stats()
             print(f"  Stream      : {stream_stats['url'] if stream_stats['enabled'] else 'disabled'}")
             for worker in workers:
-                print(f"  {worker.name:<11}: every {worker.interval_sec:g}s")
+                print(f"  {worker.name:<11}: every {self.worker_intervals.get(worker.name, worker.interval_sec):g}s")
+            if self.remote_config.enabled:
+                print(f"  Remote cfg  : every {self.config.get('remote_control', {}).get('poll_interval_sec', 30)}s")
             print("=" * 72)
 
     def _print(self, message: str) -> None:
@@ -314,6 +422,13 @@ class MonitorController:
             dl = ((summary.get("download") or {}).get("throughput_total_mbps") or {}).get("avg")
             ul = ((summary.get("upload") or {}).get("upload_throughput_total_mbps") or {}).get("avg")
             self._print(f"[THROUGHPUT] {ts} dl_avg={dl}Mbps ul_avg={ul}Mbps")
+            return
+
+        if probe_type == "overhead":
+            self._print(
+                f"[OVERHEAD] {ts} cpu={sample.get('cpu_pct')}% mem={sample.get('mem_pct')}% "
+                f"disk={sample.get('disk_pct')}% rx={sample.get('net_rx_kbs')}KB/s tx={sample.get('net_tx_kbs')}KB/s"
+            )
 
     def _print_summary(self, elapsed_sec: float) -> None:
         with self.print_lock:
@@ -393,6 +508,8 @@ def build_run_options(config: dict, args) -> RunOptions:
     fast_interval = parse_interval(args.fast_interval) if args.fast_interval else float(scheduler.get("fast_interval_sec", 5))
     telemetry_interval = parse_interval(args.telemetry_interval) if args.telemetry_interval else float(scheduler.get("telemetry_interval_sec", 30))
     throughput_interval = parse_interval(args.throughput_interval) if args.throughput_interval else float(scheduler.get("throughput_interval_sec", 900))
+    arg_overhead_interval = getattr(args, "overhead_interval", None)
+    overhead_interval = parse_interval(arg_overhead_interval) if arg_overhead_interval else float(scheduler.get("overhead_interval_sec", 2))
 
     output_dir: str | None
     if args.output is None:
@@ -410,6 +527,7 @@ def build_run_options(config: dict, args) -> RunOptions:
         fast_interval_sec=fast_interval,
         telemetry_interval_sec=telemetry_interval,
         throughput_interval_sec=throughput_interval,
+        overhead_interval_sec=overhead_interval,
         output_dir=output_dir,
         duration_raw=args.duration,
         detection_mode=args.detection_mode or str(detector_cfg.get("detection_mode", "static")),
@@ -430,6 +548,7 @@ def print_run_plan(config: dict, options: RunOptions) -> None:
     print(f"  Fast freq   : {options.fast_interval_sec:g}s")
     print(f"  Telemetry   : {options.telemetry_interval_sec:g}s")
     print(f"  Throughput  : {options.throughput_interval_sec:g}s")
+    print(f"  Overhead    : {options.overhead_interval_sec:g}s")
     print(f"  Duration    : {_duration_label(options.duration_raw)}")
     print(f"  Detection   : {options.detection_mode}")
     print(f"  Output      : {_output_label(options.output_dir)}")
@@ -440,13 +559,13 @@ def print_run_plan(config: dict, options: RunOptions) -> None:
 def prompt_edit_options(options: RunOptions) -> RunOptions:
     while True:
         field = input(
-            "Ubah apa? [mode/fast/telemetry/throughput/output/duration/detection/stream/done]: "
+            "Ubah apa? [mode/fast/telemetry/throughput/overhead/output/duration/detection/stream/done]: "
         ).strip().lower()
         if field in {"done", ""}:
             return options
         if field == "mode":
-            value = input("Mode baru [once-fast/once-telemetry/once-throughput/once-all/all]: ").strip()
-            if value in {"once-fast", "once-telemetry", "once-throughput", "once-all", "all"}:
+            value = input("Mode baru [once-fast/once-telemetry/once-throughput/once-overhead/once-all/all]: ").strip()
+            if value in {"once-fast", "once-telemetry", "once-throughput", "once-overhead", "once-all", "all"}:
                 options.mode = value
             else:
                 print("Mode tidak valid.")
@@ -456,6 +575,8 @@ def prompt_edit_options(options: RunOptions) -> RunOptions:
             options.telemetry_interval_sec = parse_interval(input("Telemetry interval baru (contoh 30s): ").strip())
         elif field == "throughput":
             options.throughput_interval_sec = parse_interval(input("Throughput interval baru (contoh 15m): ").strip())
+        elif field == "overhead":
+            options.overhead_interval_sec = parse_interval(input("Overhead interval baru (contoh 2s): ").strip())
         elif field == "output":
             value = input("Output dir baru, atau 'none' untuk nonaktif: ").strip()
             options.output_dir = None if value.lower() in {"none", "off", "disable", "disabled"} else value
@@ -518,6 +639,7 @@ def apply_run_options(config: dict, options: RunOptions) -> dict:
     runtime["scheduler"]["fast_interval_sec"] = options.fast_interval_sec
     runtime["scheduler"]["telemetry_interval_sec"] = options.telemetry_interval_sec
     runtime["scheduler"]["throughput_interval_sec"] = options.throughput_interval_sec
+    runtime["scheduler"]["overhead_interval_sec"] = options.overhead_interval_sec
     runtime["detector"]["detection_mode"] = options.detection_mode
     runtime["output"]["enabled"] = options.output_dir is not None
     if options.output_dir is not None:
@@ -536,12 +658,13 @@ def main() -> None:
     parser.add_argument(
         "--mode",
         default="once-all",
-        choices=["once-fast", "once-telemetry", "once-throughput", "once-all", "all"],
+        choices=["once-fast", "once-telemetry", "once-throughput", "once-overhead", "once-all", "all"],
     )
     parser.add_argument("--duration", default="0", help="Run duration: 15m / 1h / 0")
     parser.add_argument("--fast-interval", default=None, help="Fast probe interval, example: 5s")
     parser.add_argument("--telemetry-interval", default=None, help="Telemetry interval, example: 30s")
     parser.add_argument("--throughput-interval", default=None, help="Throughput interval, example: 15m")
+    parser.add_argument("--overhead-interval", default=None, help="Overhead interval, example: 2s")
     parser.add_argument("--output", default=None, help="Output dir, or 'none' to disable file output")
     parser.add_argument("--stream", default=None, help="Stream samples to server: yes/no")
     parser.add_argument("--stream-host", "--stream-ip", dest="stream_host", default=None, help="Server IP/host for stream")
