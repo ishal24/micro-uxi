@@ -8,8 +8,8 @@
   "scheduler": {
     "fast_interval_sec": 5,
     "telemetry_interval_sec": 30,
-    "throughput_interval_sec": 60,
-    "overhead_interval_sec": 2
+    "throughput_interval_sec": 300,
+    "overhead_interval_sec": 30
   },
   "fast_probe": {
     "enabled": true,
@@ -201,8 +201,8 @@
   },
   "stream": {
     "enabled": false,
-    "host": "",
-    "port": null,
+    "host": "10.4.78.103",
+    "port": "5000",
     "scheme": "http",
     "sensor_endpoint": "/api/ingest/sensor",
     "overhead_endpoint": "/api/ingest/overhead",
