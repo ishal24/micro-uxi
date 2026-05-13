@@ -18,6 +18,7 @@ from monitoring.config import load_config
 from monitoring.detector import EventDetector
 from monitoring.evidence import EvidenceManager
 from monitoring.probes import FastProbe, TelemetryProbe, ThroughputProbe
+from monitoring.stream import SampleStreamer
 from monitoring.utils import append_jsonl, safe_mkdir
 
 
@@ -50,6 +51,10 @@ class RunOptions:
     output_dir: str | None
     duration_raw: str
     detection_mode: str
+    stream_enabled: bool
+    stream_host: str | None
+    stream_port: int | None
+    stream_api_key: str | None
 
 
 class MonitorController:
@@ -60,6 +65,7 @@ class MonitorController:
         self.run_id = f"run-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
         self.detector = EventDetector(config, self.run_id)
         self.evidence = EvidenceManager(config, self.run_id)
+        self.streamer = SampleStreamer(config, self._print)
         self.sample_queue: queue.Queue = queue.Queue()
         self.stop_event = threading.Event()
         self.print_lock = threading.Lock()
@@ -123,6 +129,7 @@ class MonitorController:
         self.sample_counts[probe_type] += 1
         if self.output_enabled:
             append_jsonl(self.sample_paths[probe_type], sample)
+        self.streamer.enqueue(sample)
 
         notices = self.detector.handle_sample(sample)
         self.evidence.capture(sample, notices)
@@ -146,6 +153,7 @@ class MonitorController:
         ]
 
         self._print_banner(workers, duration_sec)
+        self.streamer.start()
         for thread in threads:
             thread.start()
 
@@ -168,6 +176,7 @@ class MonitorController:
             self.stop_event.set()
             for thread in threads:
                 thread.join(timeout=10)
+            self.streamer.stop()
 
             remaining = self.detector.force_close_all()
             if remaining:
@@ -180,22 +189,38 @@ class MonitorController:
             self._print_summary(time.monotonic() - started)
 
     def run_once(self, mode: str) -> dict:
+        self.streamer.start()
         probe_map = {
             "once-fast": FastProbe,
             "once-telemetry": TelemetryProbe,
             "once-throughput": ThroughputProbe,
         }
-        if mode == "once-all":
-            samples = []
-            samples.append(FastProbe(self.config).collect())
-            samples.append(TelemetryProbe(self.config).collect())
-            if self.config.get("throughput_probe", {}).get("enabled", False):
-                samples.append(ThroughputProbe(self.config).collect())
-            else:
-                self._print("[INFO] Throughput probe disabled in config, skipped in once-all.")
-            for sample in samples:
-                print(json.dumps(sample, indent=2))
-                self.process_sample(sample, print_sample_line=False)
+        try:
+            if mode == "once-all":
+                samples = []
+                samples.append(FastProbe(self.config).collect())
+                samples.append(TelemetryProbe(self.config).collect())
+                if self.config.get("throughput_probe", {}).get("enabled", False):
+                    samples.append(ThroughputProbe(self.config).collect())
+                else:
+                    self._print("[INFO] Throughput probe disabled in config, skipped in once-all.")
+                for sample in samples:
+                    print(json.dumps(sample, indent=2))
+                    self.process_sample(sample, print_sample_line=False)
+                remaining = self.detector.force_close_all()
+                if remaining:
+                    for notice in remaining:
+                        if self.output_enabled:
+                            append_jsonl(self.event_log_path, {"kind": notice["kind"], "event": notice["event"]})
+                    self.evidence.force_flush(remaining)
+                else:
+                    self.evidence.force_flush([])
+                return {"samples": samples}
+
+            probe_cls = probe_map[mode]
+            sample = probe_cls(self.config).collect()
+            print(json.dumps(sample, indent=2))
+            self.process_sample(sample, print_sample_line=False)
             remaining = self.detector.force_close_all()
             if remaining:
                 for notice in remaining:
@@ -204,21 +229,9 @@ class MonitorController:
                 self.evidence.force_flush(remaining)
             else:
                 self.evidence.force_flush([])
-            return {"samples": samples}
-
-        probe_cls = probe_map[mode]
-        sample = probe_cls(self.config).collect()
-        print(json.dumps(sample, indent=2))
-        self.process_sample(sample, print_sample_line=False)
-        remaining = self.detector.force_close_all()
-        if remaining:
-            for notice in remaining:
-                if self.output_enabled:
-                    append_jsonl(self.event_log_path, {"kind": notice["kind"], "event": notice["event"]})
-            self.evidence.force_flush(remaining)
-        else:
-            self.evidence.force_flush([])
-        return sample
+            return sample
+        finally:
+            self.streamer.stop()
 
     def _print_banner(self, workers: list[WorkerSpec], duration_sec: float | None) -> None:
         duration_label = (
@@ -236,6 +249,8 @@ class MonitorController:
             print(f"  Duration    : {duration_label}")
             print(f"  Detection   : {self.config['detector'].get('detection_mode', 'static')}")
             print(f"  Output dir  : {self.output_dir.resolve() if self.output_enabled else 'disabled'}")
+            stream_stats = self.streamer.stats()
+            print(f"  Stream      : {stream_stats['url'] if stream_stats['enabled'] else 'disabled'}")
             for worker in workers:
                 print(f"  {worker.name:<11}: every {worker.interval_sec:g}s")
             print("=" * 72)
@@ -314,6 +329,12 @@ class MonitorController:
                 print(f"  Event log    : {self.event_log_path.resolve()}")
             else:
                 print("  Output       : disabled")
+            if self.streamer.enabled:
+                stats = self.streamer.stats()
+                print(
+                    "  Stream       : "
+                    f"sent={stats['sent']} failed={stats['failed']} dropped={stats['dropped']}"
+                )
             print("=" * 72)
 
 
@@ -332,10 +353,42 @@ def _output_label(output_dir: str | None) -> str:
     return output_dir if output_dir else "none"
 
 
+def _stream_label(options: RunOptions) -> str:
+    if not options.stream_enabled:
+        return "disabled"
+    host = options.stream_host or "<ip belum diisi>"
+    port = options.stream_port if options.stream_port is not None else "<port belum diisi>"
+    return f"http://{host}:{port}/api/ingest/sensor"
+
+
+def _parse_yes_no(value: str | None, default: bool = False) -> bool:
+    if value is None:
+        return default
+    raw = value.strip().lower()
+    if raw in {"y", "yes", "true", "1", "on", "enable", "enabled"}:
+        return True
+    if raw in {"n", "no", "false", "0", "off", "disable", "disabled"}:
+        return False
+    raise ValueError("Nilai stream harus yes/no.")
+
+
+def _parse_stream_port(value: str | int | None) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        port = int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Port stream harus angka.") from exc
+    if port < 1 or port > 65535:
+        raise ValueError("Port stream harus di range 1-65535.")
+    return port
+
+
 def build_run_options(config: dict, args) -> RunOptions:
     scheduler = config["scheduler"]
     detector_cfg = config["detector"]
     output_cfg = config["output"]
+    stream_cfg = config.get("stream", {})
 
     fast_interval = parse_interval(args.fast_interval) if args.fast_interval else float(scheduler.get("fast_interval_sec", 5))
     telemetry_interval = parse_interval(args.telemetry_interval) if args.telemetry_interval else float(scheduler.get("telemetry_interval_sec", 30))
@@ -347,6 +400,11 @@ def build_run_options(config: dict, args) -> RunOptions:
     else:
         output_dir = None if args.output.strip().lower() in {"none", "off", "disable", "disabled"} else args.output.strip()
 
+    stream_enabled = _parse_yes_no(args.stream, bool(stream_cfg.get("enabled", False)))
+    stream_host = args.stream_host or stream_cfg.get("host") or stream_cfg.get("ip") or None
+    stream_port = _parse_stream_port(args.stream_port if args.stream_port is not None else stream_cfg.get("port"))
+    stream_api_key = args.stream_api_key if args.stream_api_key is not None else stream_cfg.get("api_key")
+
     return RunOptions(
         mode=args.mode,
         fast_interval_sec=fast_interval,
@@ -355,6 +413,10 @@ def build_run_options(config: dict, args) -> RunOptions:
         output_dir=output_dir,
         duration_raw=args.duration,
         detection_mode=args.detection_mode or str(detector_cfg.get("detection_mode", "static")),
+        stream_enabled=stream_enabled,
+        stream_host=stream_host,
+        stream_port=stream_port,
+        stream_api_key=stream_api_key,
     )
 
 
@@ -371,13 +433,14 @@ def print_run_plan(config: dict, options: RunOptions) -> None:
     print(f"  Duration    : {_duration_label(options.duration_raw)}")
     print(f"  Detection   : {options.detection_mode}")
     print(f"  Output      : {_output_label(options.output_dir)}")
+    print(f"  Stream      : {_stream_label(options)}")
     print("=" * 72)
 
 
 def prompt_edit_options(options: RunOptions) -> RunOptions:
     while True:
         field = input(
-            "Ubah apa? [mode/fast/telemetry/throughput/output/duration/detection/done]: "
+            "Ubah apa? [mode/fast/telemetry/throughput/output/duration/detection/stream/done]: "
         ).strip().lower()
         if field in {"done", ""}:
             return options
@@ -404,8 +467,38 @@ def prompt_edit_options(options: RunOptions) -> RunOptions:
                 options.detection_mode = value
             else:
                 print("Detection mode tidak valid.")
+        elif field == "stream":
+            value = input("Stream ke server? [y/n]: ").strip().lower()
+            try:
+                options.stream_enabled = _parse_yes_no(value)
+            except ValueError as exc:
+                print(exc)
+                continue
+            if options.stream_enabled:
+                options.stream_host = input("IP/host server: ").strip()
+                try:
+                    options.stream_port = _parse_stream_port(input("Port server: ").strip())
+                except ValueError as exc:
+                    print(exc)
+                    options.stream_port = None
+                api_key = input("API key server (kosongkan jika tidak ada): ").strip()
+                options.stream_api_key = api_key
+            else:
+                options.stream_host = None
+                options.stream_port = None
         else:
             print("Pilihan tidak dikenal.")
+
+
+def ensure_stream_ready(options: RunOptions) -> RunOptions:
+    while options.stream_enabled and not options.stream_host:
+        options.stream_host = input("Stream aktif. Isi IP/host server: ").strip()
+    while options.stream_enabled and options.stream_port is None:
+        try:
+            options.stream_port = _parse_stream_port(input("Stream aktif. Isi port server: ").strip())
+        except ValueError as exc:
+            print(exc)
+    return options
 
 
 def confirm_run_options(config: dict, options: RunOptions) -> RunOptions:
@@ -413,7 +506,7 @@ def confirm_run_options(config: dict, options: RunOptions) -> RunOptions:
         print_run_plan(config, options)
         answer = input("Lanjut run? [y/n]: ").strip().lower()
         if answer == "y":
-            return options
+            return ensure_stream_ready(options)
         if answer == "n":
             options = prompt_edit_options(options)
             continue
@@ -429,6 +522,11 @@ def apply_run_options(config: dict, options: RunOptions) -> dict:
     runtime["output"]["enabled"] = options.output_dir is not None
     if options.output_dir is not None:
         runtime["output"]["output_dir"] = options.output_dir
+    runtime.setdefault("stream", {})
+    runtime["stream"]["enabled"] = options.stream_enabled
+    runtime["stream"]["host"] = options.stream_host or ""
+    runtime["stream"]["port"] = options.stream_port
+    runtime["stream"]["api_key"] = options.stream_api_key or ""
     return runtime
 
 
@@ -445,6 +543,10 @@ def main() -> None:
     parser.add_argument("--telemetry-interval", default=None, help="Telemetry interval, example: 30s")
     parser.add_argument("--throughput-interval", default=None, help="Throughput interval, example: 15m")
     parser.add_argument("--output", default=None, help="Output dir, or 'none' to disable file output")
+    parser.add_argument("--stream", default=None, help="Stream samples to server: yes/no")
+    parser.add_argument("--stream-host", "--stream-ip", dest="stream_host", default=None, help="Server IP/host for stream")
+    parser.add_argument("--stream-port", type=int, default=None, help="Server port for stream")
+    parser.add_argument("--stream-api-key", default=None, help="Optional API key for stream ingest")
     parser.add_argument(
         "--detection-mode",
         default=None,

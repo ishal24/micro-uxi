@@ -164,6 +164,16 @@
     "print_pretty": false,
     "print_fast_normal": false
   },
+  "stream": {
+    "enabled": false,
+    "host": "",
+    "port": null,
+    "scheme": "http",
+    "endpoint": "/api/ingest/sensor",
+    "api_key": "",
+    "timeout_sec": 5,
+    "max_queue": 100
+  },
   "evidence": {
     "enabled": true,
     "pre_window_sec": 30,

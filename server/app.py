@@ -82,17 +82,47 @@ def _device_online(last_seen: str) -> bool:
     return _seconds_ago(last_seen) < OFFLINE_THRESHOLD
 
 
+def _payload_section(payload: dict, key: str) -> dict:
+    nested = payload.get("telemetry")
+    if isinstance(nested, dict) and isinstance(nested.get(key), dict):
+        return nested[key]
+    value = payload.get(key)
+    return value if isinstance(value, dict) else {}
+
+
+def _payload_list(payload: dict, key: str) -> list:
+    nested = payload.get("telemetry")
+    if isinstance(nested, dict) and isinstance(nested.get(key), list):
+        return nested[key]
+    value = payload.get(key)
+    return value if isinstance(value, list) else []
+
+
+def _dns_success(row: dict) -> bool:
+    if "success" in row:
+        return bool(row.get("success"))
+    return bool(row.get("dns_success"))
+
+
+def _dns_latency_ms(row: dict) -> float | None:
+    value = row.get("latency_ms")
+    if value is None:
+        value = row.get("dns_latency_ms")
+    return value if isinstance(value, (int, float)) else None
+
+
 def _detect_anomalies(device_id: str, probe_type: str, payload: dict):
     """Simple server-side anomaly detection — mirrors S1-S6 rules."""
     ts = payload.get("ts") or payload.get("collected_at_utc") or _now_iso()
 
     if probe_type == "fast":
-        wifi_up = payload.get("wifi_up", True)
-        ping_ok = (payload.get("ping") or {}).get("success", True)
-        dns_list = payload.get("dns") or []
-        all_dns_fail = bool(dns_list) and all(not d.get("success") for d in dns_list)
+        wifi = _payload_section(payload, "wifi")
+        wifi_up = payload.get("wifi_up", wifi.get("wifi_up", True))
+        ping_ok = _payload_section(payload, "ping").get("success", True)
+        dns_list = _payload_list(payload, "dns")
+        all_dns_fail = bool(dns_list) and all(not _dns_success(d) for d in dns_list)
         any_dns_slow = any(
-            (d.get("latency_ms") or 0) >= 300 for d in dns_list if d.get("success")
+            (_dns_latency_ms(d) or 0) >= 300 for d in dns_list if _dns_success(d)
         )
 
         if wifi_up and all_dns_fail and not ping_ok:
@@ -109,13 +139,22 @@ def _detect_anomalies(device_id: str, probe_type: str, payload: dict):
                             "DNS latency ≥ 300 ms detected", payload)
 
     elif probe_type == "telemetry":
-        tel = payload.get("telemetry") or {}
-        ping = tel.get("ping") or {}
+        ping = _payload_section(payload, "ping")
         rtt = ping.get("rtt_avg_ms")
         loss = ping.get("loss_pct", 0)
         if rtt is not None and rtt > 150 and loss < 10:
             db.insert_event(device_id, "S4_RTT_INCREASE", "warning", ts,
                             f"Sustained high RTT: {rtt:.1f} ms", payload)
+        for item in _payload_list(payload, "http"):
+            total_ms = item.get("http_total_ms")
+            ttfb_ms = item.get("http_ttfb_ms")
+            if (
+                (isinstance(total_ms, (int, float)) and total_ms >= 2000)
+                or (isinstance(ttfb_ms, (int, float)) and ttfb_ms >= 1000)
+            ):
+                db.insert_event(device_id, "S5_HTTP_SLOW", "warning", ts,
+                                f"Slow HTTP response: total={total_ms} ms ttfb={ttfb_ms} ms", payload)
+                break
 
     elif probe_type == "throughput":
         summ   = payload.get("summary") or {}

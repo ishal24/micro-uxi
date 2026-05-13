@@ -4,20 +4,34 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
+# Config lokal opsional. Pakai FI_CONFIG_FILE untuk menunjuk file lain.
+FI_CONFIG_FILE="${FI_CONFIG_FILE:-${SCRIPT_DIR}/fi_config.env}"
+
+ENV_HOTSPOT_IF="${HOTSPOT_IF-}"
+ENV_UPSTREAM_IF="${UPSTREAM_IF-}"
+ENV_CLIENT_SUBNET="${CLIENT_SUBNET-}"
+ENV_HTTP_SLOW_PORTS="${HTTP_SLOW_PORTS-}"
+ENV_MONITORING_CONFIG="${MONITORING_CONFIG-}"
+
+if [[ -f "${FI_CONFIG_FILE}" ]]; then
+  # shellcheck source=/dev/null
+  source "${FI_CONFIG_FILE}"
+fi
+
 # Interface hotspot/AP tempat Uno Q terhubung.
-HOTSPOT_IF="${HOTSPOT_IF:-ap0}"
+HOTSPOT_IF="${ENV_HOTSPOT_IF:-${HOTSPOT_IF:-ap0}}"
 
 # Interface upstream/internet, biasanya USB Wi-Fi adapter.
-UPSTREAM_IF="${UPSTREAM_IF:-wlxd037456b1bc8}"
+UPSTREAM_IF="${ENV_UPSTREAM_IF:-${UPSTREAM_IF:-wlxd037456b1bc8}}"
 
 # Subnet klien di belakang hotspot.
-CLIENT_SUBNET="${CLIENT_SUBNET:-192.168.12.0/24}"
+CLIENT_SUBNET="${ENV_CLIENT_SUBNET:-${CLIENT_SUBNET:-192.168.12.0/24}}"
 
 # Port HTTP response yang akan dibatasi untuk S5.
-HTTP_SLOW_PORTS="${HTTP_SLOW_PORTS:-8080}"
+HTTP_SLOW_PORTS="${ENV_HTTP_SLOW_PORTS:-${HTTP_SLOW_PORTS:-8080}}"
 
 # Config monitoring yang dipakai untuk mencoba sinkron target HTTP S5.
-MONITORING_CONFIG="${MONITORING_CONFIG:-${REPO_ROOT}/monitoring/default_config.json}"
+MONITORING_CONFIG="${ENV_MONITORING_CONFIG:-${MONITORING_CONFIG:-${REPO_ROOT}/monitoring/default_config.json}}"
 
 FI_TABLE="fi_fault"
 DNS_OUTAGE_CHAIN="FI_FORWARD"
@@ -31,6 +45,7 @@ require_root() {
 }
 
 show_interfaces() {
+  echo "[INFO] FI_CONFIG_FILE  = ${FI_CONFIG_FILE}"
   echo "[INFO] HOTSPOT_IF      = ${HOTSPOT_IF}"
   echo "[INFO] UPSTREAM_IF     = ${UPSTREAM_IF}"
   echo "[INFO] CLIENT_SUBNET   = ${CLIENT_SUBNET}"

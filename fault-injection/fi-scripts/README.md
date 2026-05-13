@@ -24,6 +24,19 @@ Di script:
 - `HOTSPOT_IF` = interface hotspot/AP
 - `UPSTREAM_IF` = interface upstream/internet
 - `CLIENT_SUBNET` = subnet Uno Q di belakang hotspot
+- `HTTP_SLOW_PORTS` = port HTTP yang dibatasi untuk skenario S5
+
+Semua nilai itu bisa disimpan di `fi_config.env` di folder ini:
+
+```bash
+HOTSPOT_IF=wlp0s20f3
+UPSTREAM_IF=wlxd037456b1bc8
+CLIENT_SUBNET=192.168.12.0/24
+HTTP_SLOW_PORTS=8080
+```
+
+File `fi_config.env` dibaca otomatis oleh semua script. File ini sengaja di-ignore
+git karena nilainya spesifik laptop. Template-nya tersedia di `fi_config.env.example`.
 
 Default helper masih:
 
@@ -37,6 +50,12 @@ Kalau nama interface di laptop kamu beda, override saat menjalankan script:
 
 ```bash
 sudo HOTSPOT_IF=wlp0s20f3 UPSTREAM_IF=wlx123456789abc CLIENT_SUBNET=192.168.137.0/24 ./run_all_faults.sh
+```
+
+Atau pakai file config lain:
+
+```bash
+sudo FI_CONFIG_FILE=/path/to/fi_config.env ./run_all_faults.sh
 ```
 
 ## Isi folder
