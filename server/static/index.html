@@ -1561,9 +1561,10 @@
                 const latest = dataLatestMap[currentDeviceId];
 
                 if (latest && latest.telemetry) {
-                    const wifi = latest.telemetry.telemetry?.wifi || {};
-                    const ping = latest.telemetry.telemetry?.ping || {};
-                    const net = latest.telemetry.telemetry?.network || {};
+                    const telRaw = latest.telemetry.telemetry || latest.telemetry;
+                    const wifi = telRaw?.wifi || {};
+                    const ping = telRaw?.ping || {};
+                    const net = telRaw?.network || {};
 
                     document.getElementById('aboutSsid').innerText = wifi.wifi_ssid || '--';
                     document.getElementById('aboutRssi').innerText = wifi.wifi_rssi_dbm != null ? wifi.wifi_rssi_dbm + ' dBm' : '--';
@@ -1697,21 +1698,22 @@
                 };
 
                 // Telemetry charts (180s gap threshold)
-                const rttSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.ping?.rtt_avg_ms ?? null })), 180000);
-                const lossSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.ping?.loss_pct ?? null })), 180000);
-                const rttMinSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.ping?.rtt_min_ms ?? null })), 180000);
-                const rttAvgSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.ping?.rtt_avg_ms ?? null })), 180000);
-                const rttMaxSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.ping?.rtt_max_ms ?? null })), 180000);
-                const rssiSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.wifi?.wifi_rssi_dbm ?? null })), 180000);
-                const bitrateSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.wifi?.wifi_bitrate_mbps ?? d.telemetry?.wifi?.tx_bitrate_mbps ?? null })), 180000);
+                const telProp = (d) => d.telemetry || d;
+                const rttSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: telProp(d).ping?.rtt_avg_ms ?? null })), 180000);
+                const lossSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: telProp(d).ping?.loss_pct ?? null })), 180000);
+                const rttMinSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: telProp(d).ping?.rtt_min_ms ?? null })), 180000);
+                const rttAvgSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: telProp(d).ping?.rtt_avg_ms ?? null })), 180000);
+                const rttMaxSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: telProp(d).ping?.rtt_max_ms ?? null })), 180000);
+                const rssiSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: telProp(d).wifi?.wifi_rssi_dbm ?? null })), 180000);
+                const bitrateSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: telProp(d).wifi?.wifi_bitrate_mbps ?? telProp(d).wifi?.tx_bitrate_mbps ?? null })), 180000);
                 const dnsSet = injectGaps(telData.data.map(d => {
-                    const arr = d.telemetry?.dns;
+                    const arr = telProp(d).dns;
                     if (!arr || !arr.length) return { x: toMs(d.ts), y: null };
                     const vals = arr.filter(e => e.dns_success && e.dns_latency_ms != null).map(e => e.dns_latency_ms);
                     return { x: toMs(d.ts), y: vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null };
                 }), 180000);
-                const httpTtfbSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.http?.[0]?.http_ttfb_ms ?? null })), 180000);
-                const httpTotalSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: d.telemetry?.http?.[0]?.http_total_ms ?? null })), 180000);
+                const httpTtfbSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: telProp(d).http?.[0]?.http_ttfb_ms ?? null })), 180000);
+                const httpTotalSet = injectGaps(telData.data.map(d => ({ x: toMs(d.ts), y: telProp(d).http?.[0]?.http_total_ms ?? null })), 180000);
 
                 // Throughput — gap threshold 600s
                 let tptDiv = tptUnitMb ? 8 : 1;

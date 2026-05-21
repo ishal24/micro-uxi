@@ -87,12 +87,14 @@ def _detect_anomalies(device_id: str, probe_type: str, payload: dict):
     ts = payload.get("ts") or payload.get("collected_at_utc") or _now_iso()
 
     if probe_type == "fast":
-        wifi_up = payload.get("wifi_up", True)
+        # Support both old flat schema and new nested schema
+        wifi_data = payload.get("wifi") or payload
+        wifi_up = wifi_data.get("wifi_up", True)
         ping_ok = (payload.get("ping") or {}).get("success", True)
         dns_list = payload.get("dns") or []
         all_dns_fail = bool(dns_list) and all(not d.get("success") for d in dns_list)
         any_dns_slow = any(
-            (d.get("latency_ms") or 0) >= 300 for d in dns_list if d.get("success")
+            (d.get("latency_ms") or 0) >= 800 for d in dns_list if d.get("success")
         )
 
         if wifi_up and all_dns_fail and not ping_ok:
@@ -106,14 +108,15 @@ def _detect_anomalies(device_id: str, probe_type: str, payload: dict):
                             "Ping failed, Wi-Fi associated", payload)
         elif any_dns_slow:
             db.insert_event(device_id, "S1_DNS_DELAY", "warning", ts,
-                            "DNS latency ≥ 300 ms detected", payload)
+                            "DNS latency ≥ 800 ms detected", payload)
 
     elif probe_type == "telemetry":
-        tel = payload.get("telemetry") or {}
+        # Support both old wrapped schema and new flat schema
+        tel = payload.get("telemetry") or payload
         ping = tel.get("ping") or {}
         rtt = ping.get("rtt_avg_ms")
         loss = ping.get("loss_pct", 0)
-        if rtt is not None and rtt > 150 and loss < 10:
+        if rtt is not None and rtt > 300 and loss < 10:
             db.insert_event(device_id, "S4_RTT_INCREASE", "warning", ts,
                             f"Sustained high RTT: {rtt:.1f} ms", payload)
 
@@ -123,7 +126,7 @@ def _detect_anomalies(device_id: str, probe_type: str, payload: dict):
         dl_sum = summ.get("download") or summ
         tp     = dl_sum.get("throughput_total_mbps")
         avg    = tp.get("avg") if isinstance(tp, dict) else None
-        if avg is not None and avg < 3.0:
+        if avg is not None and avg < 1.0:
             db.insert_event(device_id, "S5_THROTTLE", "warning", ts,
                             f"Low download throughput: {avg:.2f} Mbps", payload)
 
