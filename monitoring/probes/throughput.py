@@ -4,6 +4,7 @@ import os
 import statistics
 import subprocess
 import time
+from datetime import datetime, timezone
 from typing import Iterable
 
 from monitoring.probes.common import collect_network_details, collect_wifi_details, sample_header
@@ -31,6 +32,10 @@ class ThroughputProbe:
         self.device_cfg = config["device"]
         self.probe_cfg = config["throughput_probe"]
         self._seq = 0
+
+    @staticmethod
+    def now_utc_iso() -> str:
+        return datetime.now(timezone.utc).isoformat()
 
     @staticmethod
     def run(cmd: list[str], timeout: int = 60) -> tuple[int, str, str]:
@@ -109,9 +114,11 @@ class ThroughputProbe:
             "transfer_only_ms": round(transfer * 1000, 3),
         }
 
-    def empty_run_result(self, direction: str, rc: int, err: str) -> dict:
+    def empty_run_result(self, direction: str, started: str, ended: str, rc: int, err: str) -> dict:
         return {
             "direction": direction,
+            "sample_started_at_utc": started,
+            "sample_ended_at_utc": ended,
             "curl_rc": rc,
             "curl_reason": self.curl_reason(rc),
             "curl_stderr": err,
@@ -165,8 +172,10 @@ class ThroughputProbe:
             url,
         ]
 
+        started = self.now_utc_iso()
         rc, out, err = self.run(cmd, timeout=max_time + 10)
-        result = self.empty_run_result("download", rc, err)
+        ended = self.now_utc_iso()
+        result = self.empty_run_result("download", started, ended, rc, err)
         parts = out.split()
         if rc != 0 or len(parts) < 7:
             return result
@@ -221,8 +230,10 @@ class ThroughputProbe:
             cfg["url"],
         ]
 
+        started = self.now_utc_iso()
         rc, out, err = self.run(cmd, timeout=max_time + 10)
-        result = self.empty_run_result("upload", rc, err)
+        ended = self.now_utc_iso()
+        result = self.empty_run_result("upload", started, ended, rc, err)
         result["upload_payload"] = payload
         parts = out.split()
         if rc != 0 or len(parts) < 7:
@@ -317,6 +328,25 @@ class ThroughputProbe:
         summary["run_health"] = health
         return summary
 
+    @staticmethod
+    def normalize_mode_config(mode_cfg: dict) -> tuple[dict, dict]:
+        common_keys = ["runs", "warmup", "pause_sec", "max_time_sec"]
+
+        if "download" in mode_cfg or "upload" in mode_cfg:
+            download_cfg = dict(mode_cfg.get("download", {}))
+            upload_cfg = dict(mode_cfg.get("upload", {}))
+            for key in common_keys:
+                if key in mode_cfg:
+                    download_cfg.setdefault(key, mode_cfg[key])
+                    upload_cfg.setdefault(key, mode_cfg[key])
+            download_cfg.setdefault("enabled", bool(download_cfg.get("url")))
+            upload_cfg.setdefault("enabled", bool(upload_cfg.get("url")))
+            return download_cfg, upload_cfg
+
+        download_cfg = dict(mode_cfg)
+        download_cfg.setdefault("enabled", bool(download_cfg.get("url", True)))
+        return download_cfg, {"enabled": False}
+
     def run_direction(self, direction: str, cfg: dict, connect_timeout: int) -> tuple[list[dict], list[dict], dict]:
         if not cfg.get("enabled", False):
             return [], [], {}
@@ -345,13 +375,19 @@ class ThroughputProbe:
         self._seq += 1
 
         connect_timeout = int(self.probe_cfg.get("connect_timeout_sec", 5))
-        routine_cfg = self.probe_cfg["routine"]
-        download_cfg = dict(routine_cfg.get("download", {}))
-        upload_cfg = dict(routine_cfg.get("upload", {}))
+        mode = str(self.probe_cfg.get("mode", "routine"))
+        mode_cfg = self.probe_cfg.get(mode) or self.probe_cfg.get("routine") or {}
+        download_cfg, upload_cfg = self.normalize_mode_config(mode_cfg)
 
         sample = sample_header(self.device_cfg, "throughput", self._seq)
+        sample["collected_at_utc"] = sample["ts"]
+        sample["mode"] = mode
         sample["wifi"] = collect_wifi_details(self.device_cfg["iface"])
         sample["network"] = collect_network_details(self.device_cfg["iface"])
+        sample["context"] = {
+            **sample["wifi"],
+            **sample["network"],
+        }
         sample["config_used"] = {
             "connect_timeout_sec": connect_timeout,
             "download": download_cfg,
@@ -371,4 +407,6 @@ class ThroughputProbe:
             "download": download_summary,
             "upload": upload_summary,
         }
+        sample["warmup_runs"] = sample["download_warmup_runs"]
+        sample["measurement_runs"] = sample["download_measurement_runs"]
         return sample

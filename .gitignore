@@ -1,6 +1,8 @@
 # docs
 database
 __pycache__
+venv
 fi-output
+fault-injection/fi-scripts/fi_config.env
 Proposal-TA-DTI.pdf
 Fault Injection Scheme.xlsx

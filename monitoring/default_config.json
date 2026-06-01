@@ -8,7 +8,8 @@
   "scheduler": {
     "fast_interval_sec": 5,
     "telemetry_interval_sec": 30,
-    "throughput_interval_sec": 900
+    "throughput_interval_sec": 300,
+    "overhead_interval_sec": 30
   },
   "fast_probe": {
     "enabled": true,
@@ -63,21 +64,22 @@
     "http_max_time_sec": 15
   },
   "throughput_probe": {
-    "enabled": false,
+    "enabled": true,
+    "mode": "routine",
     "connect_timeout_sec": 5,
     "routine": {
       "download": {
         "enabled": true,
-        "url": "http://127.0.0.1:8080/testfile_1mb.bin",
-        "expected_bytes": 1048576,
+        "url": "https://speed.cloudflare.com/__down?bytes=10000000",
+        "expected_bytes": 10000000,
         "runs": 3,
         "warmup": 1,
         "pause_sec": 2,
         "max_time_sec": 60
       },
       "upload": {
-        "enabled": false,
-        "url": "http://127.0.0.1:8080/upload",
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__up",
         "expected_bytes": 5000000,
         "payload_path": "./monitoring/out/payloads/upload_5mb.bin",
         "payload_source": "zero",
@@ -86,7 +88,40 @@
         "pause_sec": 2,
         "max_time_sec": 60
       }
+    },
+    "stress": {
+      "download": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+        "expected_bytes": 25000000,
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 120
+      },
+      "upload": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__up",
+        "expected_bytes": 10000000,
+        "payload_path": "./monitoring/out/payloads/upload_10mb.bin",
+        "payload_source": "zero",
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 120
+      }
     }
+  },
+  "overhead_probe": {
+    "enabled": true,
+    "refresh_process_every_samples": 30,
+    "process_names": [
+      "monitoring.controller",
+      "controller.py",
+      "telemetry_probe.py",
+      "fast_probe.py",
+      "throughput_probe.py"
+    ]
   },
   "detector": {
     "detection_mode": "static",
@@ -163,6 +198,25 @@
     "sample_format": "jsonl",
     "print_pretty": false,
     "print_fast_normal": false
+  },
+  "stream": {
+    "enabled": false,
+    "host": "10.4.78.103",
+    "port": "5000",
+    "scheme": "http",
+    "sensor_endpoint": "/api/ingest/sensor",
+    "overhead_endpoint": "/api/ingest/overhead",
+    "include_sensor": true,
+    "include_overhead": true,
+    "api_key": "",
+    "timeout_sec": 5,
+    "max_queue": 100
+  },
+  "remote_control": {
+    "enabled": true,
+    "endpoint": "/api/config",
+    "poll_interval_sec": 30,
+    "timeout_sec": 5
   },
   "evidence": {
     "enabled": true,
