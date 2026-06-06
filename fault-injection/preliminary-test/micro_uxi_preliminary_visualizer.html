@@ -1,0 +1,614 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Micro-UXI Preliminary Test Visualizer</title>
+  <style>
+    :root{
+      --bg:#0f172a;--panel:#111827;--panel2:#172033;--muted:#94a3b8;--text:#e5e7eb;
+      --line:#334155;--accent:#38bdf8;--ok:#22c55e;--warn:#f59e0b;--bad:#ef4444;--chip:#1e293b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{padding:24px 28px;border-bottom:1px solid var(--line);background:#0b1220;position:sticky;top:0;z-index:3}
+    h1{margin:0;font-size:22px}
+    .sub{color:var(--muted);margin-top:6px;font-size:13px}
+    main{padding:22px;max-width:1500px;margin:0 auto}
+    .grid{display:grid;grid-template-columns:360px 1fr;gap:18px}
+    .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.18)}
+    .panel h2{font-size:16px;margin:0 0 12px}
+    .drop{border:2px dashed #475569;border-radius:12px;padding:20px;text-align:center;color:var(--muted);background:#0b1220}
+    .drop.drag{border-color:var(--accent);color:var(--text)}
+    input[type=file]{width:100%;margin-top:12px}
+    button,select,input[type=text],input[type=number]{background:#0b1220;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+    button{cursor:pointer}
+    button:hover{border-color:var(--accent)}
+    .btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+    .danger{border-color:#7f1d1d;color:#fecaca}
+    .ok{color:var(--ok)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+    .file{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;background:var(--panel2)}
+    .file small{color:var(--muted)}
+    .file .top{display:flex;justify-content:space-between;gap:8px;align-items:center}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+    .tab{padding:9px 12px;border-radius:999px;background:var(--chip);border:1px solid var(--line);cursor:pointer;color:var(--muted)}
+    .tab.active{background:#075985;color:white;border-color:#38bdf8}
+    .cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+    .card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px}
+    .card .label{color:var(--muted);font-size:12px}
+    .card .value{font-size:22px;margin-top:5px}
+    table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px}
+    th,td{border-bottom:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+    th{color:#cbd5e1;background:#0b1220;position:sticky;top:77px}
+    .chart{background:#0b1220;border:1px solid var(--line);border-radius:12px;padding:8px;margin:12px 0;overflow:hidden}
+    svg{width:100%;height:260px;display:block}
+    .muted{color:var(--muted)}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--chip);border:1px solid var(--line);font-size:12px;color:#cbd5e1;margin:2px}
+    .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .notice{padding:10px 12px;border-radius:10px;background:#1e293b;border:1px solid #334155;color:#cbd5e1;margin:10px 0}
+    .section{display:none}.section.active{display:block}
+    code{background:#0b1220;border:1px solid #334155;border-radius:6px;padding:1px 5px}
+    .metric-list li{margin:5px 0}
+    .small{font-size:12px;color:var(--muted)}
+    textarea{width:100%;height:120px;background:#0b1220;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:10px}
+    @media(max-width:1000px){.grid{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Micro-UXI Preliminary Test Visualizer</h1>
+  <div class="sub">Standalone HTML. Upload JSONL run files, preview metrics, calculate P99, inspect S1–S6. Data disimpan lokal di browser via IndexedDB.</div>
+</header>
+<main>
+  <div class="grid">
+    <aside class="panel">
+      <h2>1. Upload Files</h2>
+      <div id="drop" class="drop">
+        Drop file di sini atau pilih manual.
+        <input id="files" type="file" multiple />
+      </div>
+      <div class="btnrow">
+        <button id="analyzeBtn">Analyze</button>
+        <button id="exportSummaryBtn">Export Summary JSON</button>
+        <button id="clearBtn" class="danger">Clear Stored Files</button>
+      </div>
+      <div class="notice small">
+        Supported saat ini:
+        <div><span class="pill">fast_run-*.jsonl</span><span class="pill">telemetry_run-*.jsonl</span><span class="pill">config*.json</span></div>
+        Placeholder untuk <span class="pill">ground_truth</span> dan <span class="pill">event_report</span> sudah ada, tapi parser-nya menunggu format file kamu.
+      </div>
+      <h2 style="margin-top:18px">Stored Files</h2>
+      <div id="fileList"></div>
+    </aside>
+
+    <section class="panel">
+      <div class="tabs" id="tabs">
+        <div class="tab active" data-tab="overview">Overview</div>
+        <div class="tab" data-tab="prelim">Preliminary</div>
+        <div class="tab" data-tab="s1">S1 DNS</div>
+        <div class="tab" data-tab="s2">S2 DNS Timeout</div>
+        <div class="tab" data-tab="s3">S3 Loss</div>
+        <div class="tab" data-tab="s4">S4 RTT</div>
+        <div class="tab" data-tab="s5">S5 HTTP</div>
+        <div class="tab" data-tab="s6">S6 Flap</div>
+        <div class="tab" data-tab="eval">Evaluation</div>
+      </div>
+
+      <div id="overview" class="section active"></div>
+      <div id="prelim" class="section"></div>
+      <div id="s1" class="section"></div>
+      <div id="s2" class="section"></div>
+      <div id="s3" class="section"></div>
+      <div id="s4" class="section"></div>
+      <div id="s5" class="section"></div>
+      <div id="s6" class="section"></div>
+      <div id="eval" class="section"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+const DB_NAME='micro_uxi_visualizer_v1';
+const STORE='files';
+let parsed={fast:[], telemetry:[], config:null, groundTruth:[], eventReports:[], unknown:[]};
+let summary={};
+
+function openDB(){
+  return new Promise((resolve,reject)=>{
+    const req=indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded=()=>req.result.createObjectStore(STORE,{keyPath:'name'});
+    req.onsuccess=()=>resolve(req.result);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function putFile(name,type,text,size,lastModified){
+  const db=await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).put({name,type,text,size,lastModified,storedAt:new Date().toISOString()});
+    tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
+  });
+}
+async function getFiles(){
+  const db=await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readonly');
+    const req=tx.objectStore(STORE).getAll();
+    req.onsuccess=()=>resolve(req.result||[]);
+    req.onerror=()=>reject(req.error);
+  });
+}
+async function clearFiles(){
+  const db=await openDB();
+  return new Promise((resolve,reject)=>{
+    const tx=db.transaction(STORE,'readwrite');
+    tx.objectStore(STORE).clear();
+    tx.oncomplete=resolve; tx.onerror=()=>reject(tx.error);
+  });
+}
+function classifyFile(name,text){
+  const low=name.toLowerCase();
+  if(low.includes('fast') && low.endsWith('.jsonl')) return 'fast';
+  if(low.includes('telemetry') && low.endsWith('.jsonl')) return 'telemetry';
+  if(low.includes('config') && low.endsWith('.json')) return 'config';
+  if(low.includes('ground') || low.includes('truth')) return 'groundTruth';
+  if(low.includes('event') || low.includes('report')) return 'eventReport';
+  const first=text.trim().split(/\n/)[0]||'';
+  try{
+    const j=JSON.parse(first);
+    if(j.probe_type==='fast') return 'fast';
+    if(j.probe_type==='telemetry') return 'telemetry';
+  }catch(e){}
+  return 'unknown';
+}
+function parseJsonl(text){
+  const out=[];
+  const lines=text.split(/\r?\n/);
+  for(const line of lines){
+    if(!line.trim()) continue;
+    try{ out.push(JSON.parse(line)); }catch(e){}
+  }
+  return out;
+}
+function ts(s){
+  const x=s.ts || s.timestamp || s.time || s.created_at;
+  const d=x? new Date(x): null;
+  return d && !isNaN(d) ? d : null;
+}
+function fmt(n,d=2){ return (n===null||n===undefined||Number.isNaN(n))?'—':Number(n).toFixed(d); }
+function percentile(vals,p){
+  const a=vals.filter(v=>v!==null&&v!==undefined&&!Number.isNaN(v)).map(Number).sort((x,y)=>x-y);
+  if(!a.length) return null;
+  const k=(a.length-1)*(p/100), f=Math.floor(k), c=Math.ceil(k);
+  if(f===c) return a[f];
+  return a[f]*(c-k)+a[c]*(k-f);
+}
+function median(vals){return percentile(vals,50)}
+function minmaxTime(samples){
+  const dates=samples.map(ts).filter(Boolean).sort((a,b)=>a-b);
+  if(!dates.length) return {start:null,end:null,durationSec:0};
+  return {start:dates[0],end:dates[dates.length-1],durationSec:(dates[dates.length-1]-dates[0])/1000};
+}
+function actualInterval(samples){
+  const dates=samples.map(ts).filter(Boolean).sort((a,b)=>a-b);
+  const diffs=[];
+  for(let i=1;i<dates.length;i++) diffs.push((dates[i]-dates[i-1])/1000);
+  return {median:median(diffs),p95:percentile(diffs,95),max:diffs.length?Math.max(...diffs):null,gaps:diffs.filter(x=>x>(median(diffs)||0)*3 && x>5).length};
+}
+function detectRunTypeStats(){
+  const fastT=minmaxTime(parsed.fast), telemT=minmaxTime(parsed.telemetry);
+  return {fastT,telemT,fastInt:actualInterval(parsed.fast),telemInt:actualInterval(parsed.telemetry)};
+}
+function extractFastDNS(){
+  const byTarget={};
+  const failsByTarget={};
+  for(const s of parsed.fast){
+    for(const d of (s.dns||[])){
+      const target=d.target||d.name||'unknown';
+      if(!byTarget[target]) byTarget[target]=[];
+      if(!failsByTarget[target]) failsByTarget[target]=0;
+      if(d.success===true && d.latency_ms!=null) byTarget[target].push(+d.latency_ms);
+      if(d.success===false) failsByTarget[target]++;
+    }
+  }
+  return {byTarget,failsByTarget};
+}
+function extractFastPing(){
+  return parsed.fast.map(s=>({date:ts(s), success:s.ping&&s.ping.success, rtt:s.ping&&s.ping.rtt_ms, wifiUp:s.wifi&&s.wifi.wifi_up, connectivity:s.connectivity_ok}));
+}
+function extractTelemetryRTT(){
+  return parsed.telemetry
+    .map(s=>({date:ts(s), rtt:s.ping&&s.ping.rtt_avg_ms, loss:s.ping&&s.ping.loss_pct}))
+    .filter(x=>x.rtt!=null && !Number.isNaN(Number(x.rtt)));
+}
+function extractHTTP(){
+  const byUrl={};
+  for(const s of parsed.telemetry){
+    for(const h of (s.http||[])){
+      const url=h.url||'unknown';
+      if(!byUrl[url]) byUrl[url]={total:[],ttfb:[],status:{},fail:0,points:[]};
+      const ok = h.http_ok===true || h.success===true;
+      const total=h.http_total_ms ?? h.total_ms;
+      const ttfb=h.http_ttfb_ms ?? h.ttfb_ms;
+      const status=h.http_status;
+      if(ok && total!=null) byUrl[url].total.push(+total);
+      if(ok && ttfb!=null) byUrl[url].ttfb.push(+ttfb);
+      if(!ok) byUrl[url].fail++;
+      byUrl[url].status[status||'none']=(byUrl[url].status[status||'none']||0)+1;
+      byUrl[url].points.push({date:ts(s),total,ttfb,ok,status,curl:h.curl_rc});
+    }
+  }
+  return byUrl;
+}
+function calcWindowsFast(){
+  const ping=extractFastPing();
+  function failCount(n){
+    const vals=[];
+    for(let i=n-1;i<ping.length;i++){
+      const w=ping.slice(i-n+1,i+1);
+      if(w.some(x=>x.success==null)) continue;
+      vals.push({date:ping[i].date, fail:w.filter(x=>x.success===false).length, n});
+    }
+    return vals;
+  }
+  function transitions(seconds){
+    const vals=[];
+    for(let i=0;i<ping.length;i++){
+      const now=ping[i].date; if(!now) continue;
+      const w=ping.filter(x=>x.date && x.date>=new Date(now-seconds*1000) && x.date<=now && x.connectivity!=null);
+      if(w.length<2) continue;
+      let c=0; for(let j=1;j<w.length;j++) if(w[j].connectivity!==w[j-1].connectivity)c++;
+      vals.push({date:now, transitions:c, samples:w.length});
+    }
+    return vals;
+  }
+  return {pingFail20:failCount(20),pingFail30:failCount(30),flap30:transitions(30)};
+}
+function buildSummary(){
+  const dns=extractFastDNS(), rtt=extractTelemetryRTT(), http=extractHTTP(), stats=detectRunTypeStats();
+  const Tdns={};
+  for(const [k,v] of Object.entries(dns.byTarget)) Tdns[k]={count:v.length,median:median(v),p95:percentile(v,95),p99:percentile(v,99),max:v.length?Math.max(...v):null,fail:dns.failsByTarget[k]||0};
+  const rttVals=rtt.map(x=>x.rtt).filter(v=>v!=null);
+  const lossVals=rtt.map(x=>x.loss).filter(v=>v!=null);
+  const Thttp={};
+  for(const [url,v] of Object.entries(http)){
+    Thttp[url]={count_total:v.total.length,count_ttfb:v.ttfb.length,total_p99:percentile(v.total,99),ttfb_p99:percentile(v.ttfb,99),total_median:median(v.total),ttfb_median:median(v.ttfb),fail:v.fail,status:v.status};
+  }
+  summary={stats,dns:Tdns,rtt:{count:rttVals.length,median:median(rttVals),p95:percentile(rttVals,95),p99:percentile(rttVals,99),max:rttVals.length?Math.max(...rttVals):null,loss_p99:percentile(lossVals,99)},http:Thttp};
+}
+function cards(items){
+  return `<div class="cards">${items.map(x=>`<div class="card"><div class="label">${x[0]}</div><div class="value">${x[1]}</div><div class="small">${x[2]||''}</div></div>`).join('')}</div>`;
+}
+function table(headers, rows){
+  return `<table><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+
+function metricBlock(title, rows){
+  return `<h3>${title}</h3>${table(['Metric / Rule','Value / Status'], rows)}`;
+}
+function available(detail=''){
+  return `<span class="ok">available</span>${detail?` — ${detail}`:''}`;
+}
+function notAvailable(detail=''){
+  return `<span class="muted">not available</span>${detail?` — ${detail}`:''}`;
+}
+function fastStateStats(){
+  const wifi=parsed.fast.map(s=>s.wifi&&s.wifi.wifi_up).filter(v=>v!==null&&v!==undefined);
+  const ping=parsed.fast.map(s=>s.ping&&s.ping.success).filter(v=>v!==null&&v!==undefined);
+  const conn=parsed.fast.map(s=>s.connectivity_ok).filter(v=>v!==null&&v!==undefined);
+  return {
+    wifiTotal:wifi.length, wifiTrue:wifi.filter(v=>v===true).length,
+    pingTotal:ping.length, pingTrue:ping.filter(v=>v===true).length, pingFalse:ping.filter(v=>v===false).length,
+    connTotal:conn.length, connTrue:conn.filter(v=>v===true).length, connFalse:conn.filter(v=>v===false).length
+  };
+}
+function telemetryWifiStats(){
+  const vals=[];
+  for(const s of parsed.telemetry){
+    const w=s.wifi||{};
+    const v=(w.wifi_connected!==undefined)?w.wifi_connected:w.wifi_up;
+    if(v!==null&&v!==undefined) vals.push(v);
+  }
+  return {total:vals.length,trueCount:vals.filter(v=>v===true).length,falseCount:vals.filter(v=>v===false).length};
+}
+function urlHost(url){
+  try{return new URL(url).hostname.replace(/^www\./,'');}catch(e){return null;}
+}
+function lineChart(points, opts={}){
+  const vals=points.filter(p=>p.x!=null&&p.y!=null&&!Number.isNaN(p.y));
+  if(vals.length<2) return `<div class="notice">Data grafik belum cukup.</div>`;
+  const width=1000, height=260, pad=36;
+  const xs=vals.map(p=>p.x instanceof Date?p.x.getTime():+p.x), ys=vals.map(p=>+p.y);
+  const minX=Math.min(...xs), maxX=Math.max(...xs), minY=opts.minY??Math.min(...ys), maxY=opts.maxY??Math.max(...ys, opts.threshold??-Infinity);
+  const yRange=(maxY-minY)||1, xRange=(maxX-minX)||1;
+  const X=x=>pad+(x-minX)/xRange*(width-pad*2);
+  const Y=y=>height-pad-(y-minY)/yRange*(height-pad*2);
+  const d=vals.map((p,i)=>`${i?'L':'M'}${X(p.x instanceof Date?p.x.getTime():+p.x).toFixed(1)},${Y(+p.y).toFixed(1)}`).join(' ');
+  let th='';
+  if(opts.threshold!=null) th=`<line x1="${pad}" y1="${Y(opts.threshold)}" x2="${width-pad}" y2="${Y(opts.threshold)}" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6 4"/><text x="${width-pad-120}" y="${Y(opts.threshold)-6}" fill="#f59e0b" font-size="12">P99 ${fmt(opts.threshold)}</text>`;
+  const title=opts.title?`<div class="small">${opts.title}</div>`:'';
+  return `<div class="chart">${title}<svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+    <line x1="${pad}" y1="${height-pad}" x2="${width-pad}" y2="${height-pad}" stroke="#334155"/>
+    <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${height-pad}" stroke="#334155"/>
+    <text x="${pad}" y="18" fill="#94a3b8" font-size="12">max ${fmt(maxY)} / min ${fmt(minY)}</text>
+    ${th}
+    <path d="${d}" fill="none" stroke="#38bdf8" stroke-width="2"/>
+  </svg></div>`;
+}
+function renderFiles(files){
+  const el=document.getElementById('fileList');
+  if(!files.length){el.innerHTML='<div class="muted">Belum ada file tersimpan.</div>';return;}
+  el.innerHTML=files.map(f=>`<div class="file"><div class="top"><b>${f.name}</b><span class="pill">${f.type}</span></div><small>${(f.size/1024).toFixed(1)} KB · stored ${f.storedAt}</small></div>`).join('');
+}
+async function loadStored(){
+  const files=await getFiles();
+  parsed={fast:[], telemetry:[], config:null, groundTruth:[], eventReports:[], unknown:[]};
+  for(const f of files){
+    if(f.type==='fast') parsed.fast.push(...parseJsonl(f.text));
+    else if(f.type==='telemetry') parsed.telemetry.push(...parseJsonl(f.text));
+    else if(f.type==='config'){try{parsed.config=JSON.parse(f.text)}catch(e){}}
+    else if(f.type==='groundTruth') parsed.groundTruth.push(f);
+    else if(f.type==='eventReport') parsed.eventReports.push(f);
+    else parsed.unknown.push(f);
+  }
+  buildSummary();
+  renderFiles(files);
+  renderAll();
+}
+function renderOverview(){
+  const {fastT,telemT,fastInt,telemInt}=summary.stats||detectRunTypeStats();
+  document.getElementById('overview').innerHTML=`
+    <h2>Overview</h2>
+    ${cards([
+      ['Fast samples', parsed.fast.length, fastT.durationSec?`${(fastT.durationSec/60).toFixed(1)} menit`:'' ],
+      ['Telemetry samples', parsed.telemetry.length, telemT.durationSec?`${(telemT.durationSec/60).toFixed(1)} menit`:'' ],
+      ['Fast interval median', fmt(fastInt.median,2)+' s', `p95 ${fmt(fastInt.p95,2)}s · gaps ${fastInt.gaps}`],
+      ['Telemetry interval median', fmt(telemInt.median,2)+' s', `p95 ${fmt(telemInt.p95,2)}s · gaps ${telemInt.gaps}`]
+    ])}
+    <div class="notice">
+      Status: ${parsed.fast.length>=10000?'<span class="ok">Fast sudah mendekati target 10k.</span>':'<span class="warn">Fast belum 10k sampel.</span>'}
+      ${parsed.telemetry.length>=1000?'<span class="ok">Telemetry sudah minimal 1k.</span>':'<span class="warn">Telemetry belum 1k sampel.</span>'}
+    </div>
+    <h3>Detected file categories</h3>
+    ${table(['Category','Count'],[
+      ['Fast JSONL',parsed.fast.length],
+      ['Telemetry JSONL',parsed.telemetry.length],
+      ['Config',parsed.config?'1':'0'],
+      ['Ground Truth placeholder',parsed.groundTruth.length],
+      ['Event Report placeholder',parsed.eventReports.length]
+    ])}
+  `;
+}
+function renderPrelim(){
+  const dnsRows=Object.entries(summary.dns||{}).map(([t,v])=>[t,v.count,fmt(v.median),fmt(v.p95),fmt(v.p99),fmt(v.max),v.fail]);
+  const httpRows=Object.entries(summary.http||{}).map(([u,v])=>[u,v.count_total,fmt(v.total_median),fmt(v.total_p99),v.count_ttfb,fmt(v.ttfb_median),fmt(v.ttfb_p99),v.fail]);
+  document.getElementById('prelim').innerHTML=`
+    <h2>Preliminary Thresholds</h2>
+    <div class="notice">
+      P99 hanya dihitung dari sampel <b>valid dan sukses</b>:
+      DNS memakai <code>dns_success == true</code>,
+      HTTP memakai <code>http_ok == true</code> dan status sukses,
+      RTT memakai nilai <code>rtt_avg_ms</code> yang tersedia.
+      Sampel fail tidak dimasukkan ke perhitungan P99.
+    </div>
+    <div class="notice">Nilai di sini adalah preview. Threshold final membutuhkan run normal yang panjang, bersih, dan representatif.</div>
+    <h3>S1 DNS latency P99 per target</h3>${table(['Target','Valid success samples','Median ms','P95 ms','P99 ms','Max ms','Fail excluded'],dnsRows)}
+    <h3>S4 RTT P99</h3>${table(['Metric','Valid samples','Median','P95','P99','Max','Loss P99'],[['rtt_avg_ms',summary.rtt.count,fmt(summary.rtt.median),fmt(summary.rtt.p95),fmt(summary.rtt.p99),fmt(summary.rtt.max),fmt(summary.rtt.loss_p99)]])}
+    <h3>S5 HTTP P99 per URL</h3>${table(['URL','Valid total samples','Total median','Total P99','Valid TTFB samples','TTFB median','TTFB P99','Fail excluded'],httpRows)}
+    <div class="btnrow"><button onclick="downloadCalibratedConfig()">Export calibrated_config_preview.json</button></div>
+  `;
+}
+function renderS1(){
+  const dns=extractFastDNS();
+  const states=fastStateStats();
+  let content=`<h2>S1 DNS_DEGRADED</h2>`;
+  const targets=Object.keys(summary.dns||{});
+  if(!targets.length){
+    content+=`<div class="notice">${notAvailable('fast DNS data belum di-upload')}</div>`;
+  }
+  for(const target of targets){
+    const v=summary.dns[target];
+    const pts=[];
+    for(const s of parsed.fast){
+      for(const d of (s.dns||[])){
+        if((d.target||d.name)===target && d.success===true && d.latency_ms!=null) pts.push({x:ts(s),y:+d.latency_ms});
+      }
+    }
+    content+=`<h3>Target: ${target}</h3>`;
+    content+=metricBlock('Primary Trigger',[
+      [`dns_success(${target}) == true`, available(`${v.count} success samples; ${v.fail} fail samples`)],
+      [`dns_latency_ms(${target}) >= T_dns_latency(${target})`, v.p99!=null?available(`T_dns_latency = ${fmt(v.p99)} ms; P99 dihitung dari success samples saja`):notAvailable('P99 belum dapat dihitung')],
+      [`confirm_consecutive == N_dns`, notAvailable('perlu normal validation + fault injection untuk memilih N_dns')]
+    ]);
+    content+=metricBlock('Supporting Trigger',[
+      ['wifi_up == true', states.wifiTotal?available(`${states.wifiTrue}/${states.wifiTotal} fast samples true`):notAvailable('wifi_up tidak ditemukan')],
+      ['ping.success == true', states.pingTotal?available(`${states.pingTrue}/${states.pingTotal} fast samples true`):notAvailable('ping.success tidak ditemukan')],
+      ['affected_scope', notAvailable('baru dapat ditentukan saat target yang trigger dievaluasi')]
+    ]);
+    content+=lineChart(pts,{threshold:v.p99,title:`DNS latency ${target}`});
+  }
+  document.getElementById('s1').innerHTML=content;
+}
+function renderS2(){
+  const dns=extractFastDNS();
+  const states=fastStateStats();
+  let content=`<h2>S2 DNS_TIMEOUT_BURST</h2>
+    <div class="notice">
+      Preliminary normal run hanya dipakai untuk melihat failure normal dan menghitung FAR.
+      Nilai final <code>m_dns</code>/<code>n_dns</code> tidak dapat dipilih dari preliminary data saja;
+      fault injection S2 tetap diperlukan untuk MTTD, recall, dan F1.
+    </div>`;
+  const targets=Object.keys(summary.dns||{});
+  if(!targets.length) content+=`<div class="notice">${notAvailable('fast DNS data belum di-upload')}</div>`;
+  for(const target of targets){
+    const v=summary.dns[target];
+    content+=`<h3>Target: ${target}</h3>`;
+    content+=metricBlock('Primary Trigger',[
+      [`dns_success(${target}) == false`, available(`${v.fail} failure samples observed in uploaded run`)],
+      [`dns_fail_count(${target}) >= m_dns dalam n_dns checks`, notAvailable('m_dns dan n_dns belum dituning; perlu normal validation + fault injection')]
+    ]);
+    content+=metricBlock('Supporting Trigger',[
+      ['wifi_up == true', states.wifiTotal?available(`${states.wifiTrue}/${states.wifiTotal} fast samples true`):notAvailable('wifi_up tidak ditemukan')],
+      ['ping.success == true', states.pingTotal?available(`${states.pingTrue}/${states.pingTotal} fast samples true`):notAvailable('ping.success tidak ditemukan')],
+      ['affected_scope', notAvailable('baru dapat ditentukan saat target yang trigger dievaluasi')]
+    ]);
+  }
+  content+=`<h3>Normal-run DNS failure preview</h3>${table(['Target','Failure count','Failure / fast sample'],Object.entries(dns.failsByTarget).map(([t,f])=>[t,f,(parsed.fast.length?((f/parsed.fast.length)*100).toFixed(2)+'%':'—')]))}`;
+  document.getElementById('s2').innerHTML=content;
+}
+function renderS3(){
+  const states=fastStateStats();
+  const wins=calcWindowsFast();
+  const pts=wins.pingFail20.map(x=>({x:x.date,y:x.fail}));
+  document.getElementById('s3').innerHTML=`
+    <h2>S3 LOSS_BURST</h2>
+    ${metricBlock('Primary Trigger',[
+      ['ping.success == false', states.pingTotal?available(`${states.pingFalse} failure samples observed`):notAvailable('ping.success tidak ditemukan')],
+      ['ping_fail_count >= m_ping dalam n_ping samples', notAvailable('m_ping dan n_ping belum dituning; perlu normal validation + fault injection')]
+    ])}
+    ${metricBlock('Supporting Trigger',[
+      ['wifi_up == true sepanjang window', states.wifiTotal?available(`${states.wifiTrue}/${states.wifiTotal} fast samples true`):notAvailable('wifi_up tidak ditemukan')]
+    ])}
+    ${lineChart(pts,{title:'Preview: ping fail count dalam 20 fast samples terakhir; belum ada threshold final'})}
+  `;
+}
+function renderS4(){
+  const pts=extractTelemetryRTT().filter(x=>x.rtt!=null).map(x=>({x:x.date,y:+x.rtt}));
+  const tw=telemetryWifiStats();
+  document.getElementById('s4').innerHTML=`
+    <h2>S4 HIGH_RTT</h2>
+    ${metricBlock('Primary Trigger',[
+      ['rtt_avg_ms >= T_rtt', summary.rtt.p99!=null?available(`T_rtt = ${fmt(summary.rtt.p99)} ms; P99 dari valid rtt_avg_ms`):notAvailable('telemetry RTT belum tersedia')],
+      ['confirm_consecutive == N_rtt', notAvailable('perlu normal validation + fault injection untuk memilih N_rtt')]
+    ])}
+    ${metricBlock('Supporting Trigger',[
+      ['wifi_up / wifi_connected == true', tw.total?available(`${tw.trueCount}/${tw.total} telemetry samples true`):notAvailable('telemetry Wi-Fi state tidak ditemukan')],
+      ['ping_fail_count(W_ping) < m_ping', notAvailable('m_ping belum dituning')]
+    ])}
+    ${lineChart(pts,{threshold:summary.rtt.p99,title:'Telemetry rtt_avg_ms'})}
+  `;
+}
+function renderS5(){
+  const http=extractHTTP();
+  const tw=telemetryWifiStats();
+  let content=`<h2>S5 HTTP_SLOW</h2>`;
+  const urls=Object.keys(http);
+  if(!urls.length) content+=`<div class="notice">${notAvailable('telemetry HTTP data belum di-upload')}</div>`;
+  for(const url of urls){
+    const obj=http[url], s=summary.http[url]||{};
+    const curlErrors=obj.points.filter(p=>p.curl!=null && Number(p.curl)!==0 && Number(p.curl)!==6).length;
+    const badStatus=obj.points.filter(p=>p.status!=null && !(Number(p.status)>=200 && Number(p.status)<=399)).length;
+    content+=`<h3>URL: ${url}</h3>`;
+    content+=metricBlock('Primary Trigger',[
+      [`http_total_ms(${url}) >= T_http_total(${url})`, s.total_p99!=null?available(`T_http_total = ${fmt(s.total_p99)} ms; P99 dari successful HTTP samples saja`):notAvailable('P99 belum tersedia')],
+      [`http_ttfb_ms(${url}) >= T_http_ttfb(${url})`, s.ttfb_p99!=null?available(`T_http_ttfb = ${fmt(s.ttfb_p99)} ms; P99 dari successful HTTP samples saja`):notAvailable('P99 belum tersedia')],
+      ['curl_rc != 0 dan curl_rc != 6', available(`${curlErrors} qualifying curl errors observed`)],
+      ['http_status not in expected range', available(`${badStatus} non-2xx/3xx responses observed; exact expected range perlu config`)],
+      ['confirm_consecutive == N_http', notAvailable('perlu normal validation + fault injection untuk memilih N_http')]
+    ]);
+    content+=metricBlock('Supporting Trigger',[
+      ['wifi_connected == true', tw.total?available(`${tw.trueCount}/${tw.total} telemetry samples true`):notAvailable('telemetry Wi-Fi state tidak ditemukan')],
+      [`dns_success(${urlHost(url)||'url_hostname'}) == true`, notAvailable('belum ada join eksplisit antara HTTP URL dan DNS target')],
+      [`dns_latency_ms(${urlHost(url)||'url_hostname'}) < T_dns_latency`, notAvailable('belum ada join eksplisit antara HTTP URL dan DNS threshold')],
+      ['rtt_avg_ms < T_rtt', summary.rtt.p99!=null?available(`T_rtt = ${fmt(summary.rtt.p99)} ms`):notAvailable('T_rtt belum tersedia')],
+      ['ping_fail_count(W_ping) < m_ping', notAvailable('m_ping belum dituning')],
+      ['affected_scope', notAvailable('baru dapat ditentukan saat URL yang trigger dievaluasi')]
+    ]);
+    content+=lineChart(obj.points.filter(p=>p.total!=null).map(p=>({x:p.date,y:+p.total})),{threshold:s.total_p99,title:`HTTP total ${url}`});
+    content+=lineChart(obj.points.filter(p=>p.ttfb!=null).map(p=>({x:p.date,y:+p.ttfb})),{threshold:s.ttfb_p99,title:`HTTP TTFB ${url}`});
+  }
+  document.getElementById('s5').innerHTML=content;
+}
+function renderS6(){
+  const states=fastStateStats();
+  const wins=calcWindowsFast();
+  const pts=wins.flap30.map(x=>({x:x.date,y:x.transitions}));
+  document.getElementById('s6').innerHTML=`
+    <h2>S6 CONNECTIVITY_FLAP</h2>
+    ${metricBlock('Primary Trigger',[
+      ['connectivity_ok', states.connTotal?available(`${states.connTrue}/${states.connTotal} true; ${states.connFalse} false`):notAvailable('connectivity_ok tidak ditemukan')],
+      ['state_transition_count(connectivity_ok) >= m_transition dalam W_flap', notAvailable('m_transition dan W_flap belum dituning; perlu normal validation + fault injection')]
+    ])}
+    ${metricBlock('Supporting Trigger',[
+      ['suspected_layer = wifi_link | upstream', notAvailable('baru dapat ditentukan saat pola transisi event dianalisis')]
+    ])}
+    ${lineChart(pts,{title:'Preview: connectivity_ok transitions dalam 30 detik terakhir; belum ada threshold final'})}
+  `;
+}
+function renderEval(){
+  document.getElementById('eval').innerHTML=`
+    <h2>Evaluation / Fault Injection</h2>
+    <div class="notice">
+      Parser ground truth dan event report belum diaktifkan karena format file belum ada. Area ini sudah disiapkan untuk tahap berikutnya.
+    </div>
+    <h3>Planned upload types</h3>
+    ${table(['File type','Status','Use'],[
+      ['ground_truth_*.json/csv','placeholder','fault_start_ts, fault_end_ts, scenario_id, injected params'],
+      ['event_report_*.jsonl','placeholder','event_start_ts, event_end_ts, event_type, detector parameter'],
+      ['fast/telemetry fault run','supported as normal run','metric overlay and future MTTD/FAR calculation'],
+      ['config/calibrated_config','partial','display and export threshold config']
+    ])}
+    <h3>Metrics planned</h3>
+    ${table(['Metric','Formula'],[
+      ['FAR','false event starts / normal duration hours'],
+      ['MTTD','event_start_ts - fault_start_ts'],
+      ['Recall','detected ground-truth faults / total ground-truth faults'],
+      ['Precision','true positive events / all detected events'],
+      ['F1','2 × precision × recall / (precision + recall)']
+    ])}
+  `;
+}
+function renderAll(){renderOverview();renderPrelim();renderS1();renderS2();renderS3();renderS4();renderS5();renderS6();renderEval();}
+async function handleFiles(files){
+  for(const file of files){
+    const text=await file.text();
+    const type=classifyFile(file.name,text);
+    await putFile(file.name,type,text,file.size,file.lastModified);
+  }
+  await loadStored();
+}
+function download(name,text,type='application/json'){
+  const blob=new Blob([text],{type});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function downloadCalibratedConfig(){
+  const cfg={
+    generated_at:new Date().toISOString(),
+    note:"Preview only. Detector may need per-target/per-URL threshold support.",
+    thresholds:{
+      dns_latency_threshold_ms:Object.fromEntries(Object.entries(summary.dns||{}).map(([k,v])=>[k,v.p99])),
+      rtt_threshold_ms:summary.rtt?.p99,
+      http_total_threshold_ms:Object.fromEntries(Object.entries(summary.http||{}).map(([k,v])=>[k,v.total_p99])),
+      http_ttfb_threshold_ms:Object.fromEntries(Object.entries(summary.http||{}).map(([k,v])=>[k,v.ttfb_p99]))
+    },
+    event_parameter_candidates:{
+      DNS_DEGRADED:{N_dns:[1,2,3,4]},
+      DNS_TIMEOUT_BURST:{n_dns:[10,15,20],m_dns:[2,3,4]},
+      LOSS_BURST:{n_ping:[20,30,40],m_ping:[2,3,4,5]},
+      HIGH_RTT:{N_rtt:[1,2,3,4]},
+      HTTP_SLOW:{N_http:[1,2,3]},
+      CONNECTIVITY_FLAP:{W_flap_sec:[20,30,60],m_transition:[2,3,4]}
+    }
+  };
+  download('calibrated_config_preview.json',JSON.stringify(cfg,null,2));
+}
+document.getElementById('files').addEventListener('change',e=>handleFiles(e.target.files));
+document.getElementById('analyzeBtn').addEventListener('click',loadStored);
+document.getElementById('exportSummaryBtn').addEventListener('click',()=>download('micro_uxi_summary.json',JSON.stringify(summary,null,2)));
+document.getElementById('clearBtn').addEventListener('click',async()=>{if(confirm('Hapus semua file tersimpan di browser ini?')){await clearFiles();await loadStored();}});
+const drop=document.getElementById('drop');
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('drag')});
+drop.addEventListener('dragleave',()=>drop.classList.remove('drag'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('drag');handleFiles(e.dataTransfer.files)});
+document.getElementById('tabs').addEventListener('click',e=>{
+  const t=e.target.closest('.tab'); if(!t)return;
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active');
+  document.querySelectorAll('.section').forEach(x=>x.classList.remove('active'));
+  document.getElementById(t.dataset.tab).classList.add('active');
+});
+loadStored();
+</script>
+</body>
+</html>
