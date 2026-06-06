@@ -166,6 +166,25 @@
     "print_pretty": false,
     "print_fast_normal": false
   },
+  "stream": {
+    "enabled": false,
+    "host": "10.141.215.44",
+    "port": "5000",
+    "scheme": "http",
+    "sensor_endpoint": "/api/ingest/sensor",
+    "overhead_endpoint": "/api/ingest/overhead",
+    "include_sensor": true,
+    "include_overhead": true,
+    "api_key": "",
+    "timeout_sec": 5,
+    "max_queue": 100
+  },
+  "remote_control": {
+    "enabled": true,
+    "endpoint": "/api/config",
+    "poll_interval_sec": 30,
+    "timeout_sec": 5
+  },
   "evidence": {
     "enabled": false,
     "pre_window_sec": 30,
