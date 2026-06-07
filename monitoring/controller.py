@@ -56,6 +56,8 @@ class RunOptions:
     stream_host: str | None
     stream_port: int | None
     stream_api_key: str | None
+    verbose: bool
+    overhead_enabled: bool
 
 
 class MonitorController:
@@ -63,6 +65,7 @@ class MonitorController:
         self.config = config
         self.output_enabled = bool(config.get("output", {}).get("enabled", False))
         self.output_dir = safe_mkdir(config["output"]["output_dir"]) if self.output_enabled else None
+        self.verbose = bool(config.get("output", {}).get("verbose", False))
         self.run_id = f"run-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
         self.detector = EventDetector(config, self.run_id)
         self.evidence = EvidenceManager(config, self.run_id)
@@ -355,6 +358,7 @@ class MonitorController:
             print(f"  Duration    : {duration_label}")
             print(f"  Detection   : {self.config['detector'].get('detection_mode', 'static')}")
             print(f"  Output dir  : {self.output_dir.resolve() if self.output_enabled else 'disabled'}")
+            print(f"  Verbose     : {'on' if self.verbose else 'off'}")
             stream_stats = self.streamer.stats()
             print(f"  Stream      : {stream_stats['url'] if stream_stats['enabled'] else 'disabled'}")
             for worker in workers:
@@ -391,7 +395,7 @@ class MonitorController:
         ts = sample["ts"][11:19]
 
         if probe_type == "fast":
-            if not self.config["output"].get("print_fast_normal", False):
+            if not self.verbose and not self.config["output"].get("print_fast_normal", False):
                 ping_ok = bool(sample.get("ping", {}).get("success"))
                 dns_ok = all(row.get("success") for row in sample.get("dns", [])) if sample.get("dns") else True
                 if ping_ok and dns_ok and bool(sample.get("connectivity_ok")):
@@ -521,6 +525,7 @@ def build_run_options(config: dict, args) -> RunOptions:
     stream_host = args.stream_host or stream_cfg.get("host") or stream_cfg.get("ip") or None
     stream_port = _parse_stream_port(args.stream_port if args.stream_port is not None else stream_cfg.get("port"))
     stream_api_key = args.stream_api_key if args.stream_api_key is not None else stream_cfg.get("api_key")
+    overhead_enabled = bool(config.get("overhead_probe", {}).get("enabled", True)) and not args.no_overhead
 
     return RunOptions(
         mode=args.mode,
@@ -535,6 +540,8 @@ def build_run_options(config: dict, args) -> RunOptions:
         stream_host=stream_host,
         stream_port=stream_port,
         stream_api_key=stream_api_key,
+        verbose=args.verbose,
+        overhead_enabled=overhead_enabled,
     )
 
 
@@ -548,9 +555,10 @@ def print_run_plan(config: dict, options: RunOptions) -> None:
     print(f"  Fast freq   : {options.fast_interval_sec:g}s")
     print(f"  Telemetry   : {options.telemetry_interval_sec:g}s")
     print(f"  Throughput  : {options.throughput_interval_sec:g}s")
-    print(f"  Overhead    : {options.overhead_interval_sec:g}s")
+    print(f"  Overhead    : {'off' if not options.overhead_enabled else f'{options.overhead_interval_sec:g}s'}")
     print(f"  Duration    : {_duration_label(options.duration_raw)}")
     print(f"  Detection   : {options.detection_mode}")
+    print(f"  Verbose     : {'on' if options.verbose else 'off'}")
     print(f"  Output      : {_output_label(options.output_dir)}")
     print(f"  Stream      : {_stream_label(options)}")
     print("=" * 72)
@@ -559,7 +567,7 @@ def print_run_plan(config: dict, options: RunOptions) -> None:
 def prompt_edit_options(options: RunOptions) -> RunOptions:
     while True:
         field = input(
-            "Ubah apa? [mode/fast/telemetry/throughput/overhead/output/duration/detection/stream/done]: "
+            "Ubah apa? [mode/fast/telemetry/throughput/overhead/output/duration/detection/stream/verbose/done]: "
         ).strip().lower()
         if field in {"done", ""}:
             return options
@@ -576,7 +584,12 @@ def prompt_edit_options(options: RunOptions) -> RunOptions:
         elif field == "throughput":
             options.throughput_interval_sec = parse_interval(input("Throughput interval baru (contoh 15m): ").strip())
         elif field == "overhead":
-            options.overhead_interval_sec = parse_interval(input("Overhead interval baru (contoh 2s): ").strip())
+            value = input("Overhead interval baru (contoh 2s), atau 'off' untuk nonaktif: ").strip().lower()
+            if value in {"off", "none", "disable", "disabled"}:
+                options.overhead_enabled = False
+            else:
+                options.overhead_enabled = True
+                options.overhead_interval_sec = parse_interval(value)
         elif field == "output":
             value = input("Output dir baru, atau 'none' untuk nonaktif: ").strip()
             options.output_dir = None if value.lower() in {"none", "off", "disable", "disabled"} else value
@@ -607,6 +620,12 @@ def prompt_edit_options(options: RunOptions) -> RunOptions:
             else:
                 options.stream_host = None
                 options.stream_port = None
+        elif field == "verbose":
+            value = input("Verbose on? [y/n]: ").strip().lower()
+            try:
+                options.verbose = _parse_yes_no(value)
+            except ValueError as exc:
+                print(exc)
         else:
             print("Pilihan tidak dikenal.")
 
@@ -642,6 +661,7 @@ def apply_run_options(config: dict, options: RunOptions) -> dict:
     runtime["scheduler"]["overhead_interval_sec"] = options.overhead_interval_sec
     runtime["detector"]["detection_mode"] = options.detection_mode
     runtime["output"]["enabled"] = options.output_dir is not None
+    runtime["output"]["verbose"] = options.verbose
     if options.output_dir is not None:
         runtime["output"]["output_dir"] = options.output_dir
     runtime.setdefault("stream", {})
@@ -649,6 +669,8 @@ def apply_run_options(config: dict, options: RunOptions) -> dict:
     runtime["stream"]["host"] = options.stream_host or ""
     runtime["stream"]["port"] = options.stream_port
     runtime["stream"]["api_key"] = options.stream_api_key or ""
+    runtime.setdefault("overhead_probe", {})
+    runtime["overhead_probe"]["enabled"] = options.overhead_enabled
     return runtime
 
 
@@ -668,6 +690,8 @@ def main() -> None:
     parser.add_argument("--output", default=None, help="Output dir, or 'none' to disable file output")
     parser.add_argument("--stream", default=None, help="Stream samples to server: yes/no")
     parser.add_argument("--stream-host", "--stream-ip", dest="stream_host", default=None, help="Server IP/host for stream")
+    parser.add_argument("--verbose", action="store_true", help="Print every fast/telemetry sample line and events")
+    parser.add_argument("--no-overhead", action="store_true", help="Disable overhead probe")
     parser.add_argument("--stream-port", type=int, default=None, help="Server port for stream")
     parser.add_argument("--stream-api-key", default=None, help="Optional API key for stream ingest")
     parser.add_argument(
