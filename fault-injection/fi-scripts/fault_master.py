@@ -102,6 +102,8 @@ def main() -> int:
     parser.add_argument("--output", default=None, help="Override output JSONL file")
     parser.add_argument("--duration", type=int, default=None, help="Override duration for start_stop mode")
     parser.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="Override fault_parameter, e.g. --set loss_pct=40")
+    parser.add_argument("--repeat", type=int, default=None, help="Override jumlah iterasi injeksi fault")
+    parser.add_argument("--grace-period", type=int, default=None, help="Override grace period (detik)")
     args = parser.parse_args()
 
     if hasattr(os, "geteuid") and os.geteuid() != 0:
@@ -131,6 +133,9 @@ def main() -> int:
     params = apply_overrides(event_cfg.get("fault_parameter", {}), parse_set(args.set))
     duration = args.duration if args.duration is not None else event_cfg.get("duration_sec")
 
+    repeat = args.repeat if args.repeat is not None else event_cfg.get("repeat", cfg.get("repeat", 30))
+    grace_period = args.grace_period if args.grace_period is not None else event_cfg.get("grace_period_sec", cfg.get("grace_period_sec", 60))
+
     if not script_path.exists():
         raise SystemExit(f"Fault script not found: {script_path}")
 
@@ -138,45 +143,56 @@ def main() -> int:
     if not output_file.is_absolute():
         output_file = base_dir / output_file
 
-    print(f"[FAULT_MASTER] run_id={args.run_id} event={event_code} type={event_type}")
-    print(f"[FAULT_MASTER] script={script_path.name}")
-    print(f"[FAULT_MASTER] dataset={output_file}")
+    print(f"[FAULT_MASTER] run_id_base={args.run_id} event={event_code} type={event_type}")
+    print(f"[FAULT_MASTER] script={script_path.name} | repeat={repeat}x | grace={grace_period}s")
+    print(f"[FAULT_MASTER] dataset={output_file}\n")
 
-    start_time = now_iso()
+    rollback_script = base_dir / "rollback_all_faults.sh"
 
-    try:
-        if mode == "start_stop":
-            start_args = render_args(event_cfg["start_args"], params)
-            stop_args = render_args(event_cfg["stop_args"], params)
-            if duration is None:
-                raise SystemExit("duration_sec is required for start_stop mode")
+    for i in range(1, repeat + 1):
+        current_run_id = f"{args.run_id}_{i:02d}" if repeat > 1 else args.run_id
+        print(f"=== [FAULT_MASTER] Iteration {i}/{repeat} | run_id={current_run_id} ===")
+        
+        start_time = now_iso()
+        try:
+            if mode == "start_stop":
+                start_args = render_args(event_cfg["start_args"], params)
+                stop_args = render_args(event_cfg["stop_args"], params)
+                if duration is None:
+                    raise SystemExit("duration_sec is required for start_stop mode")
 
-            run_cmd([str(script_path), *start_args], base_dir)
-            try:
-                time.sleep(int(duration))
-            finally:
-                run_cmd([str(script_path), *stop_args], base_dir)
+                run_cmd([str(script_path), *start_args], base_dir)
+                try:
+                    time.sleep(int(duration))
+                finally:
+                    run_cmd([str(script_path), *stop_args], base_dir)
 
-        elif mode == "single_command":
-            cmd_args = render_args(event_cfg["args"], params)
-            run_cmd([str(script_path), *cmd_args], base_dir)
+            elif mode == "single_command":
+                cmd_args = render_args(event_cfg["args"], params)
+                run_cmd([str(script_path), *cmd_args], base_dir)
 
-        else:
-            raise SystemExit(f"Unsupported mode: {mode}")
+            else:
+                raise SystemExit(f"Unsupported mode: {mode}")
 
-    finally:
-        end_time = now_iso()
+        finally:
+            end_time = now_iso()
 
-    record = {
-        "run_id": args.run_id,
-        "event_type": event_type,
-        "start_time": start_time,
-        "end_time": end_time,
-        "target": target,
-        "fault_parameter": params
-    }
-    append_jsonl(output_file, record)
-    print(f"[FAULT_MASTER] ground truth written: {output_file}")
+        record = {
+            "run_id": current_run_id,
+            "event_type": event_type,
+            "start_time": start_time,
+            "end_time": end_time,
+            "target": target,
+            "fault_parameter": params
+        }
+        append_jsonl(output_file, record)
+        print(f"[FAULT_MASTER] ground truth written: {output_file}")
+
+        if i < repeat:
+            print(f"[FAULT_MASTER] Mengembalikan jaringan (rollback) dan masuk grace period {grace_period} detik...\n")
+            if rollback_script.exists():
+                subprocess.run(["bash", str(rollback_script)], cwd=str(base_dir))
+            time.sleep(grace_period)
 
     return 0
 

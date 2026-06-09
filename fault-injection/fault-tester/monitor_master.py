@@ -19,7 +19,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-ALARM_RE = re.compile(r"\[ALARM\]\s+(S\d+)\s+([A-Z0-9_]+)\s+ACTIVE", re.IGNORECASE)
+EVENT_RE = re.compile(r"\[(ALARM|RECOVERY)\]\s+(S\d+)\s+([A-Z0-9_]+)", re.IGNORECASE)
 
 
 def now_iso() -> str:
@@ -104,7 +104,16 @@ def main() -> int:
         env=env,
     )
 
-    already_written = False
+    overhead_proc = None
+    overhead_script = base_dir / "tester_overhead.py"
+    if overhead_script.exists():
+        overhead_out = base_dir / "overhead_log.jsonl"
+        overhead_proc = subprocess.Popen(
+            [sys.executable, "-u", str(overhead_script), "--run-id", args.run_id, "--output", str(overhead_out)],
+            cwd=str(base_dir),
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
 
     try:
         assert proc.stdout is not None
@@ -112,20 +121,20 @@ def main() -> int:
             line = line.rstrip("\n")
             print(line, flush=True)
 
-            match = ALARM_RE.search(line)
-            if not match or already_written:
+            match = EVENT_RE.search(line)
+            if not match:
                 continue
 
-            detected_event_code = match.group(1).upper()
-            detected_event_type = match.group(2).upper()
+            status_type = match.group(1).upper()  # Akan berisi 'ALARM' atau 'RECOVERY'
+            detected_event_code = match.group(2).upper()
+            detected_event_type = match.group(3).upper()
             record = {
                 "run_id": args.run_id,
                 "event_type": detected_event_type,
                 "detection_time": now_iso(),
-                "status": "ALARM"
+                "status": status_type
             }
             append_jsonl(output_file, record)
-            already_written = True
 
     except KeyboardInterrupt:
         print("\n[MONITOR_MASTER] stopping...")
@@ -138,6 +147,14 @@ def main() -> int:
                 proc.wait(timeout=3)
             except subprocess.TimeoutExpired:
                 proc.kill()
+
+    finally:
+        if overhead_proc:
+            overhead_proc.terminate()
+            try:
+                overhead_proc.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                overhead_proc.kill()
 
     return proc.poll() or 0
 
