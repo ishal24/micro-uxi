@@ -1,0 +1,71 @@
+{
+  "output_file": "ground_truth.jsonl",
+  "write_fi_config": true,
+  "fi_config_file": "fi_config.env",
+
+  "fi_env": {
+    "HOTSPOT_IF": "ap0",
+    "UPSTREAM_IF": "wlxd037456b1bc8",
+    "CLIENT_SUBNET": "192.168.12.0/24",
+    "HTTP_SLOW_PORTS": "8080"
+  },
+
+  "events": {
+    "S1": {
+      "event_type": "DNS_DEGRADED",
+      "target": "8.8.8.8 / google.com",
+      "script": "fault_dns_delay.sh",
+      "mode": "start_stop",
+      "duration_sec": 90,
+      "fault_parameter": {"delay_ms": 400, "jitter_ms": 50},
+      "start_args": ["start", "{delay_ms}", "{jitter_ms}"],
+      "stop_args": ["stop"]
+    },
+    "S2": {
+      "event_type": "DNS_TIMEOUT_BURST",
+      "target": "8.8.8.8 / google.com",
+      "script": "fault_dns_outage.sh",
+      "mode": "single_command",
+      "fault_parameter": {"count": 3, "active_seconds": 8, "gap_seconds": 5},
+      "args": ["burst", "{count}", "{active_seconds}", "{gap_seconds}"]
+    },
+    "S3": {
+      "event_type": "LOSS_BURST",
+      "target": "8.8.8.8",
+      "script": "fault_loss.sh",
+      "mode": "start_stop",
+      "duration_sec": 90,
+      "fault_parameter": {"loss_pct": 30},
+      "start_args": ["start", "{loss_pct}"],
+      "stop_args": ["stop"]
+    },
+    "S4": {
+      "event_type": "HIGH_RTT",
+      "target": "8.8.8.8",
+      "script": "fault_rtt.sh",
+      "mode": "start_stop",
+      "duration_sec": 90,
+      "fault_parameter": {"delay_ms": 300, "jitter_ms": 50},
+      "start_args": ["start", "{delay_ms}", "{jitter_ms}"],
+      "stop_args": ["stop"]
+    },
+    "S5": {
+      "event_type": "HTTP_SLOW",
+      "target": "http://192.168.12.1:8080/testfile_1mb.bin",
+      "script": "fault_throttle.sh",
+      "mode": "start_stop",
+      "duration_sec": 90,
+      "fault_parameter": {"rate": "500kbit"},
+      "start_args": ["start", "{rate}"],
+      "stop_args": ["stop"]
+    },
+    "S6": {
+      "event_type": "CONNECTIVITY_FLAP",
+      "target": "upstream interface",
+      "script": "fault_flap.sh",
+      "mode": "single_command",
+      "fault_parameter": {"count": 3, "active_seconds": 5, "gap_seconds": 5},
+      "args": ["repeat", "{count}", "{active_seconds}", "{gap_seconds}"]
+    }
+  }
+}

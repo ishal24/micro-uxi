@@ -1,0 +1,50 @@
+{
+  "output_file": "detection_log.jsonl",
+  "write_tester_config": true,
+  "tester_config_file": "tester_config.json",
+
+  "tester_config": {
+    "scheduler": {
+      "fast_interval_sec": 2,
+      "telemetry_interval_sec": 20
+    },
+    "targets": {
+      "ping_target": "8.8.8.8",
+      "dns_targets": [
+        {"name": "google.com", "scope": "external"}
+      ],
+      "http_targets": [
+        {"url": "http://192.168.12.1:8080/testfile_1mb.bin", "scope": "local"}
+      ],
+      "dns_resolver": "8.8.8.8",
+      "iface": "wlan0"
+    },
+    "thresholds": {
+      "dns_latency_threshold_ms": 243,
+      "loss_threshold_pct": 20,
+      "rtt_threshold_ms": 279,
+      "recovery_rtt_threshold_ms": 224,
+      "http_total_threshold_ms": 1535,
+      "recovery_http_total_threshold_ms": 1228,
+      "http_ttfb_threshold_ms": 88,
+      "recovery_http_ttfb_threshold_ms": 71
+    },
+    "rules": {
+      "S1_DNS_DEGRADED": {"confirm_consecutive": 2},
+      "S2_DNS_TIMEOUT_BURST": {"n_dns": 10, "m_dns": 3},
+      "S3_LOSS_BURST": {"n_ping": 20, "m_ping": 4},
+      "S4_HIGH_RTT": {"confirm_consecutive": 2},
+      "S5_HTTP_SLOW": {"confirm_consecutive": 2},
+      "S6_CONNECTIVITY_FLAP": {"n_flap": 15, "m_transition": 4}
+    }
+  },
+
+  "events": {
+    "S1": {"event_type": "DNS_DEGRADED", "script": "test_s1_dns_degraded.py"},
+    "S2": {"event_type": "DNS_TIMEOUT_BURST", "script": "test_s2_dns_timeout.py"},
+    "S3": {"event_type": "LOSS_BURST", "script": "test_s3_loss_burst.py"},
+    "S4": {"event_type": "HIGH_RTT", "script": "test_s4_high_rtt.py"},
+    "S5": {"event_type": "HTTP_SLOW", "script": "test_s5_http_slow.py"},
+    "S6": {"event_type": "CONNECTIVITY_FLAP", "script": "test_s6_connectivity_flap.py"}
+  }
+}
