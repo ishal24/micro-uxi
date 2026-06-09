@@ -438,42 +438,46 @@ class EventDetector:
         if not wifi_up or not ping_ok:
             return evaln
 
-        fail_threshold = float(self.thresholds["dns_fail_ratio_threshold"])
-        grouped = self._dns_scope_stats(sample.get("dns", []))
-        hit_scopes: set[str] = set()
-        reasons: list[str] = []
-        affected_targets: list[str] = []
+        # S2: 3-of-10 DNS failure dalam 20 detik (n_dns = 10, m_dns = 3)
+        n_dns = int(self.detector_cfg["events"]["DNS_TIMEOUT_BURST"].get("n_dns", 10))
+        m_dns = int(self.detector_cfg["events"]["DNS_TIMEOUT_BURST"].get("m_dns", 3))
 
-        for scope in ("internal", "external"):
-            stats = grouped.get(scope)
-            if not stats:
-                continue
-            if stats["fail_ratio"] >= fail_threshold:
-                hit_scopes.add(scope)
-                affected_targets.extend(stats["fail_targets"])
-                reasons.append(f"{scope}:dns_fail_ratio={stats['fail_ratio']:.2f} >= threshold={fail_threshold:.2f}")
+        recent_dns = [
+            row for row in self.fast_history
+            if (self.fast_history[-1]["ts"] - row["ts"]).total_seconds() <= 25 # ~20s window + buffer
+        ]
+        
+        # fallback to ratio logic if not enough samples overall yet but burst is clear? No, stick to m-of-n
+        # Count failures globally across scopes for window-based logic if possible, or use current sample?
+        # Actually S2 is defined to use window, but current implementation evaluates single sample 'dns' payload?
+        # Let's fix the implementation to actually use fast_history for DNS if possible, but fast_history only tracks `dns_all_ok`.
+        # To match the original structure, I will use `fail_ratio` thresholding based on the single sample (since each fast probe does N targets), OR adapt fast_history.
+        # Wait, the current implementation grouped by scope inside the SINGLE sample:
+        # grouped = self._dns_scope_stats(sample.get("dns", []))
+        # This implies it was looking at a single fast probe execution.
+        
+        # Let's look at `fast_history` - it has `dns_all_ok`. We can use this to detect burst.
+        if len(recent_dns) < n_dns:
+            return evaln
+        
+        recent_dns = recent_dns[-n_dns:] # Take last n_dns samples
+        dns_fail_count = sum(1 for row in recent_dns if not row["dns_all_ok"])
 
-        if hit_scopes:
+        if dns_fail_count >= m_dns:
             evaln.hit = True
-            evaln.affected_scope = self._combine_scope(hit_scopes)
-            evaln.affected_targets = sorted(set(affected_targets))
-            evaln.trigger_reason = "; ".join(reasons)
-            evaln.severity = "high" if evaln.affected_scope == "all" else "medium"
+            evaln.affected_scope = "all"
+            evaln.affected_targets = []
+            evaln.trigger_reason = f"dns_fail_count={dns_fail_count} >= m_dns={m_dns} within {n_dns} samples"
+            evaln.severity = "high"
             return evaln
 
         active = self.contexts["DNS_TIMEOUT_BURST"].active
         if active:
-            scope_names = {"internal", "external"} if active.get("affected_scope") == "all" else {active.get("affected_scope")}
             recovery_ratio = float(self.detector_cfg["events"]["DNS_TIMEOUT_BURST"].get("recovery_success_ratio", self.thresholds["dns_recovery_success_ratio"]))
-            recovery_ok = True
-            for scope_name in scope_names:
-                stats = grouped.get(scope_name)
-                if not stats or stats["success_ratio"] < recovery_ratio:
-                    recovery_ok = False
-                    break
-            evaln.recovery_ok = recovery_ok
-            if recovery_ok:
-                evaln.recovery_reason = "dns_success_ratio kembali memenuhi recovery_success_ratio"
+            # Simple recovery: no failures in recent samples
+            evaln.recovery_ok = dns_fail_count == 0 
+            if evaln.recovery_ok:
+                evaln.recovery_reason = "dns stabil kembali (0 failure dalam window)"
         return evaln
 
     def _eval_loss_burst(self, sample: dict, ts: datetime) -> Evaluation:
@@ -484,31 +488,38 @@ class EventDetector:
         window_sec = float(self.thresholds["loss_window_sec"])
         loss_threshold = float(self.thresholds["loss_threshold_pct"])
         recovery_threshold = float(self.thresholds.get("recovery_loss_threshold_pct", 5))
-        minimum_samples = int(self.detector_cfg["events"]["LOSS_BURST"].get("minimum_samples", 5))
+        
+        # S3: 4-of-20 ping failure dalam 40 detik
+        n_ping = int(self.detector_cfg["events"]["LOSS_BURST"].get("n_ping", 20))
+        m_ping = int(self.detector_cfg["events"]["LOSS_BURST"].get("m_ping", 4))
 
         window = [
             row for row in self.fast_history
             if (ts - row["ts"]).total_seconds() <= window_sec
         ]
-        total = len(window)
-        if total == 0:
+        
+        # Ensure we only evaluate if we have enough samples
+        if len(window) < n_ping:
             return evaln
 
+        # Take strictly the last n_ping samples
+        window = window[-n_ping:]
+        total = len(window)
         failed = sum(1 for row in window if not row["ping_ok"])
         loss_pct = (failed / total) * 100.0
 
-        if total >= minimum_samples and loss_pct >= loss_threshold:
+        if failed >= m_ping:
             evaln.hit = True
             evaln.affected_scope = "all"
             evaln.severity = "high" if loss_pct >= 50 else "medium"
-            evaln.trigger_reason = f"ping_loss_pct_window={loss_pct:.1f} >= threshold={loss_threshold:.1f} with sample_count={total}"
+            evaln.trigger_reason = f"ping_fail_count={failed} >= m_ping={m_ping} (loss_pct={loss_pct:.1f}%) within {n_ping} samples"
             evaln.extra = {"observed_loss_pct_window": round(loss_pct, 2)}
             return evaln
 
         if self.contexts["LOSS_BURST"].active:
-            evaln.recovery_ok = total >= minimum_samples and loss_pct < recovery_threshold
+            evaln.recovery_ok = failed == 0 or loss_pct <= recovery_threshold
             if evaln.recovery_ok:
-                evaln.recovery_reason = f"ping_loss_pct_window={loss_pct:.1f} < recovery_threshold={recovery_threshold:.1f}"
+                evaln.recovery_reason = f"ping_fail_count={failed} (loss_pct={loss_pct:.1f}%) <= recovery_threshold={recovery_threshold:.1f}%"
         return evaln
 
     def _eval_high_rtt(self, sample: dict) -> Evaluation:
@@ -654,9 +665,13 @@ class EventDetector:
         window_sec = float(self.thresholds["flap_window_sec"])
         transition_threshold = int(self.thresholds["flap_transition_threshold"])
 
+        n_flap = int(self.detector_cfg["events"]["CONNECTIVITY_FLAP"].get("n_flap", 15))
+
         recent = [row for row in self.fast_history if (ts - row["ts"]).total_seconds() <= window_sec]
-        if len(recent) < 2:
+        if len(recent) < n_flap:
             return evaln
+            
+        recent = recent[-n_flap:]
 
         transitions = 0
         for left, right in zip(recent, recent[1:]):
@@ -667,7 +682,7 @@ class EventDetector:
             evaln.hit = True
             evaln.affected_scope = "all"
             evaln.severity = "high" if transitions >= (transition_threshold + 2) else "medium"
-            evaln.trigger_reason = f"state_transition_count(connectivity_ok)={transitions} >= threshold={transition_threshold} within {int(window_sec)}s"
+            evaln.trigger_reason = f"state_transition_count(connectivity_ok)={transitions} >= threshold={transition_threshold} within {int(window_sec)}s ({n_flap} samples)"
             evaln.extra = {"suspected_layer": self._suspected_layer(recent)}
             return evaln
 

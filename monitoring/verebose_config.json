@@ -6,10 +6,9 @@
     "iface": "wlan0"
   },
   "scheduler": {
-    "fast_interval_sec": 5,
-    "telemetry_interval_sec": 30,
-    "throughput_interval_sec": 300,
-    "overhead_interval_sec": 30
+    "fast_interval_sec": 1,
+    "telemetry_interval_sec": 10,
+    "throughput_interval_sec": 900
   },
   "fast_probe": {
     "enabled": true,
@@ -36,7 +35,7 @@
     "ping_timeout_sec": 10,
     "dns_timeout_sec": 5,
     "dns_resolvers": [
-      "system"
+      "8.8.8.8"
     ],
     "dns_targets": [
       {
@@ -46,10 +45,6 @@
       {
         "name": "google.com",
         "scope": "external"
-      },
-      {
-        "name": "youtube.com",
-        "scope": "external"
       }
     ],
     "http_targets": [
@@ -58,28 +53,33 @@
         "scope": "internal",
         "expected_status_min": 200,
         "expected_status_max": 399
+      },
+      {
+        "url": "https://www.gstatic.com/generate_204",
+        "scope": "external",
+        "expected_status_min": 204,
+        "expected_status_max": 204
       }
     ],
     "http_connect_timeout_sec": 5,
     "http_max_time_sec": 15
   },
   "throughput_probe": {
-    "enabled": true,
-    "mode": "routine",
+    "enabled": false,
     "connect_timeout_sec": 5,
     "routine": {
       "download": {
-        "enabled": true,
-        "url": "https://speed.cloudflare.com/__down?bytes=10000000",
-        "expected_bytes": 10000000,
+        "enabled": false,
+        "url": "http://127.0.0.1:8080/testfile_1mb.bin",
+        "expected_bytes": 1048576,
         "runs": 3,
         "warmup": 1,
         "pause_sec": 2,
         "max_time_sec": 60
       },
       "upload": {
-        "enabled": true,
-        "url": "https://speed.cloudflare.com/__up",
+        "enabled": false,
+        "url": "http://127.0.0.1:8080/upload",
         "expected_bytes": 5000000,
         "payload_path": "./monitoring/out/payloads/upload_5mb.bin",
         "payload_source": "zero",
@@ -88,40 +88,7 @@
         "pause_sec": 2,
         "max_time_sec": 60
       }
-    },
-    "stress": {
-      "download": {
-        "enabled": true,
-        "url": "https://speed.cloudflare.com/__down?bytes=25000000",
-        "expected_bytes": 25000000,
-        "runs": 3,
-        "warmup": 1,
-        "pause_sec": 2,
-        "max_time_sec": 120
-      },
-      "upload": {
-        "enabled": true,
-        "url": "https://speed.cloudflare.com/__up",
-        "expected_bytes": 10000000,
-        "payload_path": "./monitoring/out/payloads/upload_10mb.bin",
-        "payload_source": "zero",
-        "runs": 3,
-        "warmup": 1,
-        "pause_sec": 2,
-        "max_time_sec": 120
-      }
     }
-  },
-  "overhead_probe": {
-    "enabled": true,
-    "refresh_process_every_samples": 30,
-    "process_names": [
-      "monitoring.controller",
-      "controller.py",
-      "telemetry_probe.py",
-      "fast_probe.py",
-      "throughput_probe.py"
-    ]
   },
   "detector": {
     "detection_mode": "static",
@@ -139,69 +106,69 @@
     },
     "events": {
       "DNS_DEGRADED": {
-        "confirm_consecutive": 2,
+        "confirm_consecutive": 99999,
         "recovery_consecutive": 2,
         "minimum_success_ratio": 1.0
       },
       "DNS_TIMEOUT_BURST": {
-        "confirm_consecutive": 2,
+        "confirm_consecutive": 99999,
         "recovery_consecutive": 2,
         "recovery_success_ratio": 1.0
       },
       "LOSS_BURST": {
-        "confirm_consecutive": 1,
+        "confirm_consecutive": 99999,
         "recovery_consecutive": 2,
-        "minimum_samples": 5
+        "minimum_samples": 99999
       },
       "HIGH_RTT": {
-        "confirm_consecutive": 2,
+        "confirm_consecutive": 99999,
         "recovery_consecutive": 2
       },
       "HTTP_SLOW": {
-        "confirm_consecutive": 2,
+        "confirm_consecutive": 99999,
         "recovery_consecutive": 2
       },
       "CONNECTIVITY_FLAP": {
-        "confirm_consecutive": 1,
+        "confirm_consecutive": 99999,
         "recovery_consecutive": 1
       },
       "BANDWIDTH_THROTTLE": {
-        "confirm_consecutive": 1,
+        "confirm_consecutive": 99999,
         "recovery_consecutive": 1
       }
     }
   },
   "thresholds": {
-    "dns_latency_threshold_ms": 800,
-    "dns_fail_ratio_threshold": 0.3,
-    "dns_recovery_success_ratio": 0.8,
-    "loss_threshold_pct": 20,
-    "recovery_loss_threshold_pct": 5,
-    "loss_window_sec": 40,
-    "rtt_threshold_ms": 300,
-    "recovery_rtt_threshold_ms": 250,
-    "rtt_loss_upper_bound_pct": 15,
-    "http_total_threshold_ms": 2000,
-    "recovery_http_total_threshold_ms": 1500,
-    "http_ttfb_threshold_ms": 1000,
-    "recovery_http_ttfb_threshold_ms": 800,
-    "throughput_download_threshold_mbps": 1.0,
-    "throughput_upload_threshold_mbps": 1.0,
-    "flap_transition_threshold": 4,
+    "dns_latency_threshold_ms": 99999,
+    "dns_fail_ratio_threshold": 1.0,
+    "dns_recovery_success_ratio": 1.0,
+    "loss_threshold_pct": 100,
+    "recovery_loss_threshold_pct": 100,
+    "loss_window_sec": 30,
+    "rtt_threshold_ms": 99999,
+    "recovery_rtt_threshold_ms": 99999,
+    "rtt_loss_upper_bound_pct": 100,
+    "http_total_threshold_ms": 99999,
+    "recovery_http_total_threshold_ms": 99999,
+    "http_ttfb_threshold_ms": 99999,
+    "recovery_http_ttfb_threshold_ms": 99999,
+    "throughput_download_threshold_mbps": 0,
+    "throughput_upload_threshold_mbps": 0,
+    "flap_transition_threshold": 99999,
     "flap_window_sec": 30,
     "http_expected_status_min": 200,
     "http_expected_status_max": 399
   },
   "output": {
-    "enabled": false,
-    "output_dir": "./monitoring/out",
+    "enabled": true,
+    "output_dir": "./monitoring/out/preliminary_test_run1",
     "sample_format": "jsonl",
     "print_pretty": false,
     "print_fast_normal": false
   },
   "stream": {
     "enabled": false,
-    "host": "10.4.78.103",
+    "host": "10.141.215.44",
     "port": "5000",
     "scheme": "http",
     "sensor_endpoint": "/api/ingest/sensor",
@@ -219,7 +186,7 @@
     "timeout_sec": 5
   },
   "evidence": {
-    "enabled": true,
+    "enabled": false,
     "pre_window_sec": 30,
     "post_window_sec": 30,
     "alignment_delta_sec": 5
