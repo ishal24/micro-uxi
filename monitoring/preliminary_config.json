@@ -1,4 +1,10 @@
 {
+  "device": {
+    "device_id": "uno-q-01",
+    "site_name": "ITS",
+    "timezone": "Asia/Jakarta",
+    "iface": "wlan0"
+  },
   "scheduler": {
     "fast_interval_sec": 2,
     "telemetry_interval_sec": 20,
