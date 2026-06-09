@@ -8,7 +8,7 @@
   "scheduler": {
     "fast_interval_sec": 2,
     "telemetry_interval_sec": 20,
-    "throughput_interval_sec": 9999999
+    "throughput_interval_sec": 30
   },
   "fast_probe": {
     "enabled": true,
