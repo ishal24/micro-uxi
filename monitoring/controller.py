@@ -686,7 +686,7 @@ def main() -> None:
     parser.add_argument("--fast-interval", default=None, help="Fast probe interval, example: 5s")
     parser.add_argument("--telemetry-interval", default=None, help="Telemetry interval, example: 30s")
     parser.add_argument("--throughput-interval", default=None, help="Throughput interval, example: 15m")
-    parser.add_argument("--overhead-interval", default="off", help="Overhead interval, example: 2s")
+    parser.add_argument("--overhead-interval", default=None, help="Overhead interval, example: 2s")
     parser.add_argument("--output", default=None, help="Output dir, or 'none' to disable file output")
     parser.add_argument("--stream", default=None, help="Stream samples to server: yes/no")
     parser.add_argument("--stream-host", "--stream-ip", dest="stream_host", default=None, help="Server IP/host for stream")
