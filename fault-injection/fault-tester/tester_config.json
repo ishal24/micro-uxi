@@ -1,7 +1,7 @@
 {
   "scheduler": {
     "fast_interval_sec": 2,
-    "telemetry_interval_sec": 30
+    "telemetry_interval_sec": 20
   },
   "targets": {
     "ping_target": "8.8.8.8",
