@@ -6,20 +6,19 @@
   "targets": {
     "ping_target": "8.8.8.8",
     "dns_targets": [
-      {"name": "its.ac.id", "scope": "internal"},
       {"name": "google.com", "scope": "external"}
     ],
     "http_targets": [
       {
-        "url": "https://www.its.ac.id",
-        "scope": "internal"
+        "url": "http://192.168.12.1:8080/testfile_1mb.bin",
+        "scope": "local"
       }
     ],
     "dns_resolver": "8.8.8.8",
     "iface": "wlan0"
   },
   "thresholds": {
-    "dns_latency_threshold_ms": 800,
+    "dns_latency_threshold_ms": 500,
     "loss_threshold_pct": 20,
     "rtt_threshold_ms": 300,
     "http_total_threshold_ms": 2000,
