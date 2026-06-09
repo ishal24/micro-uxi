@@ -18,11 +18,14 @@
     "iface": "wlan0"
   },
   "thresholds": {
-    "dns_latency_threshold_ms": 500,
+    "dns_latency_threshold_ms": 243,
     "loss_threshold_pct": 20,
-    "rtt_threshold_ms": 300,
-    "http_total_threshold_ms": 2000,
-    "http_ttfb_threshold_ms": 1000
+    "rtt_threshold_ms": 279,
+    "recovery_rtt_threshold_ms": 224,
+    "http_total_threshold_ms": 1535,
+    "recovery_http_total_threshold_ms": 1228,
+    "http_ttfb_threshold_ms": 88,
+    "recovery_http_ttfb_threshold_ms": 71
   },
   "rules": {
     "S1_DNS_DEGRADED": {
