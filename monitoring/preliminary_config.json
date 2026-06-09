@@ -50,6 +50,67 @@
     "http_connect_timeout_sec": 5,
     "http_max_time_sec": 15
   },
+
+  "throughput_probe": {
+    "enabled": true,
+    "mode": "routine",
+    "connect_timeout_sec": 5,
+    "routine": {
+      "download": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__down?bytes=10000000",
+        "expected_bytes": 10000000,
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 60
+      },
+      "upload": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__up",
+        "expected_bytes": 5000000,
+        "payload_path": "./monitoring/out/payloads/upload_5mb.bin",
+        "payload_source": "zero",
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 60
+      }
+    },
+    "stress": {
+      "download": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__down?bytes=25000000",
+        "expected_bytes": 25000000,
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 120
+      },
+      "upload": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__up",
+        "expected_bytes": 10000000,
+        "payload_path": "./monitoring/out/payloads/upload_10mb.bin",
+        "payload_source": "zero",
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 120
+      }
+    }
+  },
+  "overhead_probe": {
+    "enabled": false,
+    "refresh_process_every_samples": 30,
+    "process_names": [
+      "monitoring.controller",
+      "controller.py",
+      "telemetry_probe.py",
+      "fast_probe.py",
+      "throughput_probe.py"
+    ]
+  },
   "detector": {
     "detection_mode": "static",
     "events": {
