@@ -6,7 +6,10 @@
   "targets": {
     "ping_target": "8.8.8.8",
     "dns_targets": [
-      {"name": "google.com", "scope": "external"}
+      {
+        "name": "google.com",
+        "scope": "external"
+      }
     ],
     "http_targets": [
       {
