@@ -1,0 +1,283 @@
+[TEST_S4_01] [*] Starting S4 (HIGH_RTT) Monitor
+[TEST_S4_01] [*] Interval: 20s, Threshold: 279ms, N: 2
+[TEST_S4_01] [09:53:10] S4 Probe | wifi=UP rtt=143.9ms loss=0% | hits=0/2
+[TEST_S4_01] [09:53:30] S4 Probe | wifi=UP rtt=75.4ms loss=0% | hits=0/2
+[TEST_S4_01] [09:53:50] S4 Probe | wifi=UP rtt=66.6ms loss=0% | hits=0/2
+[TEST_S4_01] [09:54:10] S4 Probe | wifi=UP rtt=140.1ms loss=0% | hits=0/2
+[TEST_S4_01] [09:54:30] S4 Probe | wifi=UP rtt=69.6ms loss=0% | hits=0/2
+[TEST_S4_01] [09:54:50] S4 Probe | wifi=UP rtt=73.8ms loss=0% | hits=0/2
+[TEST_S4_01] [09:55:10] S4 Probe | wifi=UP rtt=526.7ms loss=0% | hits=1/2
+[TEST_S4_01] [09:55:30] S4 Probe | wifi=UP rtt=483.3ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [09:55:50] S4 Probe | wifi=UP rtt=529.8ms loss=0% | hits=3/2
+[TEST_S4_01] [09:56:10] S4 Probe | wifi=UP rtt=129.6ms loss=0% | hits=0/2
+[TEST_S4_01] [09:56:30] S4 Probe | wifi=UP rtt=71.2ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [09:56:50] S4 Probe | wifi=UP rtt=80.0ms loss=0% | hits=0/2
+[TEST_S4_01] [09:57:10] S4 Probe | wifi=UP rtt=154.0ms loss=0% | hits=0/2
+[TEST_S4_01] [09:57:30] S4 Probe | wifi=UP rtt=502.0ms loss=0% | hits=1/2
+[TEST_S4_01] [09:57:50] S4 Probe | wifi=UP rtt=530.4ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [09:58:10] S4 Probe | wifi=UP rtt=560.1ms loss=0% | hits=3/2
+[TEST_S4_01] [09:58:30] S4 Probe | wifi=UP rtt=69.2ms loss=0% | hits=0/2
+[TEST_S4_01] [09:58:50] S4 Probe | wifi=UP rtt=87.6ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [09:59:10] S4 Probe | wifi=UP rtt=141.5ms loss=0% | hits=0/2
+[TEST_S4_01] [09:59:30] S4 Probe | wifi=UP rtt=74.7ms loss=0% | hits=0/2
+[TEST_S4_01] [09:59:50] S4 Probe | wifi=UP rtt=522.8ms loss=0% | hits=1/2
+[TEST_S4_01] [10:00:10] S4 Probe | wifi=UP rtt=604.9ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:00:30] S4 Probe | wifi=UP rtt=FAIL loss=100% | hits=0/2
+[TEST_S4_01] [10:00:50] S4 Probe | wifi=UP rtt=78.1ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:01:10] S4 Probe | wifi=UP rtt=167.6ms loss=0% | hits=0/2
+[TEST_S4_01] [10:01:30] S4 Probe | wifi=UP rtt=73.0ms loss=0% | hits=0/2
+[TEST_S4_01] [10:01:50] S4 Probe | wifi=UP rtt=71.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:02:10] S4 Probe | wifi=UP rtt=623.4ms loss=0% | hits=1/2
+[TEST_S4_01] [10:02:30] S4 Probe | wifi=UP rtt=501.3ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:02:50] S4 Probe | wifi=UP rtt=500.1ms loss=0% | hits=3/2
+[TEST_S4_01] [10:03:10] S4 Probe | wifi=UP rtt=155.9ms loss=0% | hits=0/2
+[TEST_S4_01] [10:03:30] S4 Probe | wifi=UP rtt=79.7ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:03:50] S4 Probe | wifi=UP rtt=67.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:04:10] S4 Probe | wifi=UP rtt=150.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:04:30] S4 Probe | wifi=UP rtt=526.2ms loss=0% | hits=1/2
+[TEST_S4_01] [10:04:50] S4 Probe | wifi=UP rtt=511.5ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:05:10] S4 Probe | wifi=UP rtt=606.6ms loss=0% | hits=3/2
+[TEST_S4_01] [10:05:30] S4 Probe | wifi=UP rtt=70.2ms loss=0% | hits=0/2
+[TEST_S4_01] [10:05:50] S4 Probe | wifi=UP rtt=82.8ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:06:10] S4 Probe | wifi=UP rtt=198.3ms loss=0% | hits=0/2
+[TEST_S4_01] [10:06:30] S4 Probe | wifi=UP rtt=77.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:06:50] S4 Probe | wifi=UP rtt=507.4ms loss=0% | hits=1/2
+[TEST_S4_01] [10:07:10] S4 Probe | wifi=UP rtt=531.6ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:07:30] S4 Probe | wifi=UP rtt=470.0ms loss=0% | hits=3/2
+[TEST_S4_01] [10:07:50] S4 Probe | wifi=UP rtt=71.0ms loss=0% | hits=0/2
+[TEST_S4_01] [10:08:10] S4 Probe | wifi=UP rtt=137.2ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:08:30] S4 Probe | wifi=UP rtt=72.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:08:50] S4 Probe | wifi=UP rtt=79.1ms loss=0% | hits=0/2
+[TEST_S4_01] [10:09:10] S4 Probe | wifi=UP rtt=660.5ms loss=0% | hits=1/2
+[TEST_S4_01] [10:09:30] S4 Probe | wifi=UP rtt=510.1ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:09:50] S4 Probe | wifi=UP rtt=514.8ms loss=0% | hits=3/2
+[TEST_S4_01] [10:10:10] S4 Probe | wifi=UP rtt=158.9ms loss=0% | hits=0/2
+[TEST_S4_01] [10:10:30] S4 Probe | wifi=UP rtt=68.6ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:10:50] S4 Probe | wifi=UP rtt=78.2ms loss=0% | hits=0/2
+[TEST_S4_01] [10:11:10] S4 Probe | wifi=UP rtt=157.0ms loss=0% | hits=0/2
+[TEST_S4_01] [10:11:30] S4 Probe | wifi=UP rtt=467.8ms loss=0% | hits=1/2
+[TEST_S4_01] [10:11:50] S4 Probe | wifi=UP rtt=540.4ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:12:10] S4 Probe | wifi=UP rtt=530.6ms loss=0% | hits=3/2
+[TEST_S4_01] [10:12:30] S4 Probe | wifi=UP rtt=73.6ms loss=0% | hits=0/2
+[TEST_S4_01] [10:12:50] S4 Probe | wifi=UP rtt=73.6ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:13:10] S4 Probe | wifi=UP rtt=144.4ms loss=0% | hits=0/2
+[TEST_S4_01] [10:13:30] S4 Probe | wifi=UP rtt=73.5ms loss=0% | hits=0/2
+[TEST_S4_01] [10:13:50] S4 Probe | wifi=UP rtt=554.2ms loss=0% | hits=1/2
+[TEST_S4_01] [10:14:10] S4 Probe | wifi=UP rtt=580.5ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:14:30] S4 Probe | wifi=UP rtt=484.8ms loss=0% | hits=3/2
+[TEST_S4_01] [10:14:50] S4 Probe | wifi=UP rtt=76.9ms loss=20% | hits=0/2
+[TEST_S4_01] [10:15:10] S4 Probe | wifi=UP rtt=186.3ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:15:30] S4 Probe | wifi=UP rtt=73.1ms loss=0% | hits=0/2
+[TEST_S4_01] [10:15:50] S4 Probe | wifi=UP rtt=85.4ms loss=0% | hits=0/2
+[TEST_S4_01] [10:16:10] S4 Probe | wifi=UP rtt=535.5ms loss=0% | hits=1/2
+[TEST_S4_01] [10:16:30] S4 Probe | wifi=UP rtt=502.4ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:16:50] S4 Probe | wifi=UP rtt=493.6ms loss=0% | hits=3/2
+[TEST_S4_01] [10:17:10] S4 Probe | wifi=UP rtt=172.0ms loss=0% | hits=0/2
+[TEST_S4_01] [10:17:30] S4 Probe | wifi=UP rtt=75.4ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:17:50] S4 Probe | wifi=UP rtt=79.1ms loss=0% | hits=0/2
+[TEST_S4_01] [10:18:10] S4 Probe | wifi=UP rtt=132.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:18:30] S4 Probe | wifi=UP rtt=FAIL loss=100% | hits=0/2
+[TEST_S4_01] [10:18:50] S4 Probe | wifi=UP rtt=556.6ms loss=0% | hits=1/2
+[TEST_S4_01] [10:19:10] S4 Probe | wifi=UP rtt=568.1ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:19:30] S4 Probe | wifi=UP rtt=76.8ms loss=0% | hits=0/2
+[TEST_S4_01] [10:19:50] S4 Probe | wifi=UP rtt=82.0ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:20:10] S4 Probe | wifi=UP rtt=134.2ms loss=0% | hits=0/2
+[TEST_S4_01] [10:20:30] S4 Probe | wifi=UP rtt=75.4ms loss=0% | hits=0/2
+[TEST_S4_01] [10:20:50] S4 Probe | wifi=UP rtt=537.5ms loss=0% | hits=1/2
+[TEST_S4_01] [10:21:10] S4 Probe | wifi=UP rtt=586.6ms loss=20% | hits=0/2
+[TEST_S4_01] [10:21:30] S4 Probe | wifi=UP rtt=505.9ms loss=0% | hits=1/2
+[TEST_S4_01] [10:21:50] S4 Probe | wifi=UP rtt=82.2ms loss=0% | hits=0/2
+[TEST_S4_01] [10:22:10] S4 Probe | wifi=UP rtt=139.1ms loss=0% | hits=0/2
+[TEST_S4_01] [10:22:30] S4 Probe | wifi=UP rtt=73.0ms loss=0% | hits=0/2
+[TEST_S4_01] [10:22:50] S4 Probe | wifi=UP rtt=84.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:23:10] S4 Probe | wifi=UP rtt=434.0ms loss=0% | hits=1/2
+[TEST_S4_01] [10:23:30] S4 Probe | wifi=UP rtt=482.0ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:23:50] S4 Probe | wifi=UP rtt=536.9ms loss=0% | hits=3/2
+[TEST_S4_01] [10:24:10] S4 Probe | wifi=UP rtt=137.0ms loss=20% | hits=0/2
+[TEST_S4_01] [10:24:30] S4 Probe | wifi=UP rtt=74.1ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:24:50] S4 Probe | wifi=UP rtt=76.6ms loss=0% | hits=0/2
+[TEST_S4_01] [10:25:10] S4 Probe | wifi=UP rtt=133.1ms loss=0% | hits=0/2
+[TEST_S4_01] [10:25:30] S4 Probe | wifi=UP rtt=414.0ms loss=0% | hits=1/2
+[TEST_S4_01] [10:25:50] S4 Probe | wifi=UP rtt=502.6ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:26:10] S4 Probe | wifi=UP rtt=633.6ms loss=0% | hits=3/2
+[TEST_S4_01] [10:26:30] S4 Probe | wifi=UP rtt=76.5ms loss=20% | hits=0/2
+[TEST_S4_01] [10:26:50] S4 Probe | wifi=UP rtt=80.3ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:27:10] S4 Probe | wifi=UP rtt=150.8ms loss=0% | hits=0/2
+[TEST_S4_01] [10:27:30] S4 Probe | wifi=UP rtt=342.9ms loss=0% | hits=1/2
+[TEST_S4_01] [10:27:50] S4 Probe | wifi=UP rtt=431.9ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:28:10] S4 Probe | wifi=UP rtt=553.4ms loss=0% | hits=3/2
+[TEST_S4_01] [10:28:30] S4 Probe | wifi=UP rtt=522.8ms loss=0% | hits=4/2
+[TEST_S4_01] [10:28:50] S4 Probe | wifi=UP rtt=77.5ms loss=40% | hits=0/2
+[TEST_S4_01] [10:29:10] S4 Probe | wifi=UP rtt=139.6ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:29:30] S4 Probe | wifi=UP rtt=71.2ms loss=0% | hits=0/2
+[TEST_S4_01] [10:29:50] S4 Probe | wifi=UP rtt=103.9ms loss=0% | hits=0/2
+[TEST_S4_01] [10:30:10] S4 Probe | wifi=UP rtt=426.7ms loss=0% | hits=1/2
+[TEST_S4_01] [10:30:30] S4 Probe | wifi=UP rtt=497.8ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:30:50] S4 Probe | wifi=UP rtt=498.1ms loss=0% | hits=3/2
+[TEST_S4_01] [10:31:10] S4 Probe | wifi=UP rtt=157.8ms loss=20% | hits=0/2
+[TEST_S4_01] [10:31:30] S4 Probe | wifi=UP rtt=67.6ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:31:50] S4 Probe | wifi=UP rtt=75.0ms loss=20% | hits=0/2
+[TEST_S4_01] [10:32:10] S4 Probe | wifi=UP rtt=148.2ms loss=0% | hits=0/2
+[TEST_S4_01] [10:32:30] S4 Probe | wifi=UP rtt=228.0ms loss=40% | hits=0/2
+[TEST_S4_01] [10:32:50] S4 Probe | wifi=UP rtt=515.9ms loss=0% | hits=1/2
+[TEST_S4_01] [10:33:10] S4 Probe | wifi=UP rtt=569.4ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:33:30] S4 Probe | wifi=UP rtt=70.9ms loss=40% | hits=0/2
+[TEST_S4_01] [10:33:50] S4 Probe | wifi=UP rtt=93.0ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:34:10] S4 Probe | wifi=UP rtt=151.5ms loss=0% | hits=0/2
+[TEST_S4_01] [10:34:30] S4 Probe | wifi=UP rtt=64.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:34:50] S4 Probe | wifi=UP rtt=194.7ms loss=40% | hits=0/2
+[TEST_S4_01] [10:35:10] S4 Probe | wifi=UP rtt=588.1ms loss=0% | hits=1/2
+[TEST_S4_01] [10:35:30] S4 Probe | wifi=UP rtt=483.3ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:35:50] S4 Probe | wifi=UP rtt=107.6ms loss=40% | hits=0/2
+[TEST_S4_01] [10:36:10] S4 Probe | wifi=UP rtt=123.0ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:36:30] S4 Probe | wifi=UP rtt=74.1ms loss=0% | hits=0/2
+[TEST_S4_01] [10:36:50] S4 Probe | wifi=UP rtt=389.0ms loss=0% | hits=1/2
+[TEST_S4_01] [10:37:10] S4 Probe | wifi=UP rtt=341.3ms loss=20% | hits=0/2
+[TEST_S4_01] [10:37:30] S4 Probe | wifi=UP rtt=477.0ms loss=0% | hits=1/2
+[TEST_S4_01] [10:37:50] S4 Probe | wifi=UP rtt=562.6ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:38:10] S4 Probe | wifi=UP rtt=198.1ms loss=20% | hits=0/2
+[TEST_S4_01] [10:38:30] S4 Probe | wifi=UP rtt=70.0ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:38:50] S4 Probe | wifi=UP rtt=97.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:39:10] S4 Probe | wifi=UP rtt=170.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:39:30] S4 Probe | wifi=UP rtt=69.2ms loss=40% | hits=0/2
+[TEST_S4_01] [10:39:50] S4 Probe | wifi=UP rtt=528.3ms loss=0% | hits=1/2
+[TEST_S4_01] [10:40:10] S4 Probe | wifi=UP rtt=577.8ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:40:30] S4 Probe | wifi=UP rtt=78.9ms loss=40% | hits=0/2
+[TEST_S4_01] [10:40:50] S4 Probe | wifi=UP rtt=108.4ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:41:10] S4 Probe | wifi=UP rtt=131.1ms loss=0% | hits=0/2
+[TEST_S4_01] [10:41:30] S4 Probe | wifi=UP rtt=81.8ms loss=0% | hits=0/2
+[TEST_S4_01] [10:41:50] S4 Probe | wifi=UP rtt=193.0ms loss=40% | hits=0/2
+[TEST_S4_01] [10:42:10] S4 Probe | wifi=UP rtt=553.9ms loss=0% | hits=1/2
+[TEST_S4_01] [10:42:30] S4 Probe | wifi=UP rtt=467.5ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:42:50] S4 Probe | wifi=UP rtt=128.0ms loss=40% | hits=0/2
+[TEST_S4_01] [10:43:10] S4 Probe | wifi=UP rtt=136.7ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:43:30] S4 Probe | wifi=UP rtt=74.4ms loss=0% | hits=0/2
+[TEST_S4_01] [10:43:50] S4 Probe | wifi=UP rtt=79.6ms loss=0% | hits=0/2
+[TEST_S4_01] [10:44:10] S4 Probe | wifi=UP rtt=296.2ms loss=0% | hits=1/2
+[TEST_S4_01] [10:44:30] S4 Probe | wifi=UP rtt=498.6ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:44:50] S4 Probe | wifi=UP rtt=613.7ms loss=0% | hits=3/2
+[TEST_S4_01] [10:45:10] S4 Probe | wifi=UP rtt=242.3ms loss=40% | hits=0/2
+[TEST_S4_01] [10:45:30] S4 Probe | wifi=UP rtt=74.4ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:45:50] S4 Probe | wifi=UP rtt=97.3ms loss=0% | hits=0/2
+[TEST_S4_01] [10:46:10] S4 Probe | wifi=UP rtt=FAIL loss=100% | hits=0/2
+[TEST_S4_01] [10:46:30] S4 Probe | wifi=UP rtt=80.0ms loss=40% | hits=0/2
+[TEST_S4_01] [10:46:50] S4 Probe | wifi=UP rtt=586.2ms loss=0% | hits=1/2
+[TEST_S4_01] [10:47:10] S4 Probe | wifi=UP rtt=527.1ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:47:30] S4 Probe | wifi=UP rtt=198.8ms loss=40% | hits=0/2
+[TEST_S4_01] [10:47:50] S4 Probe | wifi=UP rtt=103.4ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:48:10] S4 Probe | wifi=UP rtt=130.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:48:30] S4 Probe | wifi=UP rtt=71.0ms loss=0% | hits=0/2
+[TEST_S4_01] [10:48:50] S4 Probe | wifi=UP rtt=75.3ms loss=40% | hits=0/2
+[TEST_S4_01] [10:49:10] S4 Probe | wifi=UP rtt=583.1ms loss=0% | hits=1/2
+[TEST_S4_01] [10:49:30] S4 Probe | wifi=UP rtt=486.7ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:49:50] S4 Probe | wifi=UP rtt=292.6ms loss=40% | hits=0/2
+[TEST_S4_01] [10:50:10] S4 Probe | wifi=UP rtt=144.0ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:50:30] S4 Probe | wifi=UP rtt=73.9ms loss=0% | hits=0/2
+[TEST_S4_01] [10:50:50] S4 Probe | wifi=UP rtt=82.1ms loss=20% | hits=0/2
+[TEST_S4_01] [10:51:10] S4 Probe | wifi=UP rtt=303.3ms loss=0% | hits=1/2
+[TEST_S4_01] [10:51:30] S4 Probe | wifi=UP rtt=496.9ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:51:50] S4 Probe | wifi=UP rtt=596.6ms loss=0% | hits=3/2
+[TEST_S4_01] [10:52:10] S4 Probe | wifi=UP rtt=310.7ms loss=40% | hits=0/2
+[TEST_S4_01] [10:52:30] S4 Probe | wifi=UP rtt=72.7ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:52:50] S4 Probe | wifi=UP rtt=98.0ms loss=0% | hits=0/2
+[TEST_S4_01] [10:53:10] S4 Probe | wifi=UP rtt=133.3ms loss=0% | hits=0/2
+[TEST_S4_01] [10:53:30] S4 Probe | wifi=UP rtt=70.1ms loss=0% | hits=0/2
+[TEST_S4_01] [10:53:50] S4 Probe | wifi=UP rtt=565.3ms loss=0% | hits=1/2
+[TEST_S4_01] [10:54:10] S4 Probe | wifi=UP rtt=591.0ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:54:30] S4 Probe | wifi=UP rtt=476.7ms loss=20% | hits=0/2
+[TEST_S4_01] [10:54:50] S4 Probe | wifi=UP rtt=71.8ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:55:10] S4 Probe | wifi=UP rtt=225.6ms loss=0% | hits=0/2
+[TEST_S4_01] [10:55:30] S4 Probe | wifi=UP rtt=78.1ms loss=0% | hits=0/2
+[TEST_S4_01] [10:55:50] S4 Probe | wifi=UP rtt=86.8ms loss=20% | hits=0/2
+[TEST_S4_01] [10:56:10] S4 Probe | wifi=UP rtt=542.8ms loss=0% | hits=1/2
+[TEST_S4_01] [10:56:30] S4 Probe | wifi=UP rtt=506.9ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:56:50] S4 Probe | wifi=UP rtt=477.4ms loss=40% | hits=0/2
+[TEST_S4_01] [10:57:10] S4 Probe | wifi=UP rtt=112.3ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:57:30] S4 Probe | wifi=UP rtt=73.8ms loss=0% | hits=0/2
+[TEST_S4_01] [10:57:50] S4 Probe | wifi=UP rtt=74.7ms loss=0% | hits=0/2
+[TEST_S4_01] [10:58:10] S4 Probe | wifi=UP rtt=109.3ms loss=0% | hits=0/2
+[TEST_S4_01] [10:58:30] S4 Probe | wifi=UP rtt=542.0ms loss=0% | hits=1/2
+[TEST_S4_01] [10:58:50] S4 Probe | wifi=UP rtt=514.8ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [10:59:10] S4 Probe | wifi=UP rtt=578.0ms loss=40% | hits=0/2
+[TEST_S4_01] [10:59:30] S4 Probe | wifi=UP rtt=71.6ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [10:59:50] S4 Probe | wifi=UP rtt=72.1ms loss=0% | hits=0/2
+[TEST_S4_01] [11:00:10] S4 Probe | wifi=UP rtt=185.8ms loss=0% | hits=0/2
+[TEST_S4_01] [11:00:30] S4 Probe | wifi=UP rtt=77.1ms loss=0% | hits=0/2
+[TEST_S4_01] [11:00:50] S4 Probe | wifi=UP rtt=529.3ms loss=0% | hits=1/2
+[TEST_S4_01] [11:01:10] S4 Probe | wifi=UP rtt=496.5ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [11:01:30] S4 Probe | wifi=UP rtt=515.7ms loss=0% | hits=3/2
+[TEST_S4_01] [11:01:50] S4 Probe | wifi=UP rtt=90.0ms loss=0% | hits=0/2
+[TEST_S4_01] [11:02:10] S4 Probe | wifi=UP rtt=132.5ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [11:02:30] S4 Probe | wifi=UP rtt=72.0ms loss=0% | hits=0/2
+[TEST_S4_01] [11:02:50] S4 Probe | wifi=UP rtt=83.1ms loss=20% | hits=0/2
+[TEST_S4_01] [11:03:10] S4 Probe | wifi=UP rtt=540.0ms loss=0% | hits=1/2
+[TEST_S4_01] [11:03:30] S4 Probe | wifi=UP rtt=475.7ms loss=0% | hits=2/2
+[TEST_S4_01]     >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: 2)
+[TEST_S4_01] [11:03:50] S4 Probe | wifi=UP rtt=525.2ms loss=20% | hits=0/2
+[TEST_S4_01] [11:04:10] S4 Probe | wifi=UP rtt=102.2ms loss=0% | hits=0/2
+[TEST_S4_01]     >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: 2)
+[TEST_S4_01] [11:04:30] S4 Probe | wifi=UP rtt=64.3ms loss=0% | hits=0/2
+[TEST_S4_01] [11:04:50] S4 Probe | wifi=UP rtt=FAIL loss=100% | hits=0/2
+[TEST_S4_01] [11:05:10] S4 Probe | wifi=UP rtt=130.2ms loss=0% | hits=0/2
+[TEST_S4_01] [11:05:30] S4 Probe | wifi=UP rtt=77.6ms loss=0% | hits=0/2
+[TEST_S4_01] [11:05:50] S4 Probe | wifi=UP rtt=83.9ms loss=0% | hits=0/2
+[TEST_S4_01] [11:06:10] S4 Probe | wifi=UP rtt=157.5ms loss=0% | hits=0/2
+[TEST_S4_01] [11:06:30] S4 Probe | wifi=UP rtt=77.1ms loss=0% | hits=0/2
+[TEST_S4_01] [11:06:50] S4 Probe | wifi=UP rtt=94.4ms loss=0% | hits=0/2
+[TEST_S4_01] [11:07:10] S4 Probe | wifi=UP rtt=167.1ms loss=0% | hits=0/2

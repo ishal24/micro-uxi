@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Micro-UXI Fault Injection Analyzer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #3b82f6; --primary-hover: #2563eb; --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #f8fafc; --text-muted: #94a3b8; }
+        body { font-family: 'Inter', system-ui, sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px 40px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header-wrap { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 25px; }
+        h1 { color: var(--primary); margin: 0; }
+        h3 { margin-top: 0; color: var(--text); }
+        p { color: var(--text-muted); line-height: 1.5; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+        .file-input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        label { font-weight: 600; font-size: 14px; color: var(--text-muted); }
+        input[type="file"] { padding: 10px; border: 1px dashed var(--border); border-radius: 6px; cursor: pointer; color: var(--text); background: rgba(0,0,0,0.2); }
+        button { background-color: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        button:hover { background-color: var(--primary-hover); }
+        button.btn-danger { background-color: transparent; border: 1px solid #ef4444; color: #ef4444; }
+        button.btn-danger:hover { background-color: rgba(239,68,68,0.1); }
+        select { padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 14px; margin-right: 10px; min-width: 250px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background-color: rgba(0,0,0,0.2); font-weight: 600; font-size: 14px; color: var(--text-muted); }
+        .metric-value { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge.success { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+        .badge.warning { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+        .badge.danger { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .success { color: #34d399; } .warning { color: #fbbf24; } .danger { color: #f87171; }
+        #results { display: none; }
+        #runSelectorGroup { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+        .chart-container { position: relative; width: 100%; height: 350px; margin-top: 15px; }
+        pre { background-color: rgba(0,0,0,0.2); padding: 15px; border-radius: 6px; overflow-x: auto; max-height: 300px; font-family: monospace; font-size: 13px; border: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header-wrap">
+            <h1>Micro-UXI Analyzer</h1>
+            <button onclick="clearData()" class="btn-danger">🗑️ Hapus Data Tersimpan</button>
+        </div>
+        
+        <div class="card">
+            <h3>1. Upload / Pilih Dataset</h3>
+            <p>Upload log untuk dianalisis. Data akan <b>tersimpan otomatis</b> di browser Anda (Persistent).</p>
+            <div class="grid-4">
+                <div class="file-input-group">
+                    <label>Ground Truth (ground_truth.jsonl)</label>
+                    <input type="file" id="fileGt" accept=".jsonl,.txt,.log">
+                </div>
+                <div class="file-input-group">
+                    <label>Detection Log (detection_log.jsonl)</label>
+                    <input type="file" id="fileDet" accept=".jsonl,.txt,.log">
+                </div>
+                <div class="file-input-group">
+                    <label>Overhead Log (overhead_log.jsonl)</label>
+                    <input type="file" id="fileOvh" accept=".jsonl,.txt,.log">
+                </div>
+                <div class="file-input-group">
+                    <label>Raw Log (raw_monitor.log)</label>
+                    <input type="file" id="fileRaw" accept=".log,.txt">
+                </div>
+            </div>
+            <button onclick="processFiles()">Load & Parse Data</button>
+            
+            <div id="runSelectorGroup">
+                <label>Pilih Skenario (Run ID) untuk dianalisis: </label>
+                <select id="runSelect"></select>
+                <button onclick="analyzeSelectedRun()">Analisis Skenario</button>
+            </div>
+        </div>
+
+        <div id="results">
+            <div class="grid-3">
+                <div class="card">
+                    <h3>Kinerja Deteksi (Detection)</h3>
+                    <p>Precision: <span id="valPrecision" class="metric-value">-</span></p>
+                    <p>Recall: <span id="valRecall" class="metric-value">-</span></p>
+                    <p>F1-Score: <span id="valF1" class="metric-value">-</span></p>
+                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted);">
+                        <b>Precision:</b> Rasio alarm valid dari total alarm. (TP / (TP + FP))<br>
+                        <b>Recall:</b> Rasio fault terdeteksi dari total fault. (TP / (TP + FN))<br>
+                        <b>F1-Score:</b> Rata-rata harmonik Precision dan Recall.
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>False Alarm Rate (FAR)</h3>
+                    <p><span id="valFAR" class="metric-value danger">-</span></p>
+                    <p><small id="valFalsePositives">0 False Positives</small></p>
+                </div>
+                <div class="card">
+                    <h3>Mean Time To Detect (MTTD)</h3>
+                    <p><span id="valMTTD" class="metric-value warning">-</span></p>
+                    <p><small>Rata-rata delay deteksi setelah fault disuntikkan</small></p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>2. Analisis Overhead Sistem</h3>
+                <p>Perbandingan beban sistem antara kondisi <b>Normal (Baseline)</b> vs <b>Saat Event Terjadi (ALARM Active)</b>.</p>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metrik</th>
+                            <th>Normal (Avg | P95)</th>
+                            <th>Saat Event (Avg | P95)</th>
+                            <th>Selisih (Avg | P95)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="overheadTableBody">
+                        <!-- Data overhead akan di-generate di sini -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <h3>3. Komparasi Detail Event per Iterasi</h3>
+                <p>Kecocokan waktu antara injeksi <b>Ground Truth</b> dan alarm dari <b>Detektor</b> pada setiap iterasi.</p>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Iterasi (Run ID)</th>
+                                <th>Waktu Injeksi (GT Start)</th>
+                                <th>Waktu Normal (GT End)</th>
+                                <th>Waktu Deteksi (ALARM)</th>
+                                <th>Waktu Recovery (Detektor)</th>
+                                <th>Status</th>
+                                <th>Delay (MTTD)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>4. Visualisasi Timeline (Ground Truth vs Detection)</h3>
+                <p><small>Sumbu X adalah waktu relatif (detik) sejak awal perekaman data.</small></p>
+                <div class="chart-container"><canvas id="chartTimeline"></canvas></div>
+            </div>
+            
+            <div class="card">
+                <h3>5. Visualisasi Overhead (CPU & RAM)</h3>
+                <p><small>Area yang diarsir warna biru menandakan periode saat ALARM detektor sedang aktif.</small></p>
+                <div class="chart-container"><canvas id="chartResource"></canvas></div>
+            </div>
+            
+            <div class="card">
+                <h3>6. Visualisasi Network I/O (TX & RX)</h3>
+                <p><small>Area yang diarsir warna biru menandakan periode saat ALARM detektor sedang aktif.</small></p>
+                <div class="chart-container"><canvas id="chartNetwork"></canvas></div>
+            </div>
+
+            <div class="card">
+                <h3>7. Raw Monitor Logs (Untuk Run Terpilih)</h3>
+                <pre id="rawLogViewer">Tidak ada raw log yang diunggah.</pre>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Utility function to read file as text
+        const readFile = (file) => new Promise((resolve, reject) => {
+            if (!file) return resolve("");
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = (e) => reject(e);
+            reader.readAsText(file);
+        });
+
+        // Parse JSONL string into array of objects
+        const parseJSONL = (text) => text.split('\n').filter(line => line.trim()).map(line => JSON.parse(line));
+
+        // Global state
+        let g_gtData = [], g_detData = [], g_ovhData = [], g_rawDataLines = [];
+        let g_detRunIds = [];
+
+        // IndexedDB Wrapper untuk persistent storage
+        const dbName = 'MicroUXI_Analyzer';
+        const storeName = 'logs';
+        function openDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(dbName, 1);
+                req.onupgradeneeded = e => e.target.result.createObjectStore(storeName);
+                req.onsuccess = e => resolve(e.target.result);
+                req.onerror = e => reject(e.target.error);
+            });
+        }
+        async function setDB(key, val) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                tx.objectStore(storeName).put(val, key);
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+        async function getDB(key) {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readonly');
+                const req = tx.objectStore(storeName).get(key);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(tx.error);
+            });
+        }
+        async function clearDB() {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(storeName, 'readwrite');
+                tx.objectStore(storeName).clear();
+                tx.oncomplete = () => resolve();
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        // Logika cerdas mencocokkan ID iterasi GT dengan ID Base dari Detektor
+        function getMatchedBaseRunId(gtId, detIds) {
+            if (detIds.includes(gtId)) return gtId;
+            const stripped = String(gtId).substring(0, String(gtId).lastIndexOf('_'));
+            if (detIds.includes(stripped)) return stripped;
+            return gtId;
+        }
+
+        // Auto load saat web dibuka
+        window.onload = async () => {
+            try {
+                g_gtData = await getDB('gtData') || [];
+                g_detData = await getDB('detData') || [];
+                g_ovhData = await getDB('ovhData') || [];
+                g_rawDataLines = await getDB('rawDataLines') || [];
+                if (g_gtData.length > 0 && g_detData.length > 0) populateRunSelector();
+            } catch (e) { console.error("Gagal load dari IndexedDB", e); }
+        };
+
+        async function clearData() {
+            if (!confirm("Hapus semua data log dari browser?")) return;
+            await clearDB();
+            location.reload();
+        }
+
+        async function processFiles() {
+            const fileGt = document.getElementById('fileGt').files[0];
+            const fileDet = document.getElementById('fileDet').files[0];
+            const fileOvh = document.getElementById('fileOvh').files[0];
+            const fileRaw = document.getElementById('fileRaw').files[0];
+
+            if (!fileGt || !fileDet) {
+                alert("Ground Truth dan Detection Log wajib diunggah!");
+                return;
+            }
+
+            try {
+                g_gtData = parseJSONL(await readFile(fileGt));
+                g_detData = parseJSONL(await readFile(fileDet));
+                g_ovhData = fileOvh ? parseJSONL(await readFile(fileOvh)) : [];
+                
+                const rawText = await readFile(fileRaw);
+                g_rawDataLines = rawText.split('\n');
+
+                await setDB('gtData', g_gtData);
+                await setDB('detData', g_detData);
+                await setDB('ovhData', g_ovhData);
+                await setDB('rawDataLines', g_rawDataLines);
+                
+                populateRunSelector();
+                alert("Data berhasil diproses dan disimpan.");
+            } catch (err) {
+                console.error(err);
+                alert("Gagal membaca atau mem-parsing file. Pastikan format JSONL valid.");
+            }
+        }
+
+        function populateRunSelector() {
+            g_detRunIds = [...new Set(g_detData.map(d => d.run_id))];
+            const availableBaseIds = [...new Set(g_gtData.map(gt => getMatchedBaseRunId(gt.run_id, g_detRunIds)))];
+
+            const select = document.getElementById('runSelect');
+            select.innerHTML = '';
+            availableBaseIds.forEach(id => {
+                const opt = document.createElement('option');
+                opt.value = id; opt.innerText = id;
+                select.appendChild(opt);
+            });
+            document.getElementById('runSelectorGroup').style.display = 'block';
+        }
+
+        function analyzeSelectedRun() {
+            const selectedId = document.getElementById('runSelect').value;
+            if (!selectedId) return;
+
+            // Filter dataset hanya untuk run yang dipilih
+            const targetGt = g_gtData.filter(gt => getMatchedBaseRunId(gt.run_id, g_detRunIds) === selectedId);
+            const targetDet = g_detData.filter(det => det.run_id === selectedId);
+            const targetOvh = g_ovhData.filter(ovh => ovh.run_id === selectedId);
+
+            analyzeDetection(targetGt, targetDet);
+            if (targetOvh.length > 0) analyzeOverhead(targetDet, targetOvh);
+            drawCharts(targetGt, targetDet, targetOvh);
+            
+            const filteredRaw = g_rawDataLines.filter(l => l.startsWith(`[${selectedId}]`)).join('\n');
+            document.getElementById('rawLogViewer').textContent = filteredRaw || "Tidak ada raw log yang relevan untuk Run ID ini.";
+
+            document.getElementById('results').style.display = 'block';
+        }
+
+        function analyzeDetection(gtData, detData) {
+            let TP = 0; // True Positive
+            let FN = 0; // False Negative
+            let FP = 0; // False Positive
+            let totalDelaySec = 0;
+            
+            const gracePeriodStartMs = 5000; // Toleransi clock desync 5 detik
+            const gracePeriodEndMs = 15000;  // Toleransi telat deteksi 15 detik
+            
+            const tbody = document.getElementById('eventTableBody');
+            tbody.innerHTML = '';
+
+            // 1. Cek TP, FN, dan hitung MTTD 
+            gtData.forEach(gt => {
+                const gtStart = new Date(gt.start_time).getTime();
+                const gtEnd = new Date(gt.end_time).getTime();
+
+                const validAlarm = detData.find(d => 
+                    d.status === 'ALARM' && 
+                    new Date(d.detection_time).getTime() >= (gtStart - gracePeriodStartMs) &&
+                    new Date(d.detection_time).getTime() <= (gtEnd + gracePeriodEndMs)
+                );
+                
+                let statusHtml = '';
+                let delayStr = '-';
+                let detTimeStr = '-';
+                let recTimeStr = '-';
+
+                if (validAlarm) {
+                    TP++;
+                    const alarmTimeMs = new Date(validAlarm.detection_time).getTime();
+                    const delay = Math.max(0, (alarmTimeMs - gtStart) / 1000);
+                    totalDelaySec += delay;
+                    
+                    statusHtml = '<span class="badge success">True Positive</span>';
+                    delayStr = delay.toFixed(2) + ' s';
+                    detTimeStr = validAlarm.detection_time.split('T')[1]?.split('+')[0] || validAlarm.detection_time;
+
+                    // Cari status RECOVERY pertama setelah alarm ini
+                    const validRecovery = detData.find(d => 
+                        d.status === 'RECOVERY' && 
+                        new Date(d.detection_time).getTime() > alarmTimeMs
+                    );
+                    if (validRecovery) {
+                        recTimeStr = validRecovery.detection_time.split('T')[1]?.split('+')[0] || validRecovery.detection_time;
+                    }
+                } else {
+                    FN++;
+                    statusHtml = '<span class="badge danger">False Negative</span>';
+                }
+                
+                const gtStartStr = gt.start_time.split('T')[1]?.split('+')[0] || gt.start_time;
+                const gtEndStr = gt.end_time.split('T')[1]?.split('+')[0] || gt.end_time;
+
+                tbody.innerHTML += `<tr>
+                    <td>${gt.run_id}</td>
+                    <td>${gtStartStr}</td>
+                    <td>${gtEndStr}</td>
+                    <td>${detTimeStr}</td>
+                    <td>${recTimeStr}</td>
+                    <td>${statusHtml}</td>
+                    <td>${delayStr}</td>
+                </tr>`;
+            });
+
+            // 2. Cek FP (False Alarm)
+            detData.filter(d => d.status === 'ALARM').forEach(det => {
+                const detTime = new Date(det.detection_time).getTime();
+                const matchedGt = gtData.find(gt => 
+                    detTime >= (new Date(gt.start_time).getTime() - gracePeriodStartMs) &&
+                    detTime <= (new Date(gt.end_time).getTime() + gracePeriodEndMs)
+                );
+                if (!matchedGt) {
+                    FP++;
+                    const detTimeMs = new Date(det.detection_time).getTime();
+                    const detTimeStr = det.detection_time.split('T')[1]?.split('+')[0] || det.detection_time;
+                    let recTimeStr = '-';
+                    const validRecovery = detData.find(d => d.status === 'RECOVERY' && new Date(d.detection_time).getTime() > detTimeMs);
+                    if (validRecovery) {
+                        recTimeStr = validRecovery.detection_time.split('T')[1]?.split('+')[0] || validRecovery.detection_time;
+                    }
+
+                    tbody.innerHTML += `<tr>
+                        <td>${det.run_id}</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>${detTimeStr}</td>
+                        <td>${recTimeStr}</td>
+                        <td><span class="badge warning">False Positive</span></td>
+                        <td>-</td>
+                    </tr>`;
+                }
+            });
+
+            // 3. Kalkulasi Metrik Final
+            const precision = TP + FP === 0 ? 0 : TP / (TP + FP);
+            const recall = TP + FN === 0 ? 0 : TP / (TP + FN);
+            const f1 = precision + recall === 0 ? 0 : 2 * (precision * recall) / (precision + recall);
+            const mttd = TP === 0 ? 0 : totalDelaySec / TP;
+
+            document.getElementById('valPrecision').innerText = (precision * 100).toFixed(1) + "%";
+            document.getElementById('valRecall').innerText = (recall * 100).toFixed(1) + "%";
+            document.getElementById('valF1').innerText = f1.toFixed(2);
+            document.getElementById('valMTTD').innerText = mttd.toFixed(2) + " detik";
+            document.getElementById('valFalsePositives').innerText = `Total False Positives: ${FP}`;
+            document.getElementById('valFAR').innerText = FP > 0 ? "⚠️ Ada False Alarm" : "✅ Aman (0%)";
+        }
+
+        function getPercentile(data, q) {
+            if (!data || data.length === 0) return 0;
+            const sorted = [...data].sort((a, b) => a - b);
+            const pos = (sorted.length - 1) * q;
+            const base = Math.floor(pos);
+            const rest = pos - base;
+            if (sorted[base + 1] !== undefined) {
+                return sorted[base] + rest * (sorted[base + 1] - sorted[base]);
+            }
+            return sorted[base];
+        }
+
+        function analyzeOverhead(detData, ovhData) {
+            const stats = {
+                normal: { cpu: [], mem: [], disk: [], tx: [], rx: [] },
+                event:  { cpu: [], mem: [], disk: [], tx: [], rx: [] }
+            };
+
+            // Petakan rentang waktu Alarm Active berdasarkan run_id
+            const alarmWindows = {};
+            detData.forEach(d => {
+                if (!alarmWindows[d.run_id]) alarmWindows[d.run_id] = { active: false, windows: [] };
+                const timeMs = new Date(d.detection_time).getTime();
+                
+                if (d.status === 'ALARM' && !alarmWindows[d.run_id].active) {
+                    alarmWindows[d.run_id].active = true;
+                    alarmWindows[d.run_id].windows.push({ start: timeMs, end: Infinity });
+                } else if (d.status === 'RECOVERY' && alarmWindows[d.run_id].active) {
+                    alarmWindows[d.run_id].active = false;
+                    const lastWin = alarmWindows[d.run_id].windows;
+                    lastWin[lastWin.length - 1].end = timeMs;
+                }
+            });
+
+            // Klasifikasikan tiap sampel overhead
+            ovhData.forEach(ovh => {
+                const ts = new Date(ovh.timestamp).getTime();
+                const runWins = alarmWindows[ovh.run_id]?.windows || [];
+                
+                // Cek apakah timestamp ini berada di dalam salah satu window ALARM
+                const isEvent = runWins.some(w => ts >= w.start && ts <= w.end);
+                const category = isEvent ? 'event' : 'normal';
+
+                stats[category].cpu.push(ovh.cpu_pct || 0);
+                stats[category].mem.push(ovh.mem_pct || 0);
+                stats[category].disk.push(ovh.disk_pct || 0);
+                stats[category].tx.push(ovh.net_tx_kbs || 0);
+                stats[category].rx.push(ovh.net_rx_kbs || 0);
+            });
+
+            // Render tabel
+            const tbody = document.getElementById('overheadTableBody');
+            tbody.innerHTML = '';
+
+            const getAvg = (arr) => arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : 0;
+
+            const renderRow = (label, key, unit) => {
+                const normAvg = getAvg(stats.normal[key]);
+                const evAvg = getAvg(stats.event[key]);
+                const normP95 = getPercentile(stats.normal[key], 0.95);
+                const evP95 = getPercentile(stats.event[key], 0.95);
+                
+                const diff = evAvg - normAvg;
+                const diffP95 = evP95 - normP95;
+                
+                const diffStr = diff > 0 ? `<span class="danger">+${diff.toFixed(2)} | +${diffP95.toFixed(2)} 🔴</span>` : `<span class="success">${diff.toFixed(2)} | ${diffP95.toFixed(2)} 🟢</span>`;
+
+                return `<tr>
+                    <td><b>${label}</b></td>
+                    <td>Avg: ${normAvg.toFixed(2)}${unit} <br> P95: ${normP95.toFixed(2)}${unit}</td>
+                    <td>Avg: ${evAvg.toFixed(2)}${unit} <br> P95: ${evP95.toFixed(2)}${unit}</td>
+                    <td>Avg: ${diffStr.split('|')[0]} <br> P95: ${diffStr.split('|')[1]}</td>
+                </tr>`;
+            };
+
+            tbody.innerHTML += renderRow("CPU Usage", "cpu", "%");
+            tbody.innerHTML += renderRow("Memory Usage", "mem", "%");
+            tbody.innerHTML += renderRow("Disk Usage", "disk", "%");
+            tbody.innerHTML += renderRow("Network TX (Upload)", "tx", " KB/s");
+            tbody.innerHTML += renderRow("Network RX (Download)", "rx", " KB/s");
+            
+            tbody.innerHTML += `<tr><td colspan="4" style="color:gray; font-size:12px;"><i>Berdasarkan ${stats.normal.cpu.length} sampel Normal dan ${stats.event.cpu.length} sampel Event</i></td></tr>`;
+        }
+
+        function drawCharts(gtData, detData, ovhData) {
+            let minTime = Infinity;
+            gtData.forEach(d => minTime = Math.min(minTime, new Date(d.start_time).getTime()));
+            detData.forEach(d => minTime = Math.min(minTime, new Date(d.detection_time).getTime()));
+            ovhData.forEach(d => minTime = Math.min(minTime, new Date(d.timestamp).getTime()));
+
+            if (minTime === Infinity) return;
+            const toRelSec = (ts) => (new Date(ts).getTime() - minTime) / 1000;
+
+            // 1. Setup Timeline Points
+            const gtPoints = [];
+            const sortedGt = [...gtData].sort((a, b) => new Date(a.start_time) - new Date(b.start_time));
+            sortedGt.forEach(gt => {
+                let t1 = toRelSec(gt.start_time);
+                let t2 = toRelSec(gt.end_time);
+                gtPoints.push({x: t1 - 0.001, y: 0});
+                gtPoints.push({x: t1, y: 1});
+                gtPoints.push({x: t2, y: 1});
+                gtPoints.push({x: t2 + 0.001, y: 0});
+            });
+
+            const detPoints = [];
+            const sortedDet = [...detData].sort((a, b) => new Date(a.detection_time) - new Date(b.detection_time));
+            let alarmActive = false;
+            let alarmSpans = [];
+            let currentStart = null;
+            
+            sortedDet.forEach(det => {
+                let t = toRelSec(det.detection_time);
+                if (det.status === 'ALARM' && !alarmActive) {
+                    detPoints.push({x: t - 0.001, y: 0});
+                    detPoints.push({x: t, y: 1});
+                    alarmActive = true;
+                    currentStart = t;
+                } else if (det.status === 'RECOVERY' && alarmActive) {
+                    detPoints.push({x: t, y: 1});
+                    detPoints.push({x: t + 0.001, y: 0});
+                    alarmActive = false;
+                    alarmSpans.push({ start: currentStart, end: t });
+                    currentStart = null;
+                }
+            });
+            if (currentStart !== null) {
+                alarmSpans.push({ start: currentStart, end: Math.max(...ovhData.map(o => toRelSec(o.timestamp))) });
+            }
+
+            // 2. Setup Resource Points
+            const sortedOvh = [...ovhData].sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            const cpuPoints = sortedOvh.map(o => ({x: toRelSec(o.timestamp), y: o.cpu_pct || 0}));
+            const memPoints = sortedOvh.map(o => ({x: toRelSec(o.timestamp), y: o.mem_pct || 0}));
+            const txPoints = sortedOvh.map(o => ({x: toRelSec(o.timestamp), y: o.net_tx_kbs || 0}));
+            const rxPoints = sortedOvh.map(o => ({x: toRelSec(o.timestamp), y: o.net_rx_kbs || 0}));
+
+            // Destroy old charts
+            if(window.chart1) window.chart1.destroy();
+            if(window.chart2) window.chart2.destroy();
+            if(window.chart3) window.chart3.destroy();
+
+            Chart.defaults.color = '#cbd5e1';
+            const baseOptions = { responsive: true, maintainAspectRatio: false, scales: { x: { type: 'linear', title: { display: true, text: 'Waktu Relatif (Detik)' }, grid: { color: '#334155'} }, y: { grid: { color: '#334155'} } }, plugins: { legend: { position: 'top' } } };
+            
+            // Plugin custom untuk menggambar background di area event ALARM
+            const highlightPlugin = {
+                id: 'highlightEvent',
+                beforeDraw: (chart) => {
+                    const { ctx, chartArea: { top, bottom }, scales: { x } } = chart;
+                    ctx.save();
+                    // Warna biru transparan selaras dengan warna garis detektor
+                    ctx.fillStyle = 'rgba(59, 130, 246, 0.15)';
+                    alarmSpans.forEach(span => {
+                        const startX = x.getPixelForValue(span.start);
+                        const endX = x.getPixelForValue(span.end);
+                        ctx.fillRect(startX, top, endX - startX, bottom - top);
+                    });
+                    ctx.restore();
+                }
+            };
+
+            window.chart1 = new Chart(document.getElementById('chartTimeline').getContext('2d'), {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        { label: 'Ground Truth Aktif', data: gtPoints, borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.2)', showLine: true, fill: true, pointRadius: 0 },
+                        { label: 'Detektor ALARM Aktif', data: detPoints, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.2)', showLine: true, fill: true, pointRadius: 2 }
+                    ]
+                },
+                options: { ...baseOptions, scales: { x: baseOptions.scales.x, y: { min: -0.1, max: 1.3, ticks: { stepSize: 1, callback: v => v===1 ? 'Aktif' : v===0 ? 'Normal' : '' } } } }
+            });
+
+            window.chart2 = new Chart(document.getElementById('chartResource').getContext('2d'), {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        { label: 'CPU Usage (%)', data: cpuPoints, borderColor: '#f59e0b', showLine: true, tension: 0.2, pointRadius: 0 },
+                        { label: 'Memory Usage (%)', data: memPoints, borderColor: '#8b5cf6', showLine: true, tension: 0.2, pointRadius: 0 }
+                    ]
+                },
+                options: { ...baseOptions, scales: { x: baseOptions.scales.x, y: { min: 0, title: { display: true, text: 'Persentase (%)' } } } },
+                plugins: [highlightPlugin]
+            });
+
+            window.chart3 = new Chart(document.getElementById('chartNetwork').getContext('2d'), {
+                type: 'scatter',
+                data: {
+                    datasets: [
+                        { label: 'Upload / TX (KB/s)', data: txPoints, borderColor: '#06b6d4', showLine: true, tension: 0.2, pointRadius: 0 },
+                        { label: 'Download / RX (KB/s)', data: rxPoints, borderColor: '#10b981', showLine: true, tension: 0.2, pointRadius: 0 }
+                    ]
+                },
+                options: { ...baseOptions, scales: { x: baseOptions.scales.x, y: { min: 0, title: { display: true, text: 'Throughput (KB/s)' } } } },
+                plugins: [highlightPlugin]
+            });
+        }
+    </script>
+</body>
+</html>
