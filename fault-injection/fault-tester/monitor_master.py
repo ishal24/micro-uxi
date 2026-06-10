@@ -89,9 +89,12 @@ def main() -> int:
     if not output_file.is_absolute():
         output_file = out_dir / output_file.name
 
+    raw_log_file = out_dir / "raw_monitor.log"
+
     print(f"[MONITOR_MASTER] run_id={args.run_id} event={event_code} expected={expected_event_type}")
     print(f"[MONITOR_MASTER] script={script_path.name}")
     print(f"[MONITOR_MASTER] dataset={output_file}")
+    print(f"[MONITOR_MASTER] raw_log={raw_log_file}")
     print("[MONITOR_MASTER] Ctrl+C to stop.\n")
 
     env = os.environ.copy()
@@ -120,24 +123,28 @@ def main() -> int:
 
     try:
         assert proc.stdout is not None
-        for line in proc.stdout:
-            line = line.rstrip("\n")
-            print(line, flush=True)
+        with raw_log_file.open("a", encoding="utf-8") as f_raw:
+            for line in proc.stdout:
+                line = line.rstrip("\n")
+                print(line, flush=True)
+                
+                f_raw.write(f"[{args.run_id}] {line}\n")
+                f_raw.flush()
 
-            match = EVENT_RE.search(line)
-            if not match:
-                continue
+                match = EVENT_RE.search(line)
+                if not match:
+                    continue
 
-            status_type = match.group(1).upper()  # Akan berisi 'ALARM' atau 'RECOVERY'
-            detected_event_code = match.group(2).upper()
-            detected_event_type = match.group(3).upper()
-            record = {
-                "run_id": args.run_id,
-                "event_type": detected_event_type,
-                "detection_time": now_iso(),
-                "status": status_type
-            }
-            append_jsonl(output_file, record)
+                status_type = match.group(1).upper()  # Akan berisi 'ALARM' atau 'RECOVERY'
+                detected_event_code = match.group(2).upper()
+                detected_event_type = match.group(3).upper()
+                record = {
+                    "run_id": args.run_id,
+                    "event_type": detected_event_type,
+                    "detection_time": now_iso(),
+                    "status": status_type
+                }
+                append_jsonl(output_file, record)
 
     except KeyboardInterrupt:
         print("\n[MONITOR_MASTER] stopping...")
