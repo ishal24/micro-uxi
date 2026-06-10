@@ -37,6 +37,7 @@ def main():
     print(f"[*] Interval: {interval}s, m-of-n: {m_ping}-of-{n_ping}")
 
     history = deque(maxlen=n_ping)
+    is_active = False
 
     while True:
         try:
@@ -57,8 +58,13 @@ def main():
             status = f"wifi={'UP' if wifi_up else 'DOWN'} ping={'OK' if ping_ok else 'FAIL'}"
             print(f"[{ts}] S3 Probe | {status} | window={window_size} fails={fail_count} ({loss_pct:.1f}%)")
             
-            if window_size == n_ping and fail_count >= m_ping:
-                print(f"    >>> [ALARM] S3 LOSS_BURST ACTIVE! (Fails: {fail_count}/{n_ping})")
+            if window_size == n_ping:
+                if not is_active and fail_count >= m_ping:
+                    is_active = True
+                    print(f"    >>> [ALARM] S3 LOSS_BURST ACTIVE! (Fails: {fail_count}/{n_ping})")
+                elif is_active and fail_count == 0:
+                    is_active = False
+                    print(f"    >>> [RECOVERY] S3 LOSS_BURST RECOVERED! (Clean window)")
             
             elapsed = time.monotonic() - start_t
             time.sleep(max(0, interval - elapsed))

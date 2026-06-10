@@ -19,7 +19,7 @@
       "script": "fault_dns_delay.sh",
       "mode": "start_stop",
       "duration_sec": 20,
-      "fault_parameter": {"delay_ms": 400, "jitter_ms": 50},
+      "fault_parameter": {"delay_ms": 350, "jitter_ms": 50},
       "start_args": ["start", "{delay_ms}", "{jitter_ms}"],
       "stop_args": ["stop"]
     },
@@ -49,7 +49,7 @@
       "script": "fault_rtt.sh",
       "mode": "start_stop",
       "duration_sec": 60,
-      "fault_parameter": {"delay_ms": 300, "jitter_ms": 50},
+      "fault_parameter": {"delay_ms": 400, "jitter_ms": 50},
       "start_args": ["start", "{delay_ms}", "{jitter_ms}"],
       "stop_args": ["stop"]
     },
@@ -59,7 +59,7 @@
       "script": "fault_throttle.sh",
       "mode": "start_stop",
       "duration_sec": 60,
-      "fault_parameter": {"rate": "500kbit"},
+      "fault_parameter": {"rate": "2mbit"},
       "start_args": ["start", "{rate}"],
       "stop_args": ["stop"]
     },

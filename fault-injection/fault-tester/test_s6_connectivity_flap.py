@@ -37,6 +37,7 @@ def main():
     print(f"[*] Interval: {interval}s, m-of-n: {m_transition} transitions in {n_flap} samples")
 
     history = deque(maxlen=n_flap)
+    is_active = False
 
     while True:
         try:
@@ -61,8 +62,13 @@ def main():
             status = f"wifi={'UP' if wifi_up else 'DOWN'} ping={'OK' if ping_ok else 'FAIL'}"
             print(f"[{ts}] S6 Probe | {status} | conn_ok={connectivity_ok} | window={window_size} transitions={transitions}")
             
-            if window_size == n_flap and transitions >= m_transition:
-                print(f"    >>> [ALARM] S6 CONNECTIVITY_FLAP ACTIVE! (Transitions: {transitions}/{m_transition})")
+            if window_size == n_flap:
+                if not is_active and transitions >= m_transition:
+                    is_active = True
+                    print(f"    >>> [ALARM] S6 CONNECTIVITY_FLAP ACTIVE! (Transitions: {transitions}/{m_transition})")
+                elif is_active and transitions == 0:
+                    is_active = False
+                    print(f"    >>> [RECOVERY] S6 CONNECTIVITY_FLAP RECOVERED! (Clean window)")
             
             elapsed = time.monotonic() - start_t
             time.sleep(max(0, interval - elapsed))

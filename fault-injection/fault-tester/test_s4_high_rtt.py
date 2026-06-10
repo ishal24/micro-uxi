@@ -45,6 +45,8 @@ def main():
     print(f"[*] Interval: {interval}s, Threshold: {threshold}ms, N: {N}")
 
     consecutive_hits = 0
+    consecutive_ok = 0
+    is_active = False
 
     while True:
         try:
@@ -73,14 +75,20 @@ def main():
             
             if hit_this_round:
                 consecutive_hits += 1
+                consecutive_ok = 0
             else:
                 consecutive_hits = 0
+                consecutive_ok += 1
                 
             status = f"wifi={'UP' if wifi_up else 'DOWN'} rtt={rtt_str} loss={loss_str}"
             print(f"[{ts}] S4 Probe | {status} | hits={consecutive_hits}/{N}")
             
-            if consecutive_hits >= N:
+            if not is_active and consecutive_hits >= N:
+                is_active = True
                 print(f"    >>> [ALARM] S4 HIGH_RTT ACTIVE! (Hits: {consecutive_hits})")
+            elif is_active and consecutive_ok >= N:
+                is_active = False
+                print(f"    >>> [RECOVERY] S4 HIGH_RTT RECOVERED! (OKs: {consecutive_ok})")
             
             elapsed = time.monotonic() - start_t
             time.sleep(max(0, interval - elapsed))

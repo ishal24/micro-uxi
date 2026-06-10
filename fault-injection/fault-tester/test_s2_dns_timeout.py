@@ -46,6 +46,7 @@ def main():
     print(f"[*] Interval: {interval}s, m-of-n: {m_dns}-of-{n_dns}")
 
     history = deque(maxlen=n_dns)
+    is_active = False
 
     while True:
         try:
@@ -75,8 +76,13 @@ def main():
             status = f"wifi={'UP' if wifi_up else 'DOWN'} ping={'OK' if ping_ok else 'FAIL'} dns=[{', '.join(details)}]"
             print(f"[{ts}] S2 Probe | {status} | window={window_size} fails={fail_count}")
             
-            if window_size == n_dns and fail_count >= m_dns:
-                print(f"    >>> [ALARM] S2 DNS_TIMEOUT_BURST ACTIVE! (Fails: {fail_count}/{n_dns})")
+            if window_size == n_dns:
+                if not is_active and fail_count >= m_dns:
+                    is_active = True
+                    print(f"    >>> [ALARM] S2 DNS_TIMEOUT_BURST ACTIVE! (Fails: {fail_count}/{n_dns})")
+                elif is_active and fail_count == 0:
+                    is_active = False
+                    print(f"    >>> [RECOVERY] S2 DNS_TIMEOUT_BURST RECOVERED! (Clean window)")
             
             elapsed = time.monotonic() - start_t
             time.sleep(max(0, interval - elapsed))
