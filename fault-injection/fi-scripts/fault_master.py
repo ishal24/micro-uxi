@@ -139,9 +139,12 @@ def main() -> int:
     if not script_path.exists():
         raise SystemExit(f"Fault script not found: {script_path}")
 
+    out_dir = base_dir / "out" / f"test_{event_code}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     output_file = Path(args.output or cfg.get("output_file", "ground_truth.jsonl"))
     if not output_file.is_absolute():
-        output_file = base_dir / output_file
+        output_file = out_dir / output_file.name
 
     print(f"[FAULT_MASTER] run_id_base={args.run_id} event={event_code} type={event_type}")
     print(f"[FAULT_MASTER] script={script_path.name} | repeat={repeat}x | grace={grace_period}s")

@@ -82,9 +82,12 @@ def main() -> int:
     if not script_path.exists():
         raise SystemExit(f"Monitoring script not found: {script_path}")
 
+    out_dir = base_dir / "out" / f"test_{event_code}"
+    out_dir.mkdir(parents=True, exist_ok=True)
+
     output_file = Path(args.output or cfg.get("output_file", "detection_log.jsonl"))
     if not output_file.is_absolute():
-        output_file = base_dir / output_file
+        output_file = out_dir / output_file.name
 
     print(f"[MONITOR_MASTER] run_id={args.run_id} event={event_code} expected={expected_event_type}")
     print(f"[MONITOR_MASTER] script={script_path.name}")
@@ -107,7 +110,7 @@ def main() -> int:
     overhead_proc = None
     overhead_script = base_dir / "tester_overhead.py"
     if overhead_script.exists():
-        overhead_out = base_dir / "overhead_log.jsonl"
+        overhead_out = out_dir / "overhead_log.jsonl"
         overhead_proc = subprocess.Popen(
             [sys.executable, "-u", str(overhead_script), "--run-id", args.run_id, "--output", str(overhead_out)],
             cwd=str(base_dir),
