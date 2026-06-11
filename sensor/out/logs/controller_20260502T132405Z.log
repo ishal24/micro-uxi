@@ -1,0 +1,16 @@
+==================================================================
+  Micro-UXI Monitoring Controller  —  threaded multi-rate
+==================================================================
+  Device      : uno-q-01  @  ITS
+  Interface   : wlan0
+  Fast probe  : every 2s  (ping + DNS — catches S2/S3/S6 bursts)
+  Telemetry   : every 30s  (full snapshot — S1/S4)
+  Throughput  : every 60s  (download + upload — S5)
+  Duration    : indefinite  (Ctrl+C to stop)
+  Format      : JSONL
+  Output dir  : /home/arduino/tugasakhir/micro-uxi/sensor/out
+  Session ID  : 20260502T062407Z
+==================================================================
+  Fast probe prints only on anomaly. Telemetry every 30s.
+==================================================================
+[TEL #   1] 07.31772  wifi=UP    rssi= -43dBm  rtt=  28.29ms  loss=  0.0%

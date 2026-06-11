@@ -1,0 +1,194 @@
+{
+  "device": {
+    "device_id": "uno-q-01",
+    "site_name": "ITS",
+    "timezone": "Asia/Jakarta",
+    "iface": "wlan0"
+  },
+  "scheduler": {
+    "fast_interval_sec": 1,
+    "telemetry_interval_sec": 10,
+    "throughput_interval_sec": 900
+  },
+  "fast_probe": {
+    "enabled": true,
+    "ping_target": "8.8.8.8",
+    "ping_timeout_sec": 1,
+    "dns_timeout_sec": 2.0,
+    "dns_resolver": "system",
+    "targets": [
+      {
+        "name": "its.ac.id",
+        "scope": "internal"
+      },
+      {
+        "name": "google.com",
+        "scope": "external"
+      }
+    ]
+  },
+  "telemetry_probe": {
+    "enabled": true,
+    "ping_target": "8.8.8.8",
+    "ping_count": 5,
+    "ping_interval_sec": 0.2,
+    "ping_timeout_sec": 10,
+    "dns_timeout_sec": 5,
+    "dns_resolvers": [
+      "system"
+    ],
+    "dns_targets": [
+      {
+        "name": "its.ac.id",
+        "scope": "internal"
+      },
+      {
+        "name": "google.com",
+        "scope": "external"
+      }
+    ],
+    "http_targets": [
+      {
+        "url": "https://www.its.ac.id",
+        "scope": "internal",
+        "expected_status_min": 200,
+        "expected_status_max": 399
+      },
+      {
+        "url": "https://www.gstatic.com/generate_204",
+        "scope": "external",
+        "expected_status_min": 204,
+        "expected_status_max": 204
+      }
+    ],
+    "http_connect_timeout_sec": 5,
+    "http_max_time_sec": 15
+  },
+  "throughput_probe": {
+    "enabled": false,
+    "connect_timeout_sec": 5,
+    "routine": {
+      "download": {
+        "enabled": false,
+        "url": "http://127.0.0.1:8080/testfile_1mb.bin",
+        "expected_bytes": 1048576,
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 60
+      },
+      "upload": {
+        "enabled": false,
+        "url": "http://127.0.0.1:8080/upload",
+        "expected_bytes": 5000000,
+        "payload_path": "./monitoring/out/payloads/upload_5mb.bin",
+        "payload_source": "zero",
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 60
+      }
+    }
+  },
+  "detector": {
+    "detection_mode": "static",
+    "startup_grace_sec": 10,
+    "merge_gap_sec": 10,
+    "recovery_hold_sec": 10,
+    "baseline": {
+      "dns_window_samples": 30,
+      "rtt_window_samples": 20,
+      "http_window_samples": 20,
+      "throughput_window_samples": 8,
+      "minimum_samples": 5,
+      "mad_k": 3.0,
+      "recovery_mad_k": 1.5
+    },
+    "events": {
+      "DNS_DEGRADED": {
+        "confirm_consecutive": 99999,
+        "recovery_consecutive": 2,
+        "minimum_success_ratio": 1.0
+      },
+      "DNS_TIMEOUT_BURST": {
+        "confirm_consecutive": 99999,
+        "recovery_consecutive": 2,
+        "recovery_success_ratio": 1.0
+      },
+      "LOSS_BURST": {
+        "confirm_consecutive": 99999,
+        "recovery_consecutive": 2,
+        "minimum_samples": 99999
+      },
+      "HIGH_RTT": {
+        "confirm_consecutive": 99999,
+        "recovery_consecutive": 2
+      },
+      "HTTP_SLOW": {
+        "confirm_consecutive": 99999,
+        "recovery_consecutive": 2
+      },
+      "CONNECTIVITY_FLAP": {
+        "confirm_consecutive": 99999,
+        "recovery_consecutive": 1
+      },
+      "BANDWIDTH_THROTTLE": {
+        "confirm_consecutive": 99999,
+        "recovery_consecutive": 1
+      }
+    }
+  },
+  "thresholds": {
+    "dns_latency_threshold_ms": 99999,
+    "dns_fail_ratio_threshold": 1.0,
+    "dns_recovery_success_ratio": 1.0,
+    "loss_threshold_pct": 100,
+    "recovery_loss_threshold_pct": 100,
+    "loss_window_sec": 30,
+    "rtt_threshold_ms": 99999,
+    "recovery_rtt_threshold_ms": 99999,
+    "rtt_loss_upper_bound_pct": 100,
+    "http_total_threshold_ms": 99999,
+    "recovery_http_total_threshold_ms": 99999,
+    "http_ttfb_threshold_ms": 99999,
+    "recovery_http_ttfb_threshold_ms": 99999,
+    "throughput_download_threshold_mbps": 0,
+    "throughput_upload_threshold_mbps": 0,
+    "flap_transition_threshold": 99999,
+    "flap_window_sec": 30,
+    "http_expected_status_min": 200,
+    "http_expected_status_max": 399
+  },
+  "output": {
+    "enabled": true,
+    "output_dir": "./monitoring/out/preliminary_test_run1",
+    "sample_format": "jsonl",
+    "print_pretty": false,
+    "print_fast_normal": false
+  },
+  "stream": {
+    "enabled": false,
+    "host": "10.141.215.44",
+    "port": "5000",
+    "scheme": "http",
+    "sensor_endpoint": "/api/ingest/sensor",
+    "overhead_endpoint": "/api/ingest/overhead",
+    "include_sensor": true,
+    "include_overhead": true,
+    "api_key": "",
+    "timeout_sec": 5,
+    "max_queue": 100
+  },
+  "remote_control": {
+    "enabled": true,
+    "endpoint": "/api/config",
+    "poll_interval_sec": 30,
+    "timeout_sec": 5
+  },
+  "evidence": {
+    "enabled": false,
+    "pre_window_sec": 30,
+    "post_window_sec": 30,
+    "alignment_delta_sec": 5
+  }
+}

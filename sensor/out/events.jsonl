@@ -1,0 +1,487 @@
+{"ts": "2026-04-21T06:52:32.646204+00:00", "probe_type": "fast", "seq": 1, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:32.352029+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:34.556084+00:00", "probe_type": "fast", "seq": 2, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:36.551416+00:00", "probe_type": "fast", "seq": 3, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:32.353587+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:38.550603+00:00", "probe_type": "fast", "seq": 4, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:40.594061+00:00", "probe_type": "fast", "seq": 5, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:42.540748+00:00", "probe_type": "fast", "seq": 6, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:44.549371+00:00", "probe_type": "fast", "seq": 7, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:46.570375+00:00", "probe_type": "fast", "seq": 8, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:48.621345+00:00", "probe_type": "fast", "seq": 9, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:50.557623+00:00", "probe_type": "fast", "seq": 10, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:52.566524+00:00", "probe_type": "fast", "seq": 11, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:54.617062+00:00", "probe_type": "fast", "seq": 12, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:56.578529+00:00", "probe_type": "fast", "seq": 13, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:52:58.560201+00:00", "probe_type": "fast", "seq": 14, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:00.565273+00:00", "probe_type": "fast", "seq": 15, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:02.672811+00:00", "probe_type": "fast", "seq": 16, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:02.352500+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:04.631756+00:00", "probe_type": "fast", "seq": 17, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:06.608438+00:00", "probe_type": "fast", "seq": 18, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:08.622320+00:00", "probe_type": "fast", "seq": 19, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:10.574334+00:00", "probe_type": "fast", "seq": 20, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:12.554509+00:00", "probe_type": "fast", "seq": 21, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:14.546519+00:00", "probe_type": "fast", "seq": 22, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:16.560673+00:00", "probe_type": "fast", "seq": 23, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:18.561774+00:00", "probe_type": "fast", "seq": 24, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:20.563859+00:00", "probe_type": "fast", "seq": 25, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:22.554187+00:00", "probe_type": "fast", "seq": 26, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:24.557640+00:00", "probe_type": "fast", "seq": 27, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:26.558092+00:00", "probe_type": "fast", "seq": 28, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:28.561064+00:00", "probe_type": "fast", "seq": 29, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:30.573384+00:00", "probe_type": "fast", "seq": 30, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:32.684599+00:00", "probe_type": "fast", "seq": 31, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:32.352954+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:34.559978+00:00", "probe_type": "fast", "seq": 32, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:37.488375+00:00", "probe_type": "fast", "seq": 33, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:32.355152+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:53:39.483486+00:00", "probe_type": "fast", "seq": 34, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=568ms, its.ac.id=471ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:53:41.576250+00:00", "probe_type": "fast", "seq": 35, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=638ms, its.ac.id=515ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:53:43.518412+00:00", "probe_type": "fast", "seq": 36, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=585ms, its.ac.id=512ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:53:45.500855+00:00", "probe_type": "fast", "seq": 37, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=537ms, its.ac.id=539ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:53:47.511861+00:00", "probe_type": "fast", "seq": 38, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=580ms, its.ac.id=512ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:53:49.457399+00:00", "probe_type": "fast", "seq": 39, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=521ms, its.ac.id=512ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:53:51.403691+00:00", "probe_type": "fast", "seq": 40, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=474ms, its.ac.id=507ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:53:53.451744+00:00", "probe_type": "fast", "seq": 41, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=516ms, its.ac.id=511ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:53:55.499394+00:00", "probe_type": "fast", "seq": 42, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=564ms, its.ac.id=511ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:53:57.444957+00:00", "probe_type": "fast", "seq": 43, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=509ms, its.ac.id=510ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:53:59.495358+00:00", "probe_type": "fast", "seq": 44, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=544ms, its.ac.id=514ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:01.439076+00:00", "probe_type": "fast", "seq": 45, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=492ms, its.ac.id=512ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:03.448432+00:00", "probe_type": "fast", "seq": 46, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=527ms, its.ac.id=511ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:02.353421+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:05.394678+00:00", "probe_type": "fast", "seq": 47, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=508ms, its.ac.id=474ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:07.480590+00:00", "probe_type": "fast", "seq": 48, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=556ms, its.ac.id=512ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:09.386789+00:00", "probe_type": "fast", "seq": 49, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=502ms, its.ac.id=472ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:11.472877+00:00", "probe_type": "fast", "seq": 50, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=550ms, its.ac.id=510ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:13.522453+00:00", "probe_type": "fast", "seq": 51, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=568ms, its.ac.id=512ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:15.468082+00:00", "probe_type": "fast", "seq": 52, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=527ms, its.ac.id=510ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:17.515235+00:00", "probe_type": "fast", "seq": 53, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=508ms, its.ac.id=586ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:19.461103+00:00", "probe_type": "fast", "seq": 54, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=519ms, its.ac.id=511ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:20.624798+00:00", "probe_type": "fast", "seq": 55, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:22.560824+00:00", "probe_type": "fast", "seq": 56, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:24.574362+00:00", "probe_type": "fast", "seq": 57, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:26.624508+00:00", "probe_type": "fast", "seq": 58, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:28.589232+00:00", "probe_type": "fast", "seq": 59, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:30.592677+00:00", "probe_type": "fast", "seq": 60, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:32.645285+00:00", "probe_type": "fast", "seq": 61, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:32.353883+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:34.586546+00:00", "probe_type": "fast", "seq": 62, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:36.600610+00:00", "probe_type": "fast", "seq": 63, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:32.355776+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:38.577758+00:00", "probe_type": "fast", "seq": 64, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:40.597166+00:00", "probe_type": "fast", "seq": 65, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:42.594990+00:00", "probe_type": "fast", "seq": 66, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:44.578536+00:00", "probe_type": "fast", "seq": 67, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:46.577836+00:00", "probe_type": "fast", "seq": 68, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:48.589714+00:00", "probe_type": "fast", "seq": 69, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:52.568041+00:00", "probe_type": "fast", "seq": 70, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:54.755185+00:00", "probe_type": "fast", "seq": 71, "event": true, "event_keys": ["S2_DNS_OUTAGE_BURST"], "details": {"S2_DNS_OUTAGE_BURST": "all_dns=FAIL (2 domains)  lat=1065ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:56.942083+00:00", "probe_type": "fast", "seq": 72, "event": true, "event_keys": ["S2_DNS_OUTAGE_BURST"], "details": {"S2_DNS_OUTAGE_BURST": "all_dns=FAIL (2 domains)  lat=1065ms  ping=OK"}}
+{"ts": "2026-04-21T06:54:58.146802+00:00", "probe_type": "fast", "seq": 73, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:54:59.148019+00:00", "probe_type": "fast", "seq": 74, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:01.162512+00:00", "probe_type": "fast", "seq": 75, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:02.354361+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:05.122844+00:00", "probe_type": "fast", "seq": 76, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:07.328850+00:00", "probe_type": "fast", "seq": 77, "event": true, "event_keys": ["S2_DNS_OUTAGE_BURST"], "details": {"S2_DNS_OUTAGE_BURST": "all_dns=FAIL (2 domains)  lat=1064ms  ping=OK"}}
+{"ts": "2026-04-21T06:55:09.559173+00:00", "probe_type": "fast", "seq": 78, "event": true, "event_keys": ["S2_DNS_OUTAGE_BURST"], "details": {"S2_DNS_OUTAGE_BURST": "all_dns=FAIL (2 domains)  lat=1066ms  ping=OK"}}
+{"ts": "2026-04-21T06:55:11.744789+00:00", "probe_type": "fast", "seq": 79, "event": true, "event_keys": ["S2_DNS_OUTAGE_BURST"], "details": {"S2_DNS_OUTAGE_BURST": "all_dns=FAIL (2 domains)  lat=1064ms  ping=OK"}}
+{"ts": "2026-04-21T06:55:11.969227+00:00", "probe_type": "fast", "seq": 80, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:13.946274+00:00", "probe_type": "fast", "seq": 81, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:15.943116+00:00", "probe_type": "fast", "seq": 82, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:19.931954+00:00", "probe_type": "fast", "seq": 83, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:22.124099+00:00", "probe_type": "fast", "seq": 84, "event": true, "event_keys": ["S2_DNS_OUTAGE_BURST"], "details": {"S2_DNS_OUTAGE_BURST": "all_dns=FAIL (2 domains)  lat=1065ms  ping=OK"}}
+{"ts": "2026-04-21T06:55:24.307699+00:00", "probe_type": "fast", "seq": 85, "event": true, "event_keys": ["S2_DNS_OUTAGE_BURST"], "details": {"S2_DNS_OUTAGE_BURST": "all_dns=FAIL (2 domains)  lat=1064ms  ping=OK"}}
+{"ts": "2026-04-21T06:55:24.537569+00:00", "probe_type": "fast", "seq": 86, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:26.517604+00:00", "probe_type": "fast", "seq": 87, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:28.503304+00:00", "probe_type": "fast", "seq": 88, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:30.801422+00:00", "probe_type": "fast", "seq": 89, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:32.892575+00:00", "probe_type": "fast", "seq": 90, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:32.354770+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:34.867385+00:00", "probe_type": "fast", "seq": 91, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:36.510368+00:00", "probe_type": "fast", "seq": 92, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:38.441173+00:00", "probe_type": "fast", "seq": 93, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=FAIL(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T06:55:32.356490+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:40.427334+00:00", "probe_type": "fast", "seq": 94, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T06:55:42.428310+00:00", "probe_type": "fast", "seq": 95, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T06:55:44.430162+00:00", "probe_type": "fast", "seq": 96, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T06:55:46.443639+00:00", "probe_type": "fast", "seq": 97, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T06:55:48.509918+00:00", "probe_type": "fast", "seq": 98, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:50.498728+00:00", "probe_type": "fast", "seq": 99, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:52.509667+00:00", "probe_type": "fast", "seq": 100, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:55:57.451932+00:00", "probe_type": "fast", "seq": 101, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=FAIL(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T06:55:58.637551+00:00", "probe_type": "fast", "seq": 102, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=OK(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T06:56:01.645207+00:00", "probe_type": "fast", "seq": 103, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=OK(google.com)"}}
+{"ts": "2026-04-21T06:56:02.839734+00:00", "probe_type": "fast", "seq": 104, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:04.854689+00:00", "probe_type": "fast", "seq": 105, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:02.355246+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:08.785201+00:00", "probe_type": "fast", "seq": 106, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=FAIL(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T06:56:10.010979+00:00", "probe_type": "fast", "seq": 107, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:12.950976+00:00", "probe_type": "fast", "seq": 108, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=OK(its.ac.id)"}}
+{"ts": "2026-04-21T06:56:16.089905+00:00", "probe_type": "fast", "seq": 109, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=FAIL(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T06:56:19.227251+00:00", "probe_type": "fast", "seq": 110, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T06:56:20.430104+00:00", "probe_type": "fast", "seq": 111, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:22.425702+00:00", "probe_type": "fast", "seq": 112, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:24.553433+00:00", "probe_type": "fast", "seq": 113, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=OK(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T06:56:25.794332+00:00", "probe_type": "fast", "seq": 114, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:27.879657+00:00", "probe_type": "fast", "seq": 115, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:29.554080+00:00", "probe_type": "fast", "seq": 116, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:31.434712+00:00", "probe_type": "fast", "seq": 117, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:33.526455+00:00", "probe_type": "fast", "seq": 118, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:32.355721+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:35.440463+00:00", "probe_type": "fast", "seq": 119, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:37.498358+00:00", "probe_type": "fast", "seq": 120, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:32.357753+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:39.441753+00:00", "probe_type": "fast", "seq": 121, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:41.442599+00:00", "probe_type": "fast", "seq": 122, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:43.433566+00:00", "probe_type": "fast", "seq": 123, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:45.424526+00:00", "probe_type": "fast", "seq": 124, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:47.497672+00:00", "probe_type": "fast", "seq": 125, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:49.427968+00:00", "probe_type": "fast", "seq": 126, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:51.442124+00:00", "probe_type": "fast", "seq": 127, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:53.444571+00:00", "probe_type": "fast", "seq": 128, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:55.655815+00:00", "probe_type": "fast", "seq": 129, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:57.714005+00:00", "probe_type": "fast", "seq": 130, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:56:59.658704+00:00", "probe_type": "fast", "seq": 131, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:01.719072+00:00", "probe_type": "fast", "seq": 132, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:03.662483+00:00", "probe_type": "fast", "seq": 133, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:02.356193+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:05.682448+00:00", "probe_type": "fast", "seq": 134, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:07.734444+00:00", "probe_type": "fast", "seq": 135, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:09.698169+00:00", "probe_type": "fast", "seq": 136, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:11.741298+00:00", "probe_type": "fast", "seq": 137, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:13.651403+00:00", "probe_type": "fast", "seq": 138, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:15.664471+00:00", "probe_type": "fast", "seq": 139, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:17.682398+00:00", "probe_type": "fast", "seq": 140, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:19.728391+00:00", "probe_type": "fast", "seq": 141, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:21.678895+00:00", "probe_type": "fast", "seq": 142, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:23.721945+00:00", "probe_type": "fast", "seq": 143, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:25.650981+00:00", "probe_type": "fast", "seq": 144, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:27.730452+00:00", "probe_type": "fast", "seq": 145, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:29.768370+00:00", "probe_type": "fast", "seq": 146, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:31.735484+00:00", "probe_type": "fast", "seq": 147, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:33.720652+00:00", "probe_type": "fast", "seq": 148, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:32.356654+00:00", "probe_type": "telemetry", "seq": null, "event": true, "event_keys": ["S4_RTT_INCREASE"], "details": {"S4_RTT_INCREASE": "rtt_avg=270.2ms > 150.0ms  loss=0.0%"}}
+{"ts": "2026-04-21T06:57:35.707021+00:00", "probe_type": "fast", "seq": 149, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:37.737954+00:00", "probe_type": "fast", "seq": 150, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:32.358338+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:39.683708+00:00", "probe_type": "fast", "seq": 151, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:41.728068+00:00", "probe_type": "fast", "seq": 152, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:43.688432+00:00", "probe_type": "fast", "seq": 153, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:45.730430+00:00", "probe_type": "fast", "seq": 154, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:47.670052+00:00", "probe_type": "fast", "seq": 155, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:49.747720+00:00", "probe_type": "fast", "seq": 156, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:51.687575+00:00", "probe_type": "fast", "seq": 157, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:53.730932+00:00", "probe_type": "fast", "seq": 158, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:55.760596+00:00", "probe_type": "fast", "seq": 159, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:57.710221+00:00", "probe_type": "fast", "seq": 160, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:57:59.665525+00:00", "probe_type": "fast", "seq": 161, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:01.717996+00:00", "probe_type": "fast", "seq": 162, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:03.670118+00:00", "probe_type": "fast", "seq": 163, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:02.357133+00:00", "probe_type": "telemetry", "seq": null, "event": true, "event_keys": ["S4_RTT_INCREASE"], "details": {"S4_RTT_INCREASE": "rtt_avg=260.6ms > 150.0ms  loss=0.0%"}}
+{"ts": "2026-04-21T06:58:05.693598+00:00", "probe_type": "fast", "seq": 164, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:07.751982+00:00", "probe_type": "fast", "seq": 165, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:09.702163+00:00", "probe_type": "fast", "seq": 166, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:11.762786+00:00", "probe_type": "fast", "seq": 167, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:13.686233+00:00", "probe_type": "fast", "seq": 168, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:15.658070+00:00", "probe_type": "fast", "seq": 169, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:17.750562+00:00", "probe_type": "fast", "seq": 170, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:19.694416+00:00", "probe_type": "fast", "seq": 171, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:21.705938+00:00", "probe_type": "fast", "seq": 172, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:23.738692+00:00", "probe_type": "fast", "seq": 173, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:25.469612+00:00", "probe_type": "fast", "seq": 174, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:27.524232+00:00", "probe_type": "fast", "seq": 175, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:29.462909+00:00", "probe_type": "fast", "seq": 176, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:31.465396+00:00", "probe_type": "fast", "seq": 177, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:33.503687+00:00", "probe_type": "fast", "seq": 178, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:32.357592+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:35.461681+00:00", "probe_type": "fast", "seq": 179, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:37.471024+00:00", "probe_type": "fast", "seq": 180, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:32.359334+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:39.455488+00:00", "probe_type": "fast", "seq": 181, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:41.474258+00:00", "probe_type": "fast", "seq": 182, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:43.476110+00:00", "probe_type": "fast", "seq": 183, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:45.476903+00:00", "probe_type": "fast", "seq": 184, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:47.483034+00:00", "probe_type": "fast", "seq": 185, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:49.445211+00:00", "probe_type": "fast", "seq": 186, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:51.461147+00:00", "probe_type": "fast", "seq": 187, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:53.489188+00:00", "probe_type": "fast", "seq": 188, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:55.549844+00:00", "probe_type": "fast", "seq": 189, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:57.586603+00:00", "probe_type": "fast", "seq": 190, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:58:59.529898+00:00", "probe_type": "fast", "seq": 191, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:01.492199+00:00", "probe_type": "fast", "seq": 192, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:03.465345+00:00", "probe_type": "fast", "seq": 193, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:02.358037+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:05.492757+00:00", "probe_type": "fast", "seq": 194, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:07.475406+00:00", "probe_type": "fast", "seq": 195, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:09.475491+00:00", "probe_type": "fast", "seq": 196, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:11.552729+00:00", "probe_type": "fast", "seq": 197, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:13.464236+00:00", "probe_type": "fast", "seq": 198, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:15.472992+00:00", "probe_type": "fast", "seq": 199, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:17.488258+00:00", "probe_type": "fast", "seq": 200, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:19.528799+00:00", "probe_type": "fast", "seq": 201, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:21.460927+00:00", "probe_type": "fast", "seq": 202, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:23.538134+00:00", "probe_type": "fast", "seq": 203, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:25.486115+00:00", "probe_type": "fast", "seq": 204, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:27.506424+00:00", "probe_type": "fast", "seq": 205, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:29.480177+00:00", "probe_type": "fast", "seq": 206, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:31.541843+00:00", "probe_type": "fast", "seq": 207, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:34.744673+00:00", "probe_type": "fast", "seq": 208, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:37.122308+00:00", "probe_type": "fast", "seq": 209, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=608ms, its.ac.id=686ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:59:32.358543+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:40.103117+00:00", "probe_type": "fast", "seq": 210, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:41.506200+00:00", "probe_type": "fast", "seq": 211, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=OK(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T06:59:43.395616+00:00", "probe_type": "fast", "seq": 212, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:45.750114+00:00", "probe_type": "fast", "seq": 213, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=559ms, its.ac.id=586ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:59:48.790973+00:00", "probe_type": "fast", "seq": 214, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:50.257268+00:00", "probe_type": "fast", "seq": 215, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=OK(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T06:59:50.994075+00:00", "probe_type": "fast", "seq": 216, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:54.102641+00:00", "probe_type": "fast", "seq": 217, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T06:59:56.400592+00:00", "probe_type": "fast", "seq": 218, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=557ms, its.ac.id=570ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:59:59.349601+00:00", "probe_type": "fast", "seq": 219, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:01.113012+00:00", "probe_type": "fast", "seq": 220, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=OK(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T07:00:01.546917+00:00", "probe_type": "fast", "seq": 221, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:04.595394+00:00", "probe_type": "fast", "seq": 222, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:02.359015+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:07.011762+00:00", "probe_type": "fast", "seq": 223, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=602ms, its.ac.id=574ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T07:00:09.727901+00:00", "probe_type": "fast", "seq": 224, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=788ms, its.ac.id=945ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T06:59:32.360407+00:00", "probe_type": "throughput", "seq": null, "event": true, "event_keys": ["S5_THROTTLE"], "details": {"S5_THROTTLE": "tp_avg=0.95Mbps < 3.0Mbps  runs=3/3"}}
+{"ts": "2026-04-21T07:00:11.947657+00:00", "probe_type": "fast", "seq": 225, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=OK(its.ac.id)"}}
+{"ts": "2026-04-21T07:00:12.682084+00:00", "probe_type": "fast", "seq": 226, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:14.171801+00:00", "probe_type": "fast", "seq": 227, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:16.196933+00:00", "probe_type": "fast", "seq": 228, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:18.178148+00:00", "probe_type": "fast", "seq": 229, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:20.297146+00:00", "probe_type": "fast", "seq": 230, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:22.164543+00:00", "probe_type": "fast", "seq": 231, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:24.190618+00:00", "probe_type": "fast", "seq": 232, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:26.164151+00:00", "probe_type": "fast", "seq": 233, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:28.146142+00:00", "probe_type": "fast", "seq": 234, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:30.166074+00:00", "probe_type": "fast", "seq": 235, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:32.177229+00:00", "probe_type": "fast", "seq": 236, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:35.582330+00:00", "probe_type": "fast", "seq": 237, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:32.359571+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:38.070573+00:00", "probe_type": "fast", "seq": 238, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=712ms, its.ac.id=814ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T07:00:41.156330+00:00", "probe_type": "fast", "seq": 239, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:41.803125+00:00", "probe_type": "fast", "seq": 240, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:44.653903+00:00", "probe_type": "fast", "seq": 241, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=498ms, its.ac.id=546ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T07:00:47.227664+00:00", "probe_type": "fast", "seq": 242, "event": true, "event_keys": ["S1_DNS_DELAY"], "details": {"S1_DNS_DELAY": "slow_dns=[google.com=692ms, its.ac.id=827ms] >= 300ms  ping=OK"}}
+{"ts": "2026-04-21T07:00:50.140769+00:00", "probe_type": "fast", "seq": 243, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:50.357048+00:00", "probe_type": "fast", "seq": 244, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:53.042560+00:00", "probe_type": "fast", "seq": 245, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:55.312326+00:00", "probe_type": "fast", "seq": 246, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=OK(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T07:00:56.345393+00:00", "probe_type": "fast", "seq": 247, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:32.360882+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:00:58.354848+00:00", "probe_type": "fast", "seq": 248, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:00.372008+00:00", "probe_type": "fast", "seq": 249, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:02.357885+00:00", "probe_type": "fast", "seq": 250, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:02.359749+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:04.457399+00:00", "probe_type": "fast", "seq": 251, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:06.353685+00:00", "probe_type": "fast", "seq": 252, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:08.346584+00:00", "probe_type": "fast", "seq": 253, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:10.361000+00:00", "probe_type": "fast", "seq": 254, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:12.337929+00:00", "probe_type": "fast", "seq": 255, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:14.343829+00:00", "probe_type": "fast", "seq": 256, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:16.375855+00:00", "probe_type": "fast", "seq": 257, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:18.342213+00:00", "probe_type": "fast", "seq": 258, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:20.385850+00:00", "probe_type": "fast", "seq": 259, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:22.349348+00:00", "probe_type": "fast", "seq": 260, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:24.340408+00:00", "probe_type": "fast", "seq": 261, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:27.304281+00:00", "probe_type": "fast", "seq": 262, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=FAIL(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T07:01:30.321636+00:00", "probe_type": "fast", "seq": 263, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T07:01:32.485639+00:00", "probe_type": "fast", "seq": 264, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T07:01:33.652502+00:00", "probe_type": "fast", "seq": 265, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=OK(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T07:01:32.360224+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:34.696940+00:00", "probe_type": "fast", "seq": 266, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:36.678894+00:00", "probe_type": "fast", "seq": 267, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:38.756511+00:00", "probe_type": "fast", "seq": 268, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:32.361410+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:40.683970+00:00", "probe_type": "fast", "seq": 269, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:43.643765+00:00", "probe_type": "fast", "seq": 270, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=FAIL(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T07:01:47.627192+00:00", "probe_type": "fast", "seq": 271, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T07:01:50.768763+00:00", "probe_type": "fast", "seq": 272, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T07:01:51.813313+00:00", "probe_type": "fast", "seq": 273, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:52.972253+00:00", "probe_type": "fast", "seq": 274, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:54.984278+00:00", "probe_type": "fast", "seq": 275, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:56.968201+00:00", "probe_type": "fast", "seq": 276, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:01:58.985903+00:00", "probe_type": "fast", "seq": 277, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:01.919209+00:00", "probe_type": "fast", "seq": 278, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=FAIL(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T07:02:05.911594+00:00", "probe_type": "fast", "seq": 279, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T07:02:09.053177+00:00", "probe_type": "fast", "seq": 280, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T07:02:09.930436+00:00", "probe_type": "fast", "seq": 281, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:11.276068+00:00", "probe_type": "fast", "seq": 282, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:02.360672+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:13.335611+00:00", "probe_type": "fast", "seq": 283, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:15.257184+00:00", "probe_type": "fast", "seq": 284, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:17.441631+00:00", "probe_type": "fast", "seq": 285, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:19.253635+00:00", "probe_type": "fast", "seq": 286, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:21.333561+00:00", "probe_type": "fast", "seq": 287, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:23.282695+00:00", "probe_type": "fast", "seq": 288, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:25.265775+00:00", "probe_type": "fast", "seq": 289, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:27.261523+00:00", "probe_type": "fast", "seq": 290, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:29.276459+00:00", "probe_type": "fast", "seq": 291, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:31.256508+00:00", "probe_type": "fast", "seq": 292, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:33.465246+00:00", "probe_type": "fast", "seq": 293, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:32.361166+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:35.268168+00:00", "probe_type": "fast", "seq": 294, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:37.265011+00:00", "probe_type": "fast", "seq": 295, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:32.362052+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:39.271396+00:00", "probe_type": "fast", "seq": 296, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:41.254651+00:00", "probe_type": "fast", "seq": 297, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:43.277150+00:00", "probe_type": "fast", "seq": 298, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:45.257062+00:00", "probe_type": "fast", "seq": 299, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:47.255037+00:00", "probe_type": "fast", "seq": 300, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:49.270551+00:00", "probe_type": "fast", "seq": 301, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:51.248149+00:00", "probe_type": "fast", "seq": 302, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:53.273436+00:00", "probe_type": "fast", "seq": 303, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:55.276994+00:00", "probe_type": "fast", "seq": 304, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:57.245117+00:00", "probe_type": "fast", "seq": 305, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:02:59.261367+00:00", "probe_type": "fast", "seq": 306, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:01.284268+00:00", "probe_type": "fast", "seq": 307, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:03.248927+00:00", "probe_type": "fast", "seq": 308, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:02.361646+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:05.278005+00:00", "probe_type": "fast", "seq": 309, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:07.259009+00:00", "probe_type": "fast", "seq": 310, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:09.264897+00:00", "probe_type": "fast", "seq": 311, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:11.277937+00:00", "probe_type": "fast", "seq": 312, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:13.263251+00:00", "probe_type": "fast", "seq": 313, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:15.267701+00:00", "probe_type": "fast", "seq": 314, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:17.324171+00:00", "probe_type": "fast", "seq": 315, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:19.288683+00:00", "probe_type": "fast", "seq": 316, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:21.274498+00:00", "probe_type": "fast", "seq": 317, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:23.291808+00:00", "probe_type": "fast", "seq": 318, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:25.275252+00:00", "probe_type": "fast", "seq": 319, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:27.268755+00:00", "probe_type": "fast", "seq": 320, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:29.276862+00:00", "probe_type": "fast", "seq": 321, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:31.268678+00:00", "probe_type": "fast", "seq": 322, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:33.341564+00:00", "probe_type": "fast", "seq": 323, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:32.362127+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:35.313872+00:00", "probe_type": "fast", "seq": 324, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:37.281902+00:00", "probe_type": "fast", "seq": 325, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:32.362737+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:39.273760+00:00", "probe_type": "fast", "seq": 326, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:41.304886+00:00", "probe_type": "fast", "seq": 327, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:43.300617+00:00", "probe_type": "fast", "seq": 328, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:45.298404+00:00", "probe_type": "fast", "seq": 329, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:47.280304+00:00", "probe_type": "fast", "seq": 330, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:49.286259+00:00", "probe_type": "fast", "seq": 331, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:51.284255+00:00", "probe_type": "fast", "seq": 332, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:53.374142+00:00", "probe_type": "fast", "seq": 333, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:55.273048+00:00", "probe_type": "fast", "seq": 334, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:57.278251+00:00", "probe_type": "fast", "seq": 335, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:03:59.268670+00:00", "probe_type": "fast", "seq": 336, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:01.281034+00:00", "probe_type": "fast", "seq": 337, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:03.264029+00:00", "probe_type": "fast", "seq": 338, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:02.362565+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:05.273015+00:00", "probe_type": "fast", "seq": 339, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:07.298616+00:00", "probe_type": "fast", "seq": 340, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:09.271951+00:00", "probe_type": "fast", "seq": 341, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:11.277990+00:00", "probe_type": "fast", "seq": 342, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:13.302568+00:00", "probe_type": "fast", "seq": 343, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:15.280881+00:00", "probe_type": "fast", "seq": 344, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:17.343446+00:00", "probe_type": "fast", "seq": 345, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:19.299176+00:00", "probe_type": "fast", "seq": 346, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:21.287328+00:00", "probe_type": "fast", "seq": 347, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:23.293296+00:00", "probe_type": "fast", "seq": 348, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:25.273940+00:00", "probe_type": "fast", "seq": 349, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:27.287400+00:00", "probe_type": "fast", "seq": 350, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:29.254773+00:00", "probe_type": "fast", "seq": 351, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:31.270437+00:00", "probe_type": "fast", "seq": 352, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:34.116045+00:00", "probe_type": "fast", "seq": 353, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:32.362872+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:35.293548+00:00", "probe_type": "fast", "seq": 354, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:37.282889+00:00", "probe_type": "fast", "seq": 355, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:32.363299+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:39.375571+00:00", "probe_type": "fast", "seq": 356, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:41.320288+00:00", "probe_type": "fast", "seq": 357, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:43.288299+00:00", "probe_type": "fast", "seq": 358, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:45.267939+00:00", "probe_type": "fast", "seq": 359, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:47.287245+00:00", "probe_type": "fast", "seq": 360, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:49.277238+00:00", "probe_type": "fast", "seq": 361, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:51.643995+00:00", "probe_type": "fast", "seq": 362, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:53.715414+00:00", "probe_type": "fast", "seq": 363, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:55.646153+00:00", "probe_type": "fast", "seq": 364, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:57.307987+00:00", "probe_type": "fast", "seq": 365, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:04:59.220535+00:00", "probe_type": "fast", "seq": 366, "event": true, "event_keys": ["S3_PACKET_LOSS_BURST"], "details": {"S3_PACKET_LOSS_BURST": "ping=TIMEOUT  wifi=UP  dns=FAIL(google.com,its.ac.id)"}}
+{"ts": "2026-04-21T07:05:01.204472+00:00", "probe_type": "fast", "seq": 367, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T07:05:02.363299+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:03.208654+00:00", "probe_type": "fast", "seq": 368, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T07:05:05.208479+00:00", "probe_type": "fast", "seq": 369, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T07:05:07.221119+00:00", "probe_type": "fast", "seq": 370, "event": true, "event_keys": ["S6_CONNECTIVITY_FLAP"], "details": {"S6_CONNECTIVITY_FLAP": "ping=FAIL  all_dns=FAIL  wifi=UP  (upstream down)"}}
+{"ts": "2026-04-21T07:05:09.286530+00:00", "probe_type": "fast", "seq": 371, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:11.288258+00:00", "probe_type": "fast", "seq": 372, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:13.300882+00:00", "probe_type": "fast", "seq": 373, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:15.301894+00:00", "probe_type": "fast", "seq": 374, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:17.295079+00:00", "probe_type": "fast", "seq": 375, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:19.351132+00:00", "probe_type": "fast", "seq": 376, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:21.305828+00:00", "probe_type": "fast", "seq": 377, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:23.317745+00:00", "probe_type": "fast", "seq": 378, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:25.280560+00:00", "probe_type": "fast", "seq": 379, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:27.278036+00:00", "probe_type": "fast", "seq": 380, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:29.287149+00:00", "probe_type": "fast", "seq": 381, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:31.288028+00:00", "probe_type": "fast", "seq": 382, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:33.374315+00:00", "probe_type": "fast", "seq": 383, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:32.363734+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:35.297723+00:00", "probe_type": "fast", "seq": 384, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:37.296950+00:00", "probe_type": "fast", "seq": 385, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:32.364368+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:39.292231+00:00", "probe_type": "fast", "seq": 386, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:41.328324+00:00", "probe_type": "fast", "seq": 387, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:43.300311+00:00", "probe_type": "fast", "seq": 388, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:45.310367+00:00", "probe_type": "fast", "seq": 389, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:47.360916+00:00", "probe_type": "fast", "seq": 390, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:49.308783+00:00", "probe_type": "fast", "seq": 391, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:51.298383+00:00", "probe_type": "fast", "seq": 392, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:53.316896+00:00", "probe_type": "fast", "seq": 393, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:55.334139+00:00", "probe_type": "fast", "seq": 394, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:57.320355+00:00", "probe_type": "fast", "seq": 395, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:05:59.312427+00:00", "probe_type": "fast", "seq": 396, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:01.322478+00:00", "probe_type": "fast", "seq": 397, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:03.294056+00:00", "probe_type": "fast", "seq": 398, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:02.364191+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:05.313071+00:00", "probe_type": "fast", "seq": 399, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:07.316051+00:00", "probe_type": "fast", "seq": 400, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:09.317017+00:00", "probe_type": "fast", "seq": 401, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:11.333350+00:00", "probe_type": "fast", "seq": 402, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:13.319414+00:00", "probe_type": "fast", "seq": 403, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:15.317960+00:00", "probe_type": "fast", "seq": 404, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:17.314076+00:00", "probe_type": "fast", "seq": 405, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:19.314637+00:00", "probe_type": "fast", "seq": 406, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:21.338521+00:00", "probe_type": "fast", "seq": 407, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:23.296141+00:00", "probe_type": "fast", "seq": 408, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:25.325143+00:00", "probe_type": "fast", "seq": 409, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:27.312070+00:00", "probe_type": "fast", "seq": 410, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:29.317806+00:00", "probe_type": "fast", "seq": 411, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:31.308759+00:00", "probe_type": "fast", "seq": 412, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:33.358541+00:00", "probe_type": "fast", "seq": 413, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:32.364691+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:35.368862+00:00", "probe_type": "fast", "seq": 414, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:37.318370+00:00", "probe_type": "fast", "seq": 415, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:32.366807+00:00", "probe_type": "throughput", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:39.305240+00:00", "probe_type": "fast", "seq": 416, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:41.295675+00:00", "probe_type": "fast", "seq": 417, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:43.294450+00:00", "probe_type": "fast", "seq": 418, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:45.292593+00:00", "probe_type": "fast", "seq": 419, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:47.336645+00:00", "probe_type": "fast", "seq": 420, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:49.324614+00:00", "probe_type": "fast", "seq": 421, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:51.328117+00:00", "probe_type": "fast", "seq": 422, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:53.324938+00:00", "probe_type": "fast", "seq": 423, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:55.325171+00:00", "probe_type": "fast", "seq": 424, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:57.330096+00:00", "probe_type": "fast", "seq": 425, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:06:59.326199+00:00", "probe_type": "fast", "seq": 426, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:01.328428+00:00", "probe_type": "fast", "seq": 427, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:03.335932+00:00", "probe_type": "fast", "seq": 428, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:02.365156+00:00", "probe_type": "telemetry", "seq": null, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:05.313848+00:00", "probe_type": "fast", "seq": 429, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:07.332259+00:00", "probe_type": "fast", "seq": 430, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:09.310609+00:00", "probe_type": "fast", "seq": 431, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:11.318310+00:00", "probe_type": "fast", "seq": 432, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:13.320820+00:00", "probe_type": "fast", "seq": 433, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:15.314391+00:00", "probe_type": "fast", "seq": 434, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:17.349077+00:00", "probe_type": "fast", "seq": 435, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:19.345788+00:00", "probe_type": "fast", "seq": 436, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:21.342062+00:00", "probe_type": "fast", "seq": 437, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:23.345764+00:00", "probe_type": "fast", "seq": 438, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:25.441575+00:00", "probe_type": "fast", "seq": 439, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:27.633334+00:00", "probe_type": "fast", "seq": 440, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:29.352477+00:00", "probe_type": "fast", "seq": 441, "event": false, "event_keys": [], "details": {}}
+{"ts": "2026-04-21T07:07:31.389002+00:00", "probe_type": "fast", "seq": 442, "event": false, "event_keys": [], "details": {}}
