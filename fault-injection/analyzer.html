@@ -38,6 +38,7 @@
         #runSelectorGroup { display: none; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
         .chart-container { position: relative; width: 100%; height: 350px; margin-top: 15px; }
         pre { background-color: rgba(0,0,0,0.2); padding: 15px; border-radius: 6px; overflow-x: auto; max-height: 300px; font-family: monospace; font-size: 13px; border: 1px solid var(--border); }
+        .auto-load-card { border-left: 4px solid var(--primary); background: rgba(59, 130, 246, 0.05); }
     </style>
 </head>
 <body>
@@ -48,19 +49,39 @@
         </div>
         
         <div class="card">
-            <h3>1. Upload / Pilih Dataset</h3>
-            <p>Upload log untuk dianalisis. Data akan <b>tersimpan otomatis</b> di browser Anda (Persistent).</p>
-            <div class="grid-4">
+            <h3>1. Muat Dataset Log</h3>
+            
+            <!-- Opsi A: Auto-Load -->
+            <div class="card auto-load-card">
+                <h4 style="margin-top: 0; color: var(--primary);">Opsi A: Auto-Load (via Local Server)</h4>
+                <p>Pilih skenario untuk menarik file log secara otomatis. <b>Syarat:</b> Jalankan analyzer ini menggunakan local server (misal: <code>python3 -m http.server</code>) di folder <code>fault-injection</code>.</p>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <select id="autoLoadScenario" style="min-width: 200px; margin-right: 0;">
+                        <option value="test_S1">Skenario S1 (test_S1)</option>
+                        <option value="test_S2">Skenario S2 (test_S2)</option>
+                        <option value="test_S3" selected>Skenario S3 (test_S3)</option>
+                        <option value="test_S4">Skenario S4 (test_S4)</option>
+                        <option value="test_S5">Skenario S5 (test_S5)</option>
+                        <option value="test_S6">Skenario S6 (test_S6)</option>
+                    </select>
+                    <button onclick="autoLoadFromLocal()">⚡ Tarik Data Otomatis</button>
+                </div>
+                <p style="margin: 10px 0 0 0;"><small id="autoLoadStatus" style="font-weight: 600;"></small></p>
+            </div>
+
+            <!-- Opsi B: Upload Manual -->
+            <h4 style="margin-top: 20px;">Opsi B: Upload Manual (Jika membuka file .html secara langsung)</h4>
+            <div class="grid-4" style="margin-bottom: 15px;">
                 <div class="file-input-group">
-                    <label>Ground Truth (ground_truth.jsonl)</label>
+                    <label>Ground Truth (fi-scripts)</label>
                     <input type="file" id="fileGt" accept=".jsonl,.txt,.log">
                 </div>
                 <div class="file-input-group">
-                    <label>Detection Log (detection_log.jsonl)</label>
+                    <label>Detection Log (fault-tester)</label>
                     <input type="file" id="fileDet" accept=".jsonl,.txt,.log">
                 </div>
                 <div class="file-input-group">
-                    <label>Overhead Log (overhead_log.jsonl)</label>
+                    <label>Overhead Log (fault-tester)</label>
                     <input type="file" id="fileOvh" accept=".jsonl,.txt,.log">
                 </div>
                 <div class="file-input-group">
@@ -248,6 +269,44 @@
             location.reload();
         }
 
+        async function autoLoadFromLocal() {
+            const scenario = document.getElementById('autoLoadScenario').value;
+            const statusEl = document.getElementById('autoLoadStatus');
+            statusEl.innerText = "Mengambil data...";
+            statusEl.style.color = "var(--text-muted)";
+
+            const paths = {
+                gt: `./fi-scripts/out/${scenario}/ground_truth.jsonl`,
+                det: `./fault-tester/out/${scenario}/detection_log.jsonl`,
+                ovh: `./fault-tester/out/${scenario}/overhead_log.jsonl`,
+                raw: `./fault-tester/out/${scenario}/raw_monitor.log`
+            };
+
+            try {
+                const fetchFile = async (path) => {
+                    const res = await fetch(path, { cache: "no-store" });
+                    if (!res.ok) throw new Error(`Gagal memuat ${path} (${res.status})`);
+                    return await res.text();
+                };
+
+                const [gtText, detText, ovhText, rawText] = await Promise.all([
+                    fetchFile(paths.gt),
+                    fetchFile(paths.det),
+                    fetchFile(paths.ovh).catch(() => ""),
+                    fetchFile(paths.raw).catch(() => "")
+                ]);
+
+                await saveDataAndPopulate(gtText, detText, ovhText, rawText);
+                
+                statusEl.innerText = `✅ Berhasil memuat data dari folder ${scenario}!`;
+                statusEl.style.color = "#34d399";
+            } catch (error) {
+                console.error(error);
+                statusEl.innerText = `❌ ${error.message}`;
+                statusEl.style.color = "#f87171";
+            }
+        }
+
         async function processFiles() {
             const fileGt = document.getElementById('fileGt').files[0];
             const fileDet = document.getElementById('fileDet').files[0];
@@ -260,24 +319,29 @@
             }
 
             try {
-                g_gtData = parseJSONL(await readFile(fileGt));
-                g_detData = parseJSONL(await readFile(fileDet));
-                g_ovhData = fileOvh ? parseJSONL(await readFile(fileOvh)) : [];
-                
+                const gtText = await readFile(fileGt);
+                const detText = await readFile(fileDet);
+                const ovhText = fileOvh ? await readFile(fileOvh) : "";
                 const rawText = await readFile(fileRaw);
-                g_rawDataLines = rawText.split('\n');
 
-                await setDB('gtData', g_gtData);
-                await setDB('detData', g_detData);
-                await setDB('ovhData', g_ovhData);
-                await setDB('rawDataLines', g_rawDataLines);
-                
-                populateRunSelector();
+                await saveDataAndPopulate(gtText, detText, ovhText, rawText);
                 alert("Data berhasil diproses dan disimpan.");
             } catch (err) {
                 console.error(err);
                 alert("Gagal membaca atau mem-parsing file. Pastikan format JSONL valid.");
             }
+        }
+
+        async function saveDataAndPopulate(gtText, detText, ovhText, rawText) {
+            g_gtData = parseJSONL(gtText);
+            g_detData = parseJSONL(detText);
+            g_ovhData = ovhText ? parseJSONL(ovhText) : [];
+            g_rawDataLines = rawText ? rawText.split('\n') : [];
+            await setDB('gtData', g_gtData);
+            await setDB('detData', g_detData);
+            await setDB('ovhData', g_ovhData);
+            await setDB('rawDataLines', g_rawDataLines);
+            populateRunSelector();
         }
 
         function populateRunSelector() {
