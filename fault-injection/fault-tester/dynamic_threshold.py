@@ -46,11 +46,10 @@ class RollingMadThreshold:
         sample_values = list(self.samples)
         med = float(median(sample_values))
         scaled_mad = float(MAD_SCALE * median(abs(value - med) for value in sample_values))
-        raw_dynamic_threshold = med + self.k * scaled_mad
-        dyn_threshold = max(self.static_threshold, raw_dynamic_threshold)
+        dyn_threshold = med + self.k * scaled_mad
         return {
             "value": dyn_threshold,
-            "mode": "dynamic" if raw_dynamic_threshold >= self.static_threshold else "dynamic_floor",
+            "mode": "dynamic",
             "median": med,
             "mad": scaled_mad,
             "sample_count": len(self.samples),
