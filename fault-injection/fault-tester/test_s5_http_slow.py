@@ -3,6 +3,8 @@ import time
 import subprocess
 from datetime import datetime
 
+from dynamic_threshold import make_dynamic_threshold
+
 CONFIG_PATH = "tester_config.json"
 
 def load_config():
@@ -48,6 +50,8 @@ def main():
     N = cfg["rules"]["S5_HTTP_SLOW"]["confirm_consecutive"]
     total_threshold = cfg["thresholds"]["http_total_threshold_ms"]
     ttfb_threshold = cfg["thresholds"]["http_ttfb_threshold_ms"]
+    dyn_total = make_dynamic_threshold(cfg, "S5_HTTP_SLOW", "http_total_ms", total_threshold)
+    dyn_ttfb = make_dynamic_threshold(cfg, "S5_HTTP_SLOW", "http_ttfb_ms", ttfb_threshold)
     
     http_targets = cfg["targets"]["http_targets"]
     iface = cfg["targets"]["iface"]
@@ -81,8 +85,11 @@ def main():
                         details.append(f"{t['url']}={res['status']}/{res['total_ms']:.1f}ms ttfb={res['ttfb_ms']:.1f}ms")
                         if res["status"] < 200 or res["status"] >= 400:
                             hit_this_round = True
-                        elif res["total_ms"] >= total_threshold or res["ttfb_ms"] >= ttfb_threshold:
-                            hit_this_round = True
+                        else:
+                            total_decision = dyn_total.evaluate(res["total_ms"], update=not is_active)
+                            ttfb_decision = dyn_ttfb.evaluate(res["ttfb_ms"], update=not is_active)
+                            if total_decision["exceeded"] or ttfb_decision["exceeded"]:
+                                hit_this_round = True
                             
             if hit_this_round:
                 consecutive_hits += 1
@@ -91,7 +98,7 @@ def main():
                 consecutive_hits = 0
                 consecutive_ok += 1
                 
-            status = f"wifi={'UP' if wifi_up else 'DOWN'} http=[{', '.join(details)}]"
+            status = f"wifi={'UP' if wifi_up else 'DOWN'} http=[{', '.join(details)}] {dyn_total.describe('total_dyn_thr')} {dyn_ttfb.describe('ttfb_dyn_thr')}"
             print(f"[{ts}] S5 Probe | {status} | hits={consecutive_hits}/{N}")
             
             if not is_active and consecutive_hits >= N:

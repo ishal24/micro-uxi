@@ -3,6 +3,8 @@ import time
 import subprocess
 from datetime import datetime
 
+from dynamic_threshold import make_dynamic_threshold
+
 CONFIG_PATH = "tester_config.json"
 
 def load_config():
@@ -37,6 +39,7 @@ def main():
     interval = cfg["scheduler"]["fast_interval_sec"]
     N = cfg["rules"]["S1_DNS_DEGRADED"]["confirm_consecutive"]
     threshold = cfg["thresholds"]["dns_latency_threshold_ms"]
+    dyn_dns = make_dynamic_threshold(cfg, "S1_DNS_DEGRADED", "dns_latency_ms", threshold)
     
     ping_target = cfg["targets"]["ping_target"]
     dns_targets = cfg["targets"]["dns_targets"]
@@ -65,7 +68,8 @@ def main():
                     res = run_dns(t["name"], resolver)
                     if res["success"]:
                         latencies.append(f"{t['name']}={res['latency_ms']:.1f}ms")
-                        if res["latency_ms"] >= threshold:
+                        decision = dyn_dns.evaluate(res["latency_ms"], update=not is_active)
+                        if decision["exceeded"]:
                             hit_this_round = True
             
             ts = datetime.now().strftime('%H:%M:%S')
@@ -77,7 +81,7 @@ def main():
                 consecutive_hits = 0
                 consecutive_ok += 1
             
-            status = f"wifi={'UP' if wifi_up else 'DOWN'} ping={'OK' if ping_ok else 'FAIL'} dns=[{', '.join(latencies)}]"
+            status = f"wifi={'UP' if wifi_up else 'DOWN'} ping={'OK' if ping_ok else 'FAIL'} dns=[{', '.join(latencies)}] {dyn_dns.describe()}"
             print(f"[{ts}] S1 Probe | {status} | hits={consecutive_hits}/{N}")
             
             if not is_active and consecutive_hits >= N:

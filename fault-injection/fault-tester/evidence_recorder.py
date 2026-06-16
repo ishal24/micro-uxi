@@ -472,6 +472,21 @@ class EvidenceRecorder:
             metrics["http_success"] = False
             metrics["curl_rc"] = int(http_fail_match.group(1))
 
+        dynamic_thresholds: dict[str, Any] = {}
+        for label, value in re.findall(r"\b([A-Za-z0-9_]*dyn_thr)=([0-9.]+)ms\b", body):
+            dynamic_thresholds[label] = float(value)
+        for label, value in re.findall(r"\b([A-Za-z0-9_]*base)=([0-9.]+)ms\b", body):
+            dynamic_thresholds[label] = float(value)
+        for label, value in re.findall(r"\b([A-Za-z0-9_]*mode)=(static|dynamic)\b", body):
+            dynamic_thresholds[label] = value
+        for label, count, required in re.findall(r"\b([A-Za-z0-9_]*n)=(\d+)/(\d+)\b", body):
+            dynamic_thresholds[label] = {
+                "sample_count": int(count),
+                "min_samples": int(required),
+            }
+        if dynamic_thresholds:
+            metrics["dynamic_thresholds"] = dynamic_thresholds
+
         dns_match = re.search(r"dns=\[(?P<dns>[^\]]*)\]", body)
         if dns_match:
             dns_body = dns_match.group("dns")

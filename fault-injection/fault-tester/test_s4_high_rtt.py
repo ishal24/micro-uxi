@@ -4,6 +4,8 @@ import subprocess
 from datetime import datetime
 import re
 
+from dynamic_threshold import make_dynamic_threshold
+
 CONFIG_PATH = "tester_config.json"
 
 def load_config():
@@ -37,6 +39,7 @@ def main():
     interval = cfg["scheduler"]["telemetry_interval_sec"]
     N = cfg["rules"]["S4_HIGH_RTT"]["confirm_consecutive"]
     threshold = cfg["thresholds"]["rtt_threshold_ms"]
+    dyn_rtt = make_dynamic_threshold(cfg, "S4_HIGH_RTT", "rtt_ms", threshold)
     
     ping_target = cfg["targets"]["ping_target"]
     iface = cfg["targets"]["iface"]
@@ -66,9 +69,10 @@ def main():
                     rtt_str = f"{ping_res['rtt_avg_ms']:.1f}ms"
                     loss_str = f"{ping_res['loss_pct']:.0f}%"
                     
-                    if ping_res["rtt_avg_ms"] >= threshold:
-                        # Exclude loss burst scenario (if loss > 15%, S3 should catch it, not S4)
-                        if ping_res["loss_pct"] < 15:
+                    # Exclude loss burst scenario (if loss > 15%, S3 should catch it, not S4)
+                    if ping_res["loss_pct"] < 15:
+                        decision = dyn_rtt.evaluate(ping_res["rtt_avg_ms"], update=not is_active)
+                        if decision["exceeded"]:
                             hit_this_round = True
                 else:
                     loss_str = f"{ping_res['loss_pct']:.0f}%"
@@ -80,7 +84,7 @@ def main():
                 consecutive_hits = 0
                 consecutive_ok += 1
                 
-            status = f"wifi={'UP' if wifi_up else 'DOWN'} rtt={rtt_str} loss={loss_str}"
+            status = f"wifi={'UP' if wifi_up else 'DOWN'} rtt={rtt_str} loss={loss_str} {dyn_rtt.describe()}"
             print(f"[{ts}] S4 Probe | {status} | hits={consecutive_hits}/{N}")
             
             if not is_active and consecutive_hits >= N:

@@ -54,7 +54,7 @@
             <!-- Opsi A: Auto-Load -->
             <div class="card auto-load-card">
                 <h4 style="margin-top: 0; color: var(--primary);">Opsi A: Auto-Load (via Local Server)</h4>
-                <p>Pilih skenario untuk menarik file log secara otomatis. <b>Syarat:</b> Jalankan analyzer ini menggunakan local server (misal: <code>python3 -m http.server</code>) di folder <code>fault-injection</code>.</p>
+                <p>Pilih skenario dan folder run untuk menarik file log secara otomatis. <b>Syarat:</b> Jalankan analyzer ini menggunakan local server (misal: <code>python3 -m http.server</code>) di folder <code>fault-injection</code>.</p>
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                     <select id="autoLoadScenario" style="min-width: 200px; margin-right: 0;">
                         <option value="test_S1">Skenario S1 (test_S1)</option>
@@ -64,8 +64,16 @@
                         <option value="test_S5">Skenario S5 (test_S5)</option>
                         <option value="test_S6">Skenario S6 (test_S6)</option>
                     </select>
+                    <input
+                        id="autoLoadRunFolder"
+                        type="text"
+                        value="run_id_01"
+                        placeholder="run_id_01 atau run_id_03_event"
+                        style="padding: 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); min-width: 230px;"
+                    >
                     <button onclick="autoLoadFromLocal()">Pull data</button>
                 </div>
+                <p style="margin: 10px 0 0 0;"><small>Jika folder monitor memakai suffix <code>_event</code>, ground truth otomatis dicari di folder tanpa suffix, misalnya <code>run_id_03_event</code> → <code>fi-scripts/out/test_SX/run_id_03/ground_truth.jsonl</code>.</small></p>
                 <p style="margin: 10px 0 0 0;"><small id="autoLoadStatus" style="font-weight: 600;"></small></p>
             </div>
 
@@ -280,15 +288,17 @@
 
         async function autoLoadFromLocal() {
             const scenario = document.getElementById('autoLoadScenario').value;
+            const monitorRunFolder = (document.getElementById('autoLoadRunFolder').value || 'run_id_01').trim();
+            const gtRunFolder = monitorRunFolder.replace(/_event$/, '');
             const statusEl = document.getElementById('autoLoadStatus');
             statusEl.innerText = "Mengambil data...";
             statusEl.style.color = "var(--text-muted)";
 
             const paths = {
-                gt: `./fi-scripts/out/${scenario}/ground_truth.jsonl`,
-                det: `./fault-tester/out/${scenario}/detection_log.jsonl`,
-                ovh: `./fault-tester/out/${scenario}/overhead_log.jsonl`,
-                raw: `./fault-tester/out/${scenario}/raw_monitor.log`
+                gt: `./fi-scripts/out/${scenario}/${gtRunFolder}/ground_truth.jsonl`,
+                det: `./fault-tester/out/${scenario}/${monitorRunFolder}/detection_log.jsonl`,
+                ovh: `./fault-tester/out/${scenario}/${monitorRunFolder}/overhead_log.jsonl`,
+                raw: `./fault-tester/out/${scenario}/${monitorRunFolder}/raw_monitor.log`
             };
 
             try {
@@ -307,7 +317,7 @@
 
                 await saveDataAndPopulate(gtText, detText, ovhText, rawText);
                 
-                statusEl.innerText = `✅ Berhasil memuat data dari folder ${scenario}!`;
+                statusEl.innerText = `✅ Berhasil memuat ${scenario}: GT=${gtRunFolder}, Monitor=${monitorRunFolder}`;
                 statusEl.style.color = "#34d399";
             } catch (error) {
                 console.error(error);

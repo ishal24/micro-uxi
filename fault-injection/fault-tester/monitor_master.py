@@ -53,6 +53,12 @@ def write_tester_config(cfg: dict[str, Any], base_dir: Path) -> None:
         f.write("\n")
 
 
+def configure_dynamic_thresholds(cfg: dict[str, Any], enabled: bool) -> None:
+    tester_config = cfg.setdefault("tester_config", {})
+    dynamic_cfg = tester_config.setdefault("dynamic_thresholds", {})
+    dynamic_cfg["enabled"] = bool(enabled)
+
+
 def next_run_output(scenario_dir: Path, event_driven: bool) -> tuple[int, Path]:
     max_index = 0
     pattern = re.compile(r"^run_id_(\d+)(?:_event)?$")
@@ -118,6 +124,8 @@ def main() -> int:
         valid = ", ".join(sorted(events.keys()))
         raise SystemExit(f"Unknown event '{event_code}'. Valid: {valid}")
 
+    configure_dynamic_thresholds(cfg, args.event_driven)
+
     if cfg.get("write_tester_config", True):
         write_tester_config(cfg, base_dir)
 
@@ -142,7 +150,8 @@ def main() -> int:
 
     raw_log_file = out_dir / "raw_monitor.log"
     evidence_recorder = None
-    if args.evidence_bundle:
+    evidence_enabled = args.evidence_bundle or args.event_driven
+    if evidence_enabled:
         evidence_cfg = cfg.get("evidence", {})
         pre_event_sec = args.evidence_pre_sec
         if pre_event_sec is None:
@@ -172,6 +181,8 @@ def main() -> int:
     if evidence_recorder:
         print(f"[MONITOR_MASTER] evidence_bundle={evidence_recorder.bundle_dir}")
         print(f"[MONITOR_MASTER] evidence_window=pre:{pre_event_sec}s post:{post_event_sec}s")
+    if args.event_driven:
+        print("[MONITOR_MASTER] dynamic_thresholds=enabled")
     print("[MONITOR_MASTER] Ctrl+C to stop.\n")
 
     env = os.environ.copy()
