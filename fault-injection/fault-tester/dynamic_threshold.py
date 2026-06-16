@@ -25,10 +25,19 @@ class RollingMadThreshold:
         self.samples: deque[float] = deque(maxlen=self.window_samples)
 
     def threshold(self) -> dict[str, Any]:
-        if not self.enabled or len(self.samples) < self.min_samples:
+        if not self.enabled:
             return {
                 "value": self.static_threshold,
-                "mode": "static",
+                "mode": "disabled",
+                "median": None,
+                "mad": None,
+                "sample_count": len(self.samples),
+            }
+
+        if len(self.samples) < self.min_samples:
+            return {
+                "value": self.static_threshold,
+                "mode": "warmup",
                 "median": None,
                 "mad": None,
                 "sample_count": len(self.samples),
@@ -37,10 +46,11 @@ class RollingMadThreshold:
         sample_values = list(self.samples)
         med = float(median(sample_values))
         scaled_mad = float(MAD_SCALE * median(abs(value - med) for value in sample_values))
-        dyn_threshold = max(self.static_threshold, med + self.k * scaled_mad)
+        raw_dynamic_threshold = med + self.k * scaled_mad
+        dyn_threshold = max(self.static_threshold, raw_dynamic_threshold)
         return {
             "value": dyn_threshold,
-            "mode": "dynamic",
+            "mode": "dynamic" if raw_dynamic_threshold >= self.static_threshold else "dynamic_floor",
             "median": med,
             "mad": scaled_mad,
             "sample_count": len(self.samples),
