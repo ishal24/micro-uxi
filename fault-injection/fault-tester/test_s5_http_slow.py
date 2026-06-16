@@ -78,7 +78,7 @@ def main():
                         if res["curl_rc"] not in (0, 6): # 6 is DNS fail, handled by S2
                             hit_this_round = True
                     else:
-                        details.append(f"{t['url']}={res['status']}/{res['total_ms']:.1f}ms")
+                        details.append(f"{t['url']}={res['status']}/{res['total_ms']:.1f}ms ttfb={res['ttfb_ms']:.1f}ms")
                         if res["status"] < 200 or res["status"] >= 400:
                             hit_this_round = True
                         elif res["total_ms"] >= total_threshold or res["ttfb_ms"] >= ttfb_threshold:

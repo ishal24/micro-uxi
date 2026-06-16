@@ -3,7 +3,7 @@
 Monitoring master for Micro-UXI.
 
 Place this file and monitor_config.json in the monitoring/ folder.
-Output dataset: detection_log.jsonl only.
+Output dataset: detection_log.jsonl, with optional evidence bundle.
 """
 
 from __future__ import annotations
@@ -18,6 +18,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+from evidence_recorder import EvidenceRecorder
 
 EVENT_RE = re.compile(r"\[(ALARM|RECOVERY)\]\s+(S\d+)\s+([A-Z0-9_]+)", re.IGNORECASE)
 
@@ -57,6 +59,16 @@ def main() -> int:
     parser.add_argument("--run-id", required=True, help="Example: S3_RUN_01")
     parser.add_argument("--config", default="monitor_config.json")
     parser.add_argument("--output", default=None, help="Override output JSONL file")
+    parser.add_argument(
+        "--evidence-bundle",
+        action="store_true",
+        help="Record evidence_timeline.jsonl and diagnostic_snapshot.json",
+    )
+    parser.add_argument(
+        "--evidence-dir",
+        default=None,
+        help="Override evidence bundle directory",
+    )
     args = parser.parse_args()
 
     base_dir = Path.cwd().resolve()
@@ -90,11 +102,26 @@ def main() -> int:
         output_file = out_dir / output_file.name
 
     raw_log_file = out_dir / "raw_monitor.log"
+    evidence_recorder = None
+    if args.evidence_bundle:
+        evidence_dir = Path(args.evidence_dir) if args.evidence_dir else out_dir / f"evidence_bundle_{args.run_id}"
+        if not evidence_dir.is_absolute():
+            evidence_dir = out_dir / evidence_dir
+        evidence_recorder = EvidenceRecorder(
+            evidence_dir,
+            args.run_id,
+            event_code,
+            expected_event_type,
+            cfg.get("tester_config", {}),
+        )
+        evidence_recorder.capture_diagnostic_snapshot("start")
 
     print(f"[MONITOR_MASTER] run_id={args.run_id} event={event_code} expected={expected_event_type}")
     print(f"[MONITOR_MASTER] script={script_path.name}")
     print(f"[MONITOR_MASTER] dataset={output_file}")
     print(f"[MONITOR_MASTER] raw_log={raw_log_file}")
+    if evidence_recorder:
+        print(f"[MONITOR_MASTER] evidence_bundle={evidence_recorder.bundle_dir}")
     print("[MONITOR_MASTER] Ctrl+C to stop.\n")
 
     env = os.environ.copy()
@@ -133,6 +160,8 @@ def main() -> int:
 
                 match = EVENT_RE.search(line)
                 if not match:
+                    if evidence_recorder:
+                        evidence_recorder.record_monitor_line(line)
                     continue
 
                 status_type = match.group(1).upper()  # Akan berisi 'ALARM' atau 'RECOVERY'
@@ -145,6 +174,8 @@ def main() -> int:
                     "status": status_type
                 }
                 append_jsonl(output_file, record)
+                if evidence_recorder:
+                    evidence_recorder.record_detection_event(status_type, detected_event_code, detected_event_type)
 
     except KeyboardInterrupt:
         print("\n[MONITOR_MASTER] stopping...")
@@ -159,6 +190,8 @@ def main() -> int:
                 proc.kill()
 
     finally:
+        if evidence_recorder:
+            evidence_recorder.capture_diagnostic_snapshot("stop")
         if overhead_proc:
             overhead_proc.terminate()
             try:

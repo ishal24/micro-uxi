@@ -64,7 +64,7 @@
                         <option value="test_S5">Skenario S5 (test_S5)</option>
                         <option value="test_S6">Skenario S6 (test_S6)</option>
                     </select>
-                    <button onclick="autoLoadFromLocal()">⚡ Tarik Data Otomatis</button>
+                    <button onclick="autoLoadFromLocal()">Pull data</button>
                 </div>
                 <p style="margin: 10px 0 0 0;"><small id="autoLoadStatus" style="font-weight: 600;"></small></p>
             </div>
@@ -94,7 +94,7 @@
             <div id="runSelectorGroup">
                 <label>Pilih Skenario (Run ID) untuk dianalisis: </label>
                 <select id="runSelect"></select>
-                <button onclick="analyzeSelectedRun()">Analisis Skenario</button>
+                <button onclick="analyzeSelectedRun()">Analyze</button>
             </div>
         </div>
 
@@ -199,7 +199,16 @@
         });
 
         // Parse JSONL string into array of objects
-        const parseJSONL = (text) => text.split('\n').filter(line => line.trim()).map(line => JSON.parse(line));
+        const parseJSONL = (text) => {
+            return text.split('\n').filter(line => line.trim()).reduce((acc, line, idx) => {
+                try {
+                    acc.push(JSON.parse(line));
+                } catch (e) {
+                    console.warn(`Peringatan: Baris JSON tidak valid dilewati. Error: ${e.message}`, line);
+                }
+                return acc;
+            }, []);
+        };
 
         // Global state
         let g_gtData = [], g_detData = [], g_ovhData = [], g_rawDataLines = [];
