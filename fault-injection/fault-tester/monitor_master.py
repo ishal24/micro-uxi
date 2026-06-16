@@ -87,6 +87,18 @@ def main() -> int:
         help="Override evidence bundle directory",
     )
     parser.add_argument(
+        "--evidence-pre-sec",
+        type=int,
+        default=None,
+        help="Seconds of samples to keep before each ALARM",
+    )
+    parser.add_argument(
+        "--evidence-post-sec",
+        type=int,
+        default=None,
+        help="Seconds of samples to keep after each RECOVERY",
+    )
+    parser.add_argument(
         "--event-driven",
         action="store_true",
         help="Use run_id_XX_event output folder naming. --evidence-bundle also enables this.",
@@ -131,6 +143,14 @@ def main() -> int:
     raw_log_file = out_dir / "raw_monitor.log"
     evidence_recorder = None
     if args.evidence_bundle:
+        evidence_cfg = cfg.get("evidence", {})
+        pre_event_sec = args.evidence_pre_sec
+        if pre_event_sec is None:
+            pre_event_sec = int(evidence_cfg.get("pre_event_sec", 60))
+        post_event_sec = args.evidence_post_sec
+        if post_event_sec is None:
+            post_event_sec = int(evidence_cfg.get("post_event_sec", 60))
+
         evidence_dir = Path(args.evidence_dir) if args.evidence_dir else out_dir / "evidence"
         if not evidence_dir.is_absolute():
             evidence_dir = out_dir / evidence_dir
@@ -140,8 +160,9 @@ def main() -> int:
             event_code,
             expected_event_type,
             cfg.get("tester_config", {}),
+            pre_event_sec=pre_event_sec,
+            post_event_sec=post_event_sec,
         )
-        evidence_recorder.capture_diagnostic_snapshot("start")
 
     print(f"[MONITOR_MASTER] run_id={run_id} event={event_code} expected={expected_event_type}")
     print(f"[MONITOR_MASTER] output_dir={out_dir}")
@@ -150,6 +171,7 @@ def main() -> int:
     print(f"[MONITOR_MASTER] raw_log={raw_log_file}")
     if evidence_recorder:
         print(f"[MONITOR_MASTER] evidence_bundle={evidence_recorder.bundle_dir}")
+        print(f"[MONITOR_MASTER] evidence_window=pre:{pre_event_sec}s post:{post_event_sec}s")
     print("[MONITOR_MASTER] Ctrl+C to stop.\n")
 
     env = os.environ.copy()
@@ -219,7 +241,7 @@ def main() -> int:
 
     finally:
         if evidence_recorder:
-            evidence_recorder.capture_diagnostic_snapshot("stop")
+            evidence_recorder.close()
         if overhead_proc:
             overhead_proc.terminate()
             try:

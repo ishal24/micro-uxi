@@ -2,6 +2,10 @@
   "output_file": "detection_log.jsonl",
   "write_tester_config": true,
   "tester_config_file": "tester_config.json",
+  "evidence": {
+    "pre_event_sec": 60,
+    "post_event_sec": 60
+  },
 
   "tester_config": {
     "scheduler": {

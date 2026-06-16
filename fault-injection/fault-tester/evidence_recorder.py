@@ -12,7 +12,8 @@ from __future__ import annotations
 import json
 import re
 import subprocess
-from datetime import datetime
+from collections import deque
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -39,38 +40,27 @@ class EvidenceRecorder:
         event_code: str,
         expected_event_type: str,
         tester_config: dict[str, Any],
+        pre_event_sec: int = 30,
+        post_event_sec: int = 30,
     ) -> None:
         self.bundle_dir = bundle_dir
         self.run_id = run_id
         self.event_code = event_code
         self.expected_event_type = expected_event_type
         self.tester_config = tester_config
-        self.timeline_path = bundle_dir / "evidence_timeline.jsonl"
-        self.snapshot_path = bundle_dir / "diagnostic_snapshot.json"
-        self.active_event = False
-        self.seen_alarm = False
+        self.pre_event_sec = max(0, int(pre_event_sec))
+        self.post_event_sec = max(0, int(post_event_sec))
+        self.pre_buffer: deque[dict[str, Any]] = deque()
+        self.event_index = 0
+        self.current_event: dict[str, Any] | None = None
+        self.post_event_until: datetime | None = None
 
         self.bundle_dir.mkdir(parents=True, exist_ok=True)
-        self.timeline_path.write_text("", encoding="utf-8")
-        self._append_timeline(
-            {
-                "record_type": "run_metadata",
-                "timestamp": now_iso(),
-                "run_id": self.run_id,
-                "event_code": self.event_code,
-                "expected_event_type": self.expected_event_type,
-                "phase_policy": {
-                    "pre_event": "from monitor start until first ALARM",
-                    "event": "from ALARM until RECOVERY",
-                    "post_event": "from RECOVERY until monitor stop",
-                },
-            }
-        )
 
     def current_phase(self) -> str:
-        if self.active_event:
+        if self.current_event and self.current_event["state"] == "event":
             return "event"
-        if self.seen_alarm:
+        if self.current_event and self.current_event["state"] == "post_event":
             return "post_event"
         return "pre_event"
 
@@ -79,9 +69,10 @@ class EvidenceRecorder:
         if not match:
             return
 
+        observed_at = datetime.now().astimezone()
         record = {
             "record_type": "probe_sample",
-            "timestamp": now_iso(),
+            "timestamp": observed_at.isoformat(timespec="seconds"),
             "run_id": self.run_id,
             "event_code": self.event_code,
             "expected_event_type": self.expected_event_type,
@@ -91,17 +82,27 @@ class EvidenceRecorder:
             "raw_sample": match.group("body"),
             "parsed_metrics": self._parse_probe_body(match.group("body")),
         }
-        self._append_timeline(record)
+
+        self._close_post_event_if_due(observed_at)
+        self.pre_buffer.append(record)
+        self._trim_pre_buffer(observed_at)
+
+        if self.current_event:
+            self._append_timeline(self.current_event["timeline_path"], record)
+            self._close_post_event_if_due(observed_at)
+            return
 
     def record_detection_event(self, status: str, detected_event_code: str, detected_event_type: str) -> None:
         status = status.upper()
         if status == "ALARM":
-            self.active_event = True
-            self.seen_alarm = True
+            self._start_event(detected_event_code, detected_event_type)
             phase = "event"
         elif status == "RECOVERY":
-            self.active_event = False
-            self.seen_alarm = True
+            if self.current_event is None:
+                self._start_event(detected_event_code, detected_event_type)
+            if self.current_event:
+                self.current_event["state"] = "post_event"
+                self.post_event_until = datetime.now().astimezone() + timedelta(seconds=self.post_event_sec)
             phase = "post_event"
         else:
             phase = self.current_phase()
@@ -117,10 +118,19 @@ class EvidenceRecorder:
             "detected_event_code": detected_event_code,
             "detected_event_type": detected_event_type,
         }
-        self._append_timeline(record)
+        if self.current_event:
+            self._append_timeline(self.current_event["timeline_path"], record)
+            if status == "ALARM":
+                self.capture_diagnostic_snapshot("alarm")
+            elif status == "RECOVERY":
+                self.capture_diagnostic_snapshot("recovery")
 
     def capture_diagnostic_snapshot(self, label: str) -> None:
-        snapshot = self._load_snapshot_document()
+        if self.current_event is None:
+            return
+
+        snapshot_path = self.current_event["snapshot_path"]
+        snapshot = self._load_snapshot_document(snapshot_path)
         snapshot["snapshots"].append(
             {
                 "label": label,
@@ -142,17 +152,35 @@ class EvidenceRecorder:
                 },
             }
         )
-        self.snapshot_path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+        snapshot_path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
-    def _append_timeline(self, record: dict[str, Any]) -> None:
-        with self.timeline_path.open("a", encoding="utf-8") as fh:
+    def close(self) -> None:
+        if self.current_event:
+            self._append_timeline(
+                self.current_event["timeline_path"],
+                {
+                    "record_type": "evidence_closed",
+                    "timestamp": now_iso(),
+                    "run_id": self.run_id,
+                    "event_code": self.event_code,
+                    "expected_event_type": self.expected_event_type,
+                    "phase": self.current_phase(),
+                    "reason": "monitor_stop",
+                },
+            )
+            self.capture_diagnostic_snapshot("monitor_stop")
+            self.current_event = None
+            self.post_event_until = None
+
+    def _append_timeline(self, path: Path, record: dict[str, Any]) -> None:
+        with path.open("a", encoding="utf-8") as fh:
             fh.write(json.dumps(record, ensure_ascii=False) + "\n")
             fh.flush()
 
-    def _load_snapshot_document(self) -> dict[str, Any]:
-        if self.snapshot_path.exists():
+    def _load_snapshot_document(self, snapshot_path: Path) -> dict[str, Any]:
+        if snapshot_path.exists():
             try:
-                with self.snapshot_path.open("r", encoding="utf-8") as fh:
+                with snapshot_path.open("r", encoding="utf-8") as fh:
                     loaded = json.load(fh)
                 if isinstance(loaded, dict) and isinstance(loaded.get("snapshots"), list):
                     return loaded
@@ -165,8 +193,97 @@ class EvidenceRecorder:
             "expected_event_type": self.expected_event_type,
             "created_at": now_iso(),
             "bundle_dir": str(self.bundle_dir),
+            "event_occurrence": self.current_event["event_occurrence"] if self.current_event else None,
             "snapshots": [],
         }
+
+    def _start_event(self, detected_event_code: str, detected_event_type: str) -> None:
+        if self.current_event:
+            self.capture_diagnostic_snapshot("interrupted_by_next_alarm")
+            self.current_event = None
+            self.post_event_until = None
+
+        self.event_index += 1
+        ts = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S%z")
+        prefix = f"{self.event_code}_{detected_event_type}_{ts}_{self.event_index:02d}"
+        timeline_path = self.bundle_dir / f"{prefix}_evidence_timeline.jsonl"
+        snapshot_path = self.bundle_dir / f"{prefix}_diagnostic_snapshot.json"
+
+        self.current_event = {
+            "state": "event",
+            "event_occurrence": self.event_index,
+            "timeline_path": timeline_path,
+            "snapshot_path": snapshot_path,
+        }
+        self.post_event_until = None
+        timeline_path.write_text("", encoding="utf-8")
+
+        metadata = {
+            "record_type": "event_metadata",
+            "timestamp": now_iso(),
+            "run_id": self.run_id,
+            "event_code": self.event_code,
+            "expected_event_type": self.expected_event_type,
+            "event_occurrence": self.event_index,
+            "detected_event_code": detected_event_code,
+            "detected_event_type": detected_event_type,
+            "pre_event_sec": self.pre_event_sec,
+            "post_event_sec": self.post_event_sec,
+            "phase_policy": {
+                "pre_event": f"last {self.pre_event_sec} seconds before ALARM",
+                "event": "from ALARM until RECOVERY",
+                "post_event": f"from RECOVERY until {self.post_event_sec} seconds after recovery or monitor stop",
+            },
+            "files": {
+                "timeline": timeline_path.name,
+                "snapshot": snapshot_path.name,
+            },
+        }
+        self._append_timeline(timeline_path, metadata)
+
+        for buffered in self.pre_buffer:
+            replayed = dict(buffered)
+            replayed["phase"] = "pre_event"
+            replayed["record_type"] = "pre_event_sample"
+            self._append_timeline(timeline_path, replayed)
+
+    def _trim_pre_buffer(self, now: datetime) -> None:
+        if self.pre_event_sec <= 0:
+            self.pre_buffer.clear()
+            return
+
+        cutoff = now - timedelta(seconds=self.pre_event_sec)
+        while self.pre_buffer:
+            timestamp = self.pre_buffer[0].get("timestamp")
+            try:
+                sample_time = datetime.fromisoformat(timestamp)
+            except (TypeError, ValueError):
+                break
+            if sample_time >= cutoff:
+                break
+            self.pre_buffer.popleft()
+
+    def _close_post_event_if_due(self, observed_at: datetime) -> None:
+        if not self.current_event or self.current_event["state"] != "post_event":
+            return
+        if self.post_event_until is None or observed_at < self.post_event_until:
+            return
+
+        self._append_timeline(
+            self.current_event["timeline_path"],
+            {
+                "record_type": "evidence_closed",
+                "timestamp": observed_at.isoformat(timespec="seconds"),
+                "run_id": self.run_id,
+                "event_code": self.event_code,
+                "expected_event_type": self.expected_event_type,
+                "phase": "post_event",
+                "reason": "post_event_window_complete",
+            },
+        )
+        self.capture_diagnostic_snapshot("post_event_complete")
+        self.current_event = None
+        self.post_event_until = None
 
     def _wifi_snapshot(self) -> dict[str, Any]:
         iface = ((self.tester_config.get("targets") or {}).get("iface") or "").strip()
