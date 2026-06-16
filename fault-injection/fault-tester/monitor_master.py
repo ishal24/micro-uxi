@@ -53,10 +53,27 @@ def write_tester_config(cfg: dict[str, Any], base_dir: Path) -> None:
         f.write("\n")
 
 
+def next_run_output(scenario_dir: Path, event_driven: bool) -> tuple[int, Path]:
+    max_index = 0
+    pattern = re.compile(r"^run_id_(\d+)(?:_event)?$")
+
+    if scenario_dir.exists():
+        for child in scenario_dir.iterdir():
+            if not child.is_dir():
+                continue
+            match = pattern.match(child.name)
+            if match:
+                max_index = max(max_index, int(match.group(1)))
+
+    next_index = max_index + 1
+    suffix = "_event" if event_driven else ""
+    return next_index, scenario_dir / f"run_id_{next_index:02d}{suffix}"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run one monitoring script and append detection rows.")
     parser.add_argument("--event", required=True, help="S1, S2, S3, S4, S5, or S6")
-    parser.add_argument("--run-id", required=True, help="Example: S3_RUN_01")
+    parser.add_argument("--run-id", default=None, help="Example: S3_RUN_01. Auto-generated when omitted.")
     parser.add_argument("--config", default="monitor_config.json")
     parser.add_argument("--output", default=None, help="Override output JSONL file")
     parser.add_argument(
@@ -68,6 +85,11 @@ def main() -> int:
         "--evidence-dir",
         default=None,
         help="Override evidence bundle directory",
+    )
+    parser.add_argument(
+        "--event-driven",
+        action="store_true",
+        help="Use run_id_XX_event output folder naming. --evidence-bundle also enables this.",
     )
     args = parser.parse_args()
 
@@ -94,8 +116,13 @@ def main() -> int:
     if not script_path.exists():
         raise SystemExit(f"Monitoring script not found: {script_path}")
 
-    out_dir = base_dir / "out" / f"test_{event_code}"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    scenario_out_dir = base_dir / "out" / f"test_{event_code}"
+    scenario_out_dir.mkdir(parents=True, exist_ok=True)
+
+    event_output = args.event_driven or args.evidence_bundle
+    run_index, out_dir = next_run_output(scenario_out_dir, event_output)
+    out_dir.mkdir(parents=True, exist_ok=False)
+    run_id = args.run_id or f"{event_code}_RUN_{run_index:02d}"
 
     output_file = Path(args.output or cfg.get("output_file", "detection_log.jsonl"))
     if not output_file.is_absolute():
@@ -104,19 +131,20 @@ def main() -> int:
     raw_log_file = out_dir / "raw_monitor.log"
     evidence_recorder = None
     if args.evidence_bundle:
-        evidence_dir = Path(args.evidence_dir) if args.evidence_dir else out_dir / f"evidence_bundle_{args.run_id}"
+        evidence_dir = Path(args.evidence_dir) if args.evidence_dir else out_dir / "evidence"
         if not evidence_dir.is_absolute():
             evidence_dir = out_dir / evidence_dir
         evidence_recorder = EvidenceRecorder(
             evidence_dir,
-            args.run_id,
+            run_id,
             event_code,
             expected_event_type,
             cfg.get("tester_config", {}),
         )
         evidence_recorder.capture_diagnostic_snapshot("start")
 
-    print(f"[MONITOR_MASTER] run_id={args.run_id} event={event_code} expected={expected_event_type}")
+    print(f"[MONITOR_MASTER] run_id={run_id} event={event_code} expected={expected_event_type}")
+    print(f"[MONITOR_MASTER] output_dir={out_dir}")
     print(f"[MONITOR_MASTER] script={script_path.name}")
     print(f"[MONITOR_MASTER] dataset={output_file}")
     print(f"[MONITOR_MASTER] raw_log={raw_log_file}")
@@ -142,7 +170,7 @@ def main() -> int:
     if overhead_script.exists():
         overhead_out = out_dir / "overhead_log.jsonl"
         overhead_proc = subprocess.Popen(
-            [sys.executable, "-u", str(overhead_script), "--run-id", args.run_id, "--output", str(overhead_out)],
+            [sys.executable, "-u", str(overhead_script), "--run-id", run_id, "--output", str(overhead_out)],
             cwd=str(base_dir),
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL
@@ -155,7 +183,7 @@ def main() -> int:
                 line = line.rstrip("\n")
                 print(line, flush=True)
                 
-                f_raw.write(f"[{args.run_id}] {line}\n")
+                f_raw.write(f"[{run_id}] {line}\n")
                 f_raw.flush()
 
                 match = EVENT_RE.search(line)
@@ -168,7 +196,7 @@ def main() -> int:
                 detected_event_code = match.group(2).upper()
                 detected_event_type = match.group(3).upper()
                 record = {
-                    "run_id": args.run_id,
+                    "run_id": run_id,
                     "event_type": detected_event_type,
                     "detection_time": now_iso(),
                     "status": status_type

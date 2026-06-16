@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -94,10 +95,26 @@ def run_cmd(cmd: list[str], cwd: Path) -> None:
         raise SystemExit(completed.returncode)
 
 
+def next_run_output(scenario_dir: Path) -> tuple[int, Path]:
+    max_index = 0
+    pattern = re.compile(r"^run_id_(\d+)(?:_event)?$")
+
+    if scenario_dir.exists():
+        for child in scenario_dir.iterdir():
+            if not child.is_dir():
+                continue
+            match = pattern.match(child.name)
+            if match:
+                max_index = max(max_index, int(match.group(1)))
+
+    next_index = max_index + 1
+    return next_index, scenario_dir / f"run_id_{next_index:02d}"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run one fault injection and append one ground-truth row.")
     parser.add_argument("--event", required=True, help="S1, S2, S3, S4, S5, or S6")
-    parser.add_argument("--run-id", required=True, help="Example: S3_RUN_01")
+    parser.add_argument("--run-id", default=None, help="Example: S3_RUN_01. Auto-generated when omitted.")
     parser.add_argument("--config", default="fault_config.json")
     parser.add_argument("--output", default=None, help="Override output JSONL file")
     parser.add_argument("--duration", type=int, default=None, help="Override duration for start_stop mode")
@@ -107,7 +124,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if hasattr(os, "geteuid") and os.geteuid() != 0:
-        raise SystemExit("Run with sudo: sudo python3 fault_master.py --event S3 --run-id S3_RUN_01")
+        raise SystemExit("Run with sudo: sudo python3 fault_master.py --event S3")
 
     base_dir = Path.cwd().resolve()
     config_path = Path(args.config)
@@ -139,21 +156,26 @@ def main() -> int:
     if not script_path.exists():
         raise SystemExit(f"Fault script not found: {script_path}")
 
-    out_dir = base_dir / "out" / f"test_{event_code}"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    scenario_out_dir = base_dir / "out" / f"test_{event_code}"
+    scenario_out_dir.mkdir(parents=True, exist_ok=True)
+
+    run_index, out_dir = next_run_output(scenario_out_dir)
+    out_dir.mkdir(parents=True, exist_ok=False)
+    run_id_base = args.run_id or f"{event_code}_RUN_{run_index:02d}"
 
     output_file = Path(args.output or cfg.get("output_file", "ground_truth.jsonl"))
     if not output_file.is_absolute():
         output_file = out_dir / output_file.name
 
-    print(f"[FAULT_MASTER] run_id_base={args.run_id} event={event_code} type={event_type}")
+    print(f"[FAULT_MASTER] run_id_base={run_id_base} event={event_code} type={event_type}")
+    print(f"[FAULT_MASTER] output_dir={out_dir}")
     print(f"[FAULT_MASTER] script={script_path.name} | repeat={repeat}x | grace={grace_period}s")
     print(f"[FAULT_MASTER] dataset={output_file}\n")
 
     rollback_script = base_dir / "rollback_all_faults.sh"
 
     for i in range(1, repeat + 1):
-        current_run_id = f"{args.run_id}_{i:02d}" if repeat > 1 else args.run_id
+        current_run_id = f"{run_id_base}_{i:02d}" if repeat > 1 else run_id_base
         print(f"=== [FAULT_MASTER] Iteration {i}/{repeat} | run_id={current_run_id} ===")
         
         start_time = now_iso()
