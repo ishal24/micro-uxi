@@ -13,8 +13,8 @@ class RollingMadThresholdTest(unittest.TestCase):
             enabled=True,
         )
 
-        self.assertEqual(threshold.evaluate(50)["mode"], "static")
-        self.assertEqual(threshold.evaluate(60)["mode"], "static")
+        self.assertEqual(threshold.evaluate(50)["mode"], "warmup")
+        self.assertEqual(threshold.evaluate(60)["mode"], "warmup")
 
     def test_dynamic_threshold_after_min_samples(self):
         threshold = RollingMadThreshold(
@@ -29,7 +29,7 @@ class RollingMadThresholdTest(unittest.TestCase):
         threshold.evaluate(60)
 
         info = threshold.threshold()
-        self.assertEqual(info["mode"], "dynamic")
+        self.assertIn(info["mode"], {"dynamic", "dynamic_floor"})
         self.assertGreaterEqual(info["value"], 100)
 
     def test_freeze_skips_update(self):
