@@ -37,7 +37,7 @@
         "dns_latency_ms": {
           "window_samples": 60,
           "min_samples": 15,
-          "k": 6
+          "k": 12
         }
       },
       "S4_HIGH_RTT": {
