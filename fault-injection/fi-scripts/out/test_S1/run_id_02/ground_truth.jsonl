@@ -1,0 +1,1 @@
+{"run_id": "S1_RUN_02_01", "event_type": "DNS_DEGRADED", "start_time": "2026-06-18T00:59:20+07:00", "end_time": "2026-06-18T00:59:41+07:00", "target": "8.8.8.8 / google.com", "fault_parameter": {"delay_ms": 350, "jitter_ms": 50}}
