@@ -28,7 +28,7 @@ class EwmaThreshold:
         if not self.enabled:
             return self._state(self.static_threshold, "disabled")
         if self.mu is None or self.sample_count < self.warmup_samples:
-            return self._state(self.static_threshold, "warmup")
+            return self._state(float('inf'), "warmup")
         return self._state(self.mu + self.k * math.sqrt(max(self.v, 0.0)), "dynamic")
 
     def evaluate(self, value: float, update: bool = True) -> dict[str, Any]:
