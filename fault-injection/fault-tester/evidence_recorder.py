@@ -477,13 +477,17 @@ class EvidenceRecorder:
             dynamic_thresholds[label] = float(value)
         for label, value in re.findall(r"\b([A-Za-z0-9_]*base)=([0-9.]+)ms\b", body):
             dynamic_thresholds[label] = float(value)
-        for label, value in re.findall(r"\b([A-Za-z0-9_]*mode)=(static|dynamic)\b", body):
+        for label, value in re.findall(r"\b([A-Za-z0-9_]*mode)=(disabled|warmup|dynamic)\b", body):
             dynamic_thresholds[label] = value
         for label, count, required in re.findall(r"\b([A-Za-z0-9_]*n)=(\d+)/(\d+)\b", body):
             dynamic_thresholds[label] = {
                 "sample_count": int(count),
-                "min_samples": int(required),
+                "warmup_samples": int(required),
             }
+        for label, value in re.findall(r"\b([A-Za-z0-9_]*mu)=([0-9.]+)ms\b", body):
+            dynamic_thresholds[label] = float(value)
+        for label, value in re.findall(r"\b([A-Za-z0-9_]*std)=([0-9.]+)ms\b", body):
+            dynamic_thresholds[label] = float(value)
         if dynamic_thresholds:
             metrics["dynamic_thresholds"] = dynamic_thresholds
 

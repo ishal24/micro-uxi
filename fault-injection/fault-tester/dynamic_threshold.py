@@ -1,68 +1,47 @@
 from __future__ import annotations
 
-from collections import deque
-from statistics import median
+import math
 from typing import Any
 
 
-MAD_SCALE = 1.4826
-
-
-class RollingMadThreshold:
+class EwmaThreshold:
     def __init__(
         self,
         static_threshold: float,
-        window_samples: int,
-        min_samples: int,
+        warmup_samples: int,
+        alpha: float,
+        beta: float,
         k: float,
         enabled: bool = True,
     ) -> None:
         self.static_threshold = float(static_threshold)
-        self.window_samples = max(1, int(window_samples))
-        self.min_samples = max(1, int(min_samples))
+        self.warmup_samples = max(1, int(warmup_samples))
+        self.alpha = float(alpha)
+        self.beta = float(beta)
         self.k = float(k)
         self.enabled = bool(enabled)
-        self.samples: deque[float] = deque(maxlen=self.window_samples)
+        self.sample_count = 0
+        self.mu: float | None = None
+        self.v = 0.0
 
     def threshold(self) -> dict[str, Any]:
         if not self.enabled:
-            return {
-                "value": self.static_threshold,
-                "mode": "disabled",
-                "median": None,
-                "mad": None,
-                "sample_count": len(self.samples),
-            }
-
-        if len(self.samples) < self.min_samples:
-            return {
-                "value": self.static_threshold,
-                "mode": "warmup",
-                "median": None,
-                "mad": None,
-                "sample_count": len(self.samples),
-            }
-
-        sample_values = list(self.samples)
-        med = float(median(sample_values))
-        scaled_mad = float(MAD_SCALE * median(abs(value - med) for value in sample_values))
-        dyn_threshold = med + self.k * scaled_mad
-        return {
-            "value": dyn_threshold,
-            "mode": "dynamic",
-            "median": med,
-            "mad": scaled_mad,
-            "sample_count": len(self.samples),
-        }
+            return self._state(self.static_threshold, "disabled")
+        if self.mu is None or self.sample_count < self.warmup_samples:
+            return self._state(self.static_threshold, "warmup")
+        return self._state(self.mu + self.k * math.sqrt(max(self.v, 0.0)), "dynamic")
 
     def evaluate(self, value: float, update: bool = True) -> dict[str, Any]:
-        info = self.threshold()
         numeric_value = float(value)
-        if update:
-            self.samples.append(numeric_value)
+        info = self.threshold()
+        exceeded = numeric_value >= info["value"]
+
+        if update and (not self.enabled or not exceeded):
+            self._update(numeric_value)
+
         return {
             **info,
-            "exceeded": numeric_value >= info["value"],
+            "exceeded": exceeded,
             "observed": numeric_value,
         }
 
@@ -72,17 +51,50 @@ class RollingMadThreshold:
             base_label = "base"
             mode_label = "mode"
             sample_label = "n"
+            mu_label = "mu"
+            std_label = "std"
         else:
             prefix = label.removesuffix("_dyn_thr")
             base_label = f"{prefix}_base"
             mode_label = f"{prefix}_mode"
             sample_label = f"{prefix}_n"
+            mu_label = f"{prefix}_mu"
+            std_label = f"{prefix}_std"
+
+        mu_value = "NA" if info["mu"] is None else f"{info['mu']:.1f}ms"
         return (
             f"{label}={info['value']:.1f}ms "
             f"{base_label}={self.static_threshold:.1f}ms "
             f"{mode_label}={info['mode']} "
-            f"{sample_label}={info['sample_count']}/{self.min_samples}"
+            f"{sample_label}={info['sample_count']}/{self.warmup_samples} "
+            f"{mu_label}={mu_value} "
+            f"{std_label}={info['std']:.1f}ms"
         )
+
+    def _update(self, value: float) -> None:
+        if self.mu is None:
+            self.mu = value
+            self.v = 0.0
+            self.sample_count = 1
+            return
+
+        prev_mu = self.mu
+        self.mu = self.alpha * value + (1 - self.alpha) * prev_mu
+        self.v = self.beta * ((value - prev_mu) ** 2) + (1 - self.beta) * self.v
+        self.sample_count += 1
+
+    def _state(self, threshold_value: float, mode: str) -> dict[str, Any]:
+        return {
+            "value": float(threshold_value),
+            "mode": mode,
+            "mu": self.mu,
+            "variance": self.v,
+            "std": math.sqrt(max(self.v, 0.0)),
+            "sample_count": self.sample_count,
+            "alpha": self.alpha,
+            "beta": self.beta,
+            "k": self.k,
+        }
 
 
 def make_dynamic_threshold(
@@ -90,14 +102,15 @@ def make_dynamic_threshold(
     event_key: str,
     metric_key: str,
     static_threshold: float,
-) -> RollingMadThreshold:
+) -> EwmaThreshold:
     dynamic_cfg = cfg.get("dynamic_thresholds", {})
     metric_cfg = (dynamic_cfg.get("events", {}).get(event_key, {}) or {}).get(metric_key, {})
     enabled = bool(dynamic_cfg.get("enabled", False) and metric_cfg)
-    return RollingMadThreshold(
+    return EwmaThreshold(
         static_threshold=static_threshold,
-        window_samples=metric_cfg.get("window_samples", 1),
-        min_samples=metric_cfg.get("min_samples", 1),
-        k=metric_cfg.get("k", 0),
+        warmup_samples=metric_cfg.get("warmup_samples", metric_cfg.get("min_samples", 1)),
+        alpha=metric_cfg.get("alpha", 0.1),
+        beta=metric_cfg.get("beta", 0.1),
+        k=metric_cfg.get("k", 3),
         enabled=enabled,
     )
