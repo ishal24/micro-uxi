@@ -1,0 +1,751 @@
+{
+  "run_id": "S1_RUN_03",
+  "event_code": "S1",
+  "expected_event_type": "DNS_DEGRADED",
+  "created_at": "2026-06-19T04:46:42+07:00",
+  "bundle_dir": "/home/arduino/tugasakhir/micro-uxi/fault-injection/fault-tester/out/test_S1/run_id_03_event/evidence",
+  "event_occurrence": 20,
+  "snapshots": [
+    {
+      "label": "alarm",
+      "timestamp": "2026-06-19T04:46:42+07:00",
+      "rcs_coverage": {
+        "M4_wifi_diagnostic": "wifi",
+        "M5_ip_configuration": "ip_configuration",
+        "M6_routing_diagnostic": "routing",
+        "M7_dns_resolver": "dns_resolver"
+      },
+      "wifi": {
+        "iface": "wlan0",
+        "operstate": "up",
+        "carrier": "1",
+        "address": "14:b5:cd:0f:ad:5b",
+        "mtu": "1500",
+        "wireless_link": {
+          "connected": true,
+          "bssid": "f4:7b:09:8b:09:2c",
+          "ssid": "uxilab",
+          "rssi_dbm": -37.0
+        },
+        "commands": {
+          "iw_link": {
+            "command": [
+              "iw",
+              "dev",
+              "wlan0",
+              "link"
+            ],
+            "returncode": 0,
+            "stdout": "Connected to f4:7b:09:8b:09:2c (on wlan0)\n\tSSID: uxilab\n\tfreq: 2412.0\n\tRX: 16041706 bytes (30261 packets)\n\tTX: 7005822 bytes (19861 packets)\n\tsignal: -37 dBm\n\trx bitrate: 54.0 MBit/s\n\tbss flags: short-slot-time\n\tdtim period: 2\n\tbeacon int: 100",
+            "stderr": ""
+          }
+        }
+      },
+      "ip_configuration": {
+        "iface": "wlan0",
+        "addresses": {
+          "command": [
+            "ip",
+            "-j",
+            "addr",
+            "show",
+            "dev",
+            "wlan0"
+          ],
+          "returncode": 0,
+          "data": [
+            {
+              "ifindex": 4,
+              "ifname": "wlan0",
+              "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+              ],
+              "mtu": 1500,
+              "qdisc": "noqueue",
+              "operstate": "UP",
+              "group": "default",
+              "txqlen": 1000,
+              "link_type": "ether",
+              "address": "14:b5:cd:0f:ad:5b",
+              "broadcast": "ff:ff:ff:ff:ff:ff",
+              "altnames": [
+                "wlx14b5cd0fad5b"
+              ],
+              "addr_info": [
+                {
+                  "family": "inet",
+                  "local": "192.168.12.224",
+                  "prefixlen": 24,
+                  "broadcast": "192.168.12.255",
+                  "scope": "global",
+                  "dynamic": true,
+                  "label": "wlan0",
+                  "valid_life_time": 84243,
+                  "preferred_life_time": 84243
+                },
+                {
+                  "family": "inet6",
+                  "local": "fe80::8199:63c6:261a:da56",
+                  "prefixlen": 64,
+                  "scope": "link",
+                  "noprefixroute": true,
+                  "valid_life_time": 4294967295,
+                  "preferred_life_time": 4294967295
+                }
+              ]
+            }
+          ],
+          "stderr": ""
+        },
+        "default_route": {
+          "command": [
+            "ip",
+            "-j",
+            "route",
+            "show",
+            "default"
+          ],
+          "returncode": 0,
+          "data": [
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "flags": []
+            },
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "protocol": "dhcp",
+              "prefsrc": "192.168.12.224",
+              "metric": 600,
+              "flags": []
+            }
+          ],
+          "stderr": ""
+        }
+      },
+      "routing": {
+        "routes": {
+          "command": [
+            "ip",
+            "-j",
+            "route"
+          ],
+          "returncode": 0,
+          "data": [
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "flags": []
+            },
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "protocol": "dhcp",
+              "prefsrc": "192.168.12.224",
+              "metric": 600,
+              "flags": []
+            },
+            {
+              "dst": "172.17.0.0/16",
+              "dev": "docker0",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "172.17.0.1",
+              "flags": [
+                "linkdown"
+              ]
+            },
+            {
+              "dst": "172.19.0.0/16",
+              "dev": "br-12985f3e78d3",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "172.19.0.1",
+              "flags": [
+                "linkdown"
+              ]
+            },
+            {
+              "dst": "192.168.12.0/24",
+              "dev": "wlan0",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "192.168.12.224",
+              "flags": []
+            },
+            {
+              "dst": "192.168.12.0/24",
+              "dev": "wlan0",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "192.168.12.224",
+              "metric": 600,
+              "flags": []
+            }
+          ],
+          "stderr": ""
+        },
+        "rules": {
+          "command": [
+            "ip",
+            "rule"
+          ],
+          "returncode": 255,
+          "stdout": "",
+          "stderr": "RTNETLINK answers: Operation not supported\nDump terminated"
+        }
+      },
+      "dns_resolver": {
+        "nameservers": [
+          "192.168.12.1"
+        ],
+        "resolv_conf": {
+          "path": "/etc/resolv.conf",
+          "ok": true,
+          "content": "nameserver 192.168.12.1"
+        },
+        "resolvectl_status": {
+          "command": [
+            "systemd-resolve",
+            "--status"
+          ],
+          "returncode": 127,
+          "stdout": "",
+          "stderr": "[Errno 2] No such file or directory: 'systemd-resolve'"
+        }
+      },
+      "commands": {
+        "ip_brief_addr": {
+          "command": [
+            "ip",
+            "-brief",
+            "addr"
+          ],
+          "returncode": 0,
+          "stdout": "lo               UNKNOWN        127.0.0.1/8 ::1/128 \nbr-12985f3e78d3  DOWN           172.19.0.1/16 \ndocker0          DOWN           172.17.0.1/16 \nwlan0            UP             192.168.12.224/24 fe80::8199:63c6:261a:da56/64",
+          "stderr": ""
+        },
+        "ip_route": {
+          "command": [
+            "ip",
+            "route"
+          ],
+          "returncode": 0,
+          "stdout": "default via 192.168.12.1 dev wlan0 \ndefault via 192.168.12.1 dev wlan0 proto dhcp src 192.168.12.224 metric 600 \n172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown \n172.19.0.0/16 dev br-12985f3e78d3 proto kernel scope link src 172.19.0.1 linkdown \n192.168.12.0/24 dev wlan0 proto kernel scope link src 192.168.12.224 \n192.168.12.0/24 dev wlan0 proto kernel scope link src 192.168.12.224 metric 600",
+          "stderr": ""
+        },
+        "ip_link": {
+          "command": [
+            "ip",
+            "link"
+          ],
+          "returncode": 0,
+          "stdout": "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n2: br-12985f3e78d3: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT group default \n    link/ether 02:42:34:2f:02:3f brd ff:ff:ff:ff:ff:ff\n3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT group default \n    link/ether 02:42:b2:00:a7:22 brd ff:ff:ff:ff:ff:ff\n4: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DORMANT group default qlen 1000\n    link/ether 14:b5:cd:0f:ad:5b brd ff:ff:ff:ff:ff:ff\n    altname wlx14b5cd0fad5b",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "label": "recovery",
+      "timestamp": "2026-06-19T04:46:50+07:00",
+      "rcs_coverage": {
+        "M4_wifi_diagnostic": "wifi",
+        "M5_ip_configuration": "ip_configuration",
+        "M6_routing_diagnostic": "routing",
+        "M7_dns_resolver": "dns_resolver"
+      },
+      "wifi": {
+        "iface": "wlan0",
+        "operstate": "up",
+        "carrier": "1",
+        "address": "14:b5:cd:0f:ad:5b",
+        "mtu": "1500",
+        "wireless_link": {
+          "connected": true,
+          "bssid": "f4:7b:09:8b:09:2c",
+          "ssid": "uxilab",
+          "rssi_dbm": -38.0
+        },
+        "commands": {
+          "iw_link": {
+            "command": [
+              "iw",
+              "dev",
+              "wlan0",
+              "link"
+            ],
+            "returncode": 0,
+            "stdout": "Connected to f4:7b:09:8b:09:2c (on wlan0)\n\tSSID: uxilab\n\tfreq: 2412.0\n\tRX: 16049034 bytes (30341 packets)\n\tTX: 7011114 bytes (19923 packets)\n\tsignal: -38 dBm\n\trx bitrate: 54.0 MBit/s\n\tbss flags: short-slot-time\n\tdtim period: 2\n\tbeacon int: 100",
+            "stderr": ""
+          }
+        }
+      },
+      "ip_configuration": {
+        "iface": "wlan0",
+        "addresses": {
+          "command": [
+            "ip",
+            "-j",
+            "addr",
+            "show",
+            "dev",
+            "wlan0"
+          ],
+          "returncode": 0,
+          "data": [
+            {
+              "ifindex": 4,
+              "ifname": "wlan0",
+              "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+              ],
+              "mtu": 1500,
+              "qdisc": "noqueue",
+              "operstate": "UP",
+              "group": "default",
+              "txqlen": 1000,
+              "link_type": "ether",
+              "address": "14:b5:cd:0f:ad:5b",
+              "broadcast": "ff:ff:ff:ff:ff:ff",
+              "altnames": [
+                "wlx14b5cd0fad5b"
+              ],
+              "addr_info": [
+                {
+                  "family": "inet",
+                  "local": "192.168.12.224",
+                  "prefixlen": 24,
+                  "broadcast": "192.168.12.255",
+                  "scope": "global",
+                  "dynamic": true,
+                  "label": "wlan0",
+                  "valid_life_time": 84235,
+                  "preferred_life_time": 84235
+                },
+                {
+                  "family": "inet6",
+                  "local": "fe80::8199:63c6:261a:da56",
+                  "prefixlen": 64,
+                  "scope": "link",
+                  "noprefixroute": true,
+                  "valid_life_time": 4294967295,
+                  "preferred_life_time": 4294967295
+                }
+              ]
+            }
+          ],
+          "stderr": ""
+        },
+        "default_route": {
+          "command": [
+            "ip",
+            "-j",
+            "route",
+            "show",
+            "default"
+          ],
+          "returncode": 0,
+          "data": [
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "flags": []
+            },
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "protocol": "dhcp",
+              "prefsrc": "192.168.12.224",
+              "metric": 600,
+              "flags": []
+            }
+          ],
+          "stderr": ""
+        }
+      },
+      "routing": {
+        "routes": {
+          "command": [
+            "ip",
+            "-j",
+            "route"
+          ],
+          "returncode": 0,
+          "data": [
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "flags": []
+            },
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "protocol": "dhcp",
+              "prefsrc": "192.168.12.224",
+              "metric": 600,
+              "flags": []
+            },
+            {
+              "dst": "172.17.0.0/16",
+              "dev": "docker0",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "172.17.0.1",
+              "flags": [
+                "linkdown"
+              ]
+            },
+            {
+              "dst": "172.19.0.0/16",
+              "dev": "br-12985f3e78d3",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "172.19.0.1",
+              "flags": [
+                "linkdown"
+              ]
+            },
+            {
+              "dst": "192.168.12.0/24",
+              "dev": "wlan0",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "192.168.12.224",
+              "flags": []
+            },
+            {
+              "dst": "192.168.12.0/24",
+              "dev": "wlan0",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "192.168.12.224",
+              "metric": 600,
+              "flags": []
+            }
+          ],
+          "stderr": ""
+        },
+        "rules": {
+          "command": [
+            "ip",
+            "rule"
+          ],
+          "returncode": 255,
+          "stdout": "",
+          "stderr": "RTNETLINK answers: Operation not supported\nDump terminated"
+        }
+      },
+      "dns_resolver": {
+        "nameservers": [
+          "192.168.12.1"
+        ],
+        "resolv_conf": {
+          "path": "/etc/resolv.conf",
+          "ok": true,
+          "content": "nameserver 192.168.12.1"
+        },
+        "resolvectl_status": {
+          "command": [
+            "systemd-resolve",
+            "--status"
+          ],
+          "returncode": 127,
+          "stdout": "",
+          "stderr": "[Errno 2] No such file or directory: 'systemd-resolve'"
+        }
+      },
+      "commands": {
+        "ip_brief_addr": {
+          "command": [
+            "ip",
+            "-brief",
+            "addr"
+          ],
+          "returncode": 0,
+          "stdout": "lo               UNKNOWN        127.0.0.1/8 ::1/128 \nbr-12985f3e78d3  DOWN           172.19.0.1/16 \ndocker0          DOWN           172.17.0.1/16 \nwlan0            UP             192.168.12.224/24 fe80::8199:63c6:261a:da56/64",
+          "stderr": ""
+        },
+        "ip_route": {
+          "command": [
+            "ip",
+            "route"
+          ],
+          "returncode": 0,
+          "stdout": "default via 192.168.12.1 dev wlan0 \ndefault via 192.168.12.1 dev wlan0 proto dhcp src 192.168.12.224 metric 600 \n172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown \n172.19.0.0/16 dev br-12985f3e78d3 proto kernel scope link src 172.19.0.1 linkdown \n192.168.12.0/24 dev wlan0 proto kernel scope link src 192.168.12.224 \n192.168.12.0/24 dev wlan0 proto kernel scope link src 192.168.12.224 metric 600",
+          "stderr": ""
+        },
+        "ip_link": {
+          "command": [
+            "ip",
+            "link"
+          ],
+          "returncode": 0,
+          "stdout": "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n2: br-12985f3e78d3: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT group default \n    link/ether 02:42:34:2f:02:3f brd ff:ff:ff:ff:ff:ff\n3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT group default \n    link/ether 02:42:b2:00:a7:22 brd ff:ff:ff:ff:ff:ff\n4: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DORMANT group default qlen 1000\n    link/ether 14:b5:cd:0f:ad:5b brd ff:ff:ff:ff:ff:ff\n    altname wlx14b5cd0fad5b",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "label": "post_event_complete",
+      "timestamp": "2026-06-19T04:47:20+07:00",
+      "rcs_coverage": {
+        "M4_wifi_diagnostic": "wifi",
+        "M5_ip_configuration": "ip_configuration",
+        "M6_routing_diagnostic": "routing",
+        "M7_dns_resolver": "dns_resolver"
+      },
+      "wifi": {
+        "iface": "wlan0",
+        "operstate": "up",
+        "carrier": "1",
+        "address": "14:b5:cd:0f:ad:5b",
+        "mtu": "1500",
+        "wireless_link": {
+          "connected": true,
+          "bssid": "f4:7b:09:8b:09:2c",
+          "ssid": "uxilab",
+          "rssi_dbm": -44.0
+        },
+        "commands": {
+          "iw_link": {
+            "command": [
+              "iw",
+              "dev",
+              "wlan0",
+              "link"
+            ],
+            "returncode": 0,
+            "stdout": "Connected to f4:7b:09:8b:09:2c (on wlan0)\n\tSSID: uxilab\n\tfreq: 2412.0\n\tRX: 16148738 bytes (30641 packets)\n\tTX: 7035152 bytes (20116 packets)\n\tsignal: -44 dBm\n\trx bitrate: 54.0 MBit/s\n\tbss flags: short-slot-time\n\tdtim period: 2\n\tbeacon int: 100",
+            "stderr": ""
+          }
+        }
+      },
+      "ip_configuration": {
+        "iface": "wlan0",
+        "addresses": {
+          "command": [
+            "ip",
+            "-j",
+            "addr",
+            "show",
+            "dev",
+            "wlan0"
+          ],
+          "returncode": 0,
+          "data": [
+            {
+              "ifindex": 4,
+              "ifname": "wlan0",
+              "flags": [
+                "BROADCAST",
+                "MULTICAST",
+                "UP",
+                "LOWER_UP"
+              ],
+              "mtu": 1500,
+              "qdisc": "noqueue",
+              "operstate": "UP",
+              "group": "default",
+              "txqlen": 1000,
+              "link_type": "ether",
+              "address": "14:b5:cd:0f:ad:5b",
+              "broadcast": "ff:ff:ff:ff:ff:ff",
+              "altnames": [
+                "wlx14b5cd0fad5b"
+              ],
+              "addr_info": [
+                {
+                  "family": "inet",
+                  "local": "192.168.12.224",
+                  "prefixlen": 24,
+                  "broadcast": "192.168.12.255",
+                  "scope": "global",
+                  "dynamic": true,
+                  "label": "wlan0",
+                  "valid_life_time": 84205,
+                  "preferred_life_time": 84205
+                },
+                {
+                  "family": "inet6",
+                  "local": "fe80::8199:63c6:261a:da56",
+                  "prefixlen": 64,
+                  "scope": "link",
+                  "noprefixroute": true,
+                  "valid_life_time": 4294967295,
+                  "preferred_life_time": 4294967295
+                }
+              ]
+            }
+          ],
+          "stderr": ""
+        },
+        "default_route": {
+          "command": [
+            "ip",
+            "-j",
+            "route",
+            "show",
+            "default"
+          ],
+          "returncode": 0,
+          "data": [
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "flags": []
+            },
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "protocol": "dhcp",
+              "prefsrc": "192.168.12.224",
+              "metric": 600,
+              "flags": []
+            }
+          ],
+          "stderr": ""
+        }
+      },
+      "routing": {
+        "routes": {
+          "command": [
+            "ip",
+            "-j",
+            "route"
+          ],
+          "returncode": 0,
+          "data": [
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "flags": []
+            },
+            {
+              "dst": "default",
+              "gateway": "192.168.12.1",
+              "dev": "wlan0",
+              "protocol": "dhcp",
+              "prefsrc": "192.168.12.224",
+              "metric": 600,
+              "flags": []
+            },
+            {
+              "dst": "172.17.0.0/16",
+              "dev": "docker0",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "172.17.0.1",
+              "flags": [
+                "linkdown"
+              ]
+            },
+            {
+              "dst": "172.19.0.0/16",
+              "dev": "br-12985f3e78d3",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "172.19.0.1",
+              "flags": [
+                "linkdown"
+              ]
+            },
+            {
+              "dst": "192.168.12.0/24",
+              "dev": "wlan0",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "192.168.12.224",
+              "flags": []
+            },
+            {
+              "dst": "192.168.12.0/24",
+              "dev": "wlan0",
+              "protocol": "kernel",
+              "scope": "link",
+              "prefsrc": "192.168.12.224",
+              "metric": 600,
+              "flags": []
+            }
+          ],
+          "stderr": ""
+        },
+        "rules": {
+          "command": [
+            "ip",
+            "rule"
+          ],
+          "returncode": 255,
+          "stdout": "",
+          "stderr": "RTNETLINK answers: Operation not supported\nDump terminated"
+        }
+      },
+      "dns_resolver": {
+        "nameservers": [
+          "192.168.12.1"
+        ],
+        "resolv_conf": {
+          "path": "/etc/resolv.conf",
+          "ok": true,
+          "content": "nameserver 192.168.12.1"
+        },
+        "resolvectl_status": {
+          "command": [
+            "systemd-resolve",
+            "--status"
+          ],
+          "returncode": 127,
+          "stdout": "",
+          "stderr": "[Errno 2] No such file or directory: 'systemd-resolve'"
+        }
+      },
+      "commands": {
+        "ip_brief_addr": {
+          "command": [
+            "ip",
+            "-brief",
+            "addr"
+          ],
+          "returncode": 0,
+          "stdout": "lo               UNKNOWN        127.0.0.1/8 ::1/128 \nbr-12985f3e78d3  DOWN           172.19.0.1/16 \ndocker0          DOWN           172.17.0.1/16 \nwlan0            UP             192.168.12.224/24 fe80::8199:63c6:261a:da56/64",
+          "stderr": ""
+        },
+        "ip_route": {
+          "command": [
+            "ip",
+            "route"
+          ],
+          "returncode": 0,
+          "stdout": "default via 192.168.12.1 dev wlan0 \ndefault via 192.168.12.1 dev wlan0 proto dhcp src 192.168.12.224 metric 600 \n172.17.0.0/16 dev docker0 proto kernel scope link src 172.17.0.1 linkdown \n172.19.0.0/16 dev br-12985f3e78d3 proto kernel scope link src 172.19.0.1 linkdown \n192.168.12.0/24 dev wlan0 proto kernel scope link src 192.168.12.224 \n192.168.12.0/24 dev wlan0 proto kernel scope link src 192.168.12.224 metric 600",
+          "stderr": ""
+        },
+        "ip_link": {
+          "command": [
+            "ip",
+            "link"
+          ],
+          "returncode": 0,
+          "stdout": "1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN mode DEFAULT group default qlen 1000\n    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00\n2: br-12985f3e78d3: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT group default \n    link/ether 02:42:34:2f:02:3f brd ff:ff:ff:ff:ff:ff\n3: docker0: <NO-CARRIER,BROADCAST,MULTICAST,UP> mtu 1500 qdisc noqueue state DOWN mode DEFAULT group default \n    link/ether 02:42:b2:00:a7:22 brd ff:ff:ff:ff:ff:ff\n4: wlan0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP mode DORMANT group default qlen 1000\n    link/ether 14:b5:cd:0f:ad:5b brd ff:ff:ff:ff:ff:ff\n    altname wlx14b5cd0fad5b",
+          "stderr": ""
+        }
+      }
+    }
+  ]
+}
