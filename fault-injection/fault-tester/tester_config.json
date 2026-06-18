@@ -31,7 +31,7 @@
     "recovery_http_ttfb_threshold_ms": 71
   },
   "dynamic_thresholds": {
-    "enabled": false,
+    "enabled": true,
     "events": {
       "S1_DNS_DEGRADED": {
         "dns_latency_ms": {
