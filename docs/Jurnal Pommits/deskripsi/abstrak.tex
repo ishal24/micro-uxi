@@ -1,0 +1,13 @@
+% Mengubah keterangan `Abstract` ke bahasa indonesia.
+\renewcommand\abstractname{Abstrak}
+
+\begin{abstract}
+Pemantauan infrastruktur jaringan nirkabel saat ini tidak hanya berfokus pada ketersediaan layanan (\textit{availability}), melainkan juga pada kualitas pengalaman pengguna (\textit{Quality of Experience} atau QoE). Solusi komersial seperti HPE Aruba UXI memiliki biaya implementasi yang relatif mahal, sehingga kurang sesuai untuk jaringan skala kecil dan menengah. Penelitian ini merancang ``Micro-UXI'', sebuah sistem monitoring berbasis perangkat \textit{edge} nirkabel berbiaya rendah menggunakan Arduino Uno Q yang berfungsi sebagai \textit{network experience black-box event recorder}. Berbeda dengan sistem pemantauan periodik biasa, Micro-UXI menggunakan pendekatan \textit{event-driven monitoring} berbasis algoritma \textit{Exponential Weighted Moving Average} (EWMA) untuk merekam \textit{evidence bundle} (mencakup data \textit{pre-event}, \textit{event}, dan \textit{post-event} serta \textit{diagnostic snapshot} jaringan) hanya ketika terjadi penurunan performa. Evaluasi dilakukan melalui pengujian suntikan gangguan (\textit{fault injection} S1--S6) secara fisik menggunakan \textit{ground truth}. Hasil pengujian menunjukkan bahwa Metode Baseline (threshold statis) menghasilkan nilai \textit{Precision} 100,0\%, \textit{Recall} 95,0\%, dan \textit{F1-Score} 0,973 dengan rata-rata waktu deteksi (MTTD) 21,83 detik. Metode \textit{Event-Driven} menghasilkan deteksi yang lebih cepat dengan rata-rata MTTD 19,24 detik ($\sim$12\% lebih cepat), nilai \textit{Precision} 91,1\%, \textit{Recall} 88,3\%, dan \textit{F1-Score} 0,891. Pengukuran beban kerja perangkat menunjukkan kelayakan penggunaan Micro-UXI pada perangkat dengan spesifikasi terbatas, dengan rata-rata utilitas CPU sebesar 4,62\%--4,87\%, memori RAM 28,96\%--30,47\%, serta ukuran berkas bukti berkisar 20--25 KB per kejadian untuk mendukung analisis akar masalah (\textit{Root Cause Analysis} atau RCA).
+\end{abstract}
+
+% Mengubah keterangan `Index terms` ke bahasa indonesia.
+\renewcommand\IEEEkeywordsname{Kata kunci}
+
+\begin{IEEEkeywords}
+\emph{Quality of Experience} (QoE), monitoring jaringan, \emph{event-driven monitoring}, perangkat \emph{edge}, \emph{black-box event recorder}, Arduino Uno Q, \emph{fault injection}, \emph{evidence bundle}
+\end{IEEEkeywords}

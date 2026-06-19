@@ -1,0 +1,35 @@
+\section{Penelitian Terkait dan Dasar Teori}
+\label{sec-penelitian-terkait}
+
+\subsection{Penelitian Terkait}
+
+Beberapa penelitian terdahulu telah mengkaji pengembangan dan evaluasi sistem pemantauan jaringan nirkabel aktif serta pengujian sistem berbasis kejadian:
+
+Baswara \cite{baswara2026} merancang UXI-Lite, sebuah sistem pemantauan \textit{Quality of Experience} (QoE) nirkabel menggunakan Raspberry Pi 4. Hasil penelitian menunjukkan tingkat korelasi (\textit{parity}) latensi \textit{ping} yang tinggi dibandingkan dengan sensor komersial HPE Aruba UXI. Namun, pengumpulan data pada UXI-Lite masih dilakukan secara periodik konstan, sehingga belum mengoptimalkan beban komputasi dan penyimpanan pada perangkat dengan spesifikasi lebih rendah seperti mikrokontroler.
+
+Miranda dkk. \cite{miranda2022} mengevaluasi penggunaan teknik \textit{Active Network Probing} yang dikombinasikan dengan algoritma \textit{Machine Learning} untuk memprediksi QoE jaringan secara \textit{end-to-end}. Hasil penelitian tersebut menunjukkan bahwa pengukuran aktif (seperti \textit{ping}, DNS, dan HTTP) dari sisi klien dapat merepresentasikan kondisi layanan jaringan yang dirasakan pengguna tanpa harus mengakses data pribadi milik pengguna.
+
+Ku{\v{c}}era dkk. \cite{kucera2020} mengusulkan arsitektur pemantauan \textit{event-triggered} pada \textit{data plane} untuk mendeteksi anomali kinerja jaringan. Pendekatan ini dapat meminimalkan beban transfer data (\textit{overhead}) dengan mengirimkan metrik pemantauan hanya saat kondisi pemicu (\textit{trigger}) terpenuhi, jika dibandingkan dengan metode \textit{polling} periodik konvensional.
+
+Zheng dkk. \cite{zheng2022} dalam penelitian FlyMon menunjukkan pentingnya mekanisme rekonfigurasi tugas pemantauan secara dinamis pada perangkat dengan keterbatasan sumber daya. Hal ini mendasari perlunya efisiensi sumber daya (\textit{resource-awareness}) dalam merancang sistem pemantauan pada perangkat \textit{edge}.
+
+Cotroneo dkk. \cite{cotroneo2022} mendiskusikan pentingnya teknik suntikan gangguan (\textit{fault injection}) terkontrol untuk menguji ketahanan sistem perangkat lunak. Penggunaan \textit{fault injection} memberikan label \textit{ground truth} mengenai waktu mulai dan berakhirnya gangguan, sehingga mempermudah evaluasi akurasi (\textit{precision/recall}) sistem deteksi secara objektif.
+
+\subsection{Dasar Teori}
+
+\subsubsection{Quality of Experience (QoE) dan Digital Experience Monitoring (DEM)}
+QoE didefinisikan sebagai tingkat kepuasan keseluruhan dari suatu aplikasi atau layanan yang dirasakan oleh pengguna akhir. Perbedaan antara QoE dan QoS (\textit{Quality of Service}) terletak pada objek pengamatannya. QoS berfokus pada metrik infrastruktur seperti \textit{packet loss, jitter,} dan \textit{bandwidth} pada perangkat jaringan, sedangkan QoE berfokus pada dampak metrik tersebut terhadap pengguna akhir (misalnya kegagalan memuat halaman web atau keterlambatan resolusi alamat server) \cite{barakabitze2020}.
+
+\subsubsection{Active/Synthetic Probing}
+\textit{Active probing} dilakukan dengan mengirimkan paket data uji secara terencana ke server tujuan untuk mengukur performa jaringan. Pada Micro-UXI, \textit{active probing} diimplementasikan melalui beberapa jenis pengujian:
+\begin{itemize}
+    \item \textbf{Ping ICMP:} Mengukur konektivitas dasar dan waktu pulang-pergi (\textit{Round Trip Time} / RTT).
+    \item \textbf{DNS Query:} Mengeksekusi resolusi nama domain (misalnya menggunakan perintah \texttt{dig}) untuk mengukur waktu respon server nama domain (\textit{resolver}).
+    \item \textbf{HTTP Transaction:} Mengunduh file uji menggunakan protokol HTTP/TLS (melalui perintah \texttt{curl}) untuk mengukur \textit{Time to First Byte} (TTFB) dan total waktu transfer.
+\end{itemize}
+
+\subsubsection{Event-Driven Monitoring}
+Berbeda dengan pemantauan periodik (\textit{polling}) konvensional dengan interval tetap, pemantauan \textit{event-driven} mendeteksi anomali secara kontinu, namun hanya memicu proses penulisan penyimpanan atau pengiriman berkas bukti saat status sistem berubah dari kondisi \textit{Normal} ke \textit{Alarm} akibat pelanggaran threshold \cite{kucera2020}.
+
+\subsubsection{Ring Buffer untuk Perekaman Bukti Insiden}
+Untuk menganalisis akar masalah, analis membutuhkan data sebelum insiden terjadi (\textit{pre-event context}). Karena keputusan alarm baru muncul setelah anomali terdeteksi, digunakan struktur data \textit{ring buffer} (atau \textit{circular buffer}) berbasis RAM \cite{marwedel2021}. \textit{Ring buffer} secara konstan menyimpan sampel data performa terbaru dalam kapasitas memori terbatas secara geser (\textit{FIFO}). Saat alarm aktif, penulisan ke \textit{ring buffer} dihentikan sementara (\textit{freezing}) agar data sebelum insiden tidak terhapus oleh data baru.

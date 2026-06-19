@@ -1,0 +1,130 @@
+\section{Hasil dan Pembahasan}
+\label{sec-hasil-dan-pembahasan}
+
+\subsection{Hasil Uji Pendahuluan (Preliminary Test)}
+Uji pendahuluan dilakukan pada kondisi jaringan nirkabel normal selama minimal 5,6 jam. Fast Probe berhasil mengumpulkan lebih dari 10.000 sampel sukses, sedangkan Telemetry Probe mengumpulkan 1.000 sampel sukses. Batas threshold statis ($T_{static}$) ditentukan dengan mengambil nilai persentil ke-99 ($P_{99}$) dari sebaran data tersebut guna menghindari fluktuasi minor jaringan normal. Hasil kalkulasi dirinci pada Tabel~\ref{tab-threshold-p99}.
+
+\begin{table}[h]
+\caption{Hasil Perhitungan Threshold $P_{99}$ dari Uji Pendahuluan}
+\label{tab-threshold-p99}
+\centering
+\begin{tabular}{lccc}
+\toprule
+\textbf{Metrik Pengukuran} & \textbf{Target} & \textbf{Threshold ($P_{99}$)} & \textbf{Recovery} \\
+\midrule
+Latensi DNS & \texttt{google.com} & 243 ms & -- \\
+Latensi RTT & \texttt{8.8.8.8} & 279 ms & 224 ms \\
+HTTP Total Duration & \texttt{file\_1mb} & 1.535 ms & 1.228 ms \\
+HTTP TTFB & \texttt{file\_1mb} & 88 ms & 71 ms \\
+Paket Loss Ratio & \texttt{8.8.8.8} & 20\% & 0\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Hasil Perbandingan Performa Pengujian}
+Pengujian utama menyuntikkan 30 kali iterasi gangguan untuk setiap skenario S1--S6. Kinerja deteksi antara Metode Baseline (Threshold Statis) dan Metode Event-Driven (Threshold Dinamis EWMA) dirangkum dalam Tabel~\ref{tab-performa-deteksi}.
+
+\begin{table*}[t]
+\caption{Perbandingan Performa Deteksi Metode Baseline vs. Event-Driven}
+\label{tab-performa-deteksi}
+\centering
+\begin{tabular}{clccccccc}
+\toprule
+\textbf{Skenario} & \textbf{Metode Deteksi} & \textbf{TP} & \textbf{FN} & \textbf{FP} & \textbf{Precision} & \textbf{Recall} & \textbf{F1-Score} & \textbf{MTTD (Detik)} \\
+\midrule
+\multirow{2}{*}{\textbf{S1} (DNS Degraded)} & Baseline & 30 & 0 & 0 & 100,0\% & 100,0\% & 1,000 & 3,77 s \\
+ & Event-Driven & 30 & 0 & 10 & 75,0\% & 100,0\% & 0,857 & 3,33 s \\
+\hline
+\multirow{2}{*}{\textbf{S2} (DNS Timeout)} & Baseline & 28 & 2 & 0 & 100,0\% & 93,3\% & 0,966 & 19,39 s \\
+ & Event-Driven & 24 & 6 & 0 & 100,0\% & 80,0\% & 0,889 & 19,50 s \\
+\hline
+\multirow{2}{*}{\textbf{S3} (Loss Burst)} & Baseline & 24 & 6 & 0 & 100,0\% & 80,0\% & 0,889 & 21,04 s \\
+ & Event-Driven & 27 & 3 & 3 & 90,0\% & 90,0\% & 0,900 & 24,30 s \\
+\hline
+\multirow{2}{*}{\textbf{S4} (High RTT)} & Baseline & 29 & 1 & 0 & 100,0\% & 96,7\% & 0,983 & 29,59 s \\
+ & Event-Driven & 24 & 6 & 2 & 92,3\% & 80,0\% & 0,857 & 22,46 s \\
+\hline
+\multirow{2}{*}{\textbf{S5} (HTTP Slow)} & Baseline & 30 & 0 & 0 & 100,0\% & 100,0\% & 1,000 & 35,70 s \\
+ & Event-Driven & 25 & 5 & 2 & 92,6\% & 83,3\% & 0,877 & 23,56 s \\
+\hline
+\multirow{2}{*}{\textbf{S6} (Connectivity Flap)} & Baseline & 30 & 0 & 0 & 100,0\% & 100,0\% & 1,000 & 21,47 s \\
+ & Event-Driven & 29 & 1 & 1 & 96,7\% & 96,7\% & 0,967 & 22,31 s \\
+\hline
+\multirow{2}{*}{\textbf{Rata-rata}} & \textbf{Baseline} & \textbf{28,5} & \textbf{1,5} & \textbf{0,0} & \textbf{100,0\%} & \textbf{95,0\%} & \textbf{0,973} & \textbf{21,83 s} \\
+ & \textbf{Event-Driven} & \textbf{26,5} & \textbf{3,5} & \textbf{3,0} & \textbf{91,1\%} & \textbf{88,3\%} & \textbf{0,891} & \textbf{19,24 s} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Hasil Analisis Overhead Sistem}
+Pengukuran overhead sumber daya fisik pada sensor klien (Arduino Uno Q) dilakukan per 2 detik guna memastikan kelayakan operasional detektor. Hasil pengukuran pada kondisi normal versus saat terjadi gangguan dirangkum dalam Tabel~\ref{tab-overhead}.
+
+\begin{table*}[t]
+\caption{Beban Penggunaan Sumber Daya Sistem Klien (Normal vs. Event)}
+\label{tab-overhead}
+\centering
+\begin{tabular}{clcccccc}
+\toprule
+\textbf{Skenario} & \textbf{Metode Deteksi} & \textbf{CPU Normal} & \textbf{CPU Event} & \textbf{RAM Normal} & \textbf{RAM Event} & \textbf{BW TX (KB/s)} & \textbf{BW RX (KB/s)} \\
+\midrule
+\multirow{2}{*}{\textbf{S1}} & Baseline & 5,25\% & 5,17\% & 26,82\% & 26,85\% & 0,94 (Normal) / 9,33 (Event) & 5,11 (Normal) / 2,92 (Event) \\
+ & Event-Driven & 5,61\% & 5,50\% & 28,90\% & 28,96\% & 0,88 (Normal) / 0,82 (Event) & 3,05 (Normal) / 2,17 (Event) \\
+\hline
+\multirow{2}{*}{\textbf{S2}} & Baseline & 5,00\% & 5,12\% & 27,36\% & 27,21\% & 0,87 (Normal) / 0,87 (Event) & 2,18 (Normal) / 2,24 (Event) \\
+ & Event-Driven & 5,22\% & 5,35\% & 30,55\% & 30,50\% & 0,89 (Normal) / 0,80 (Event) & 2,16 (Normal) / 2,07 (Event) \\
+\hline
+\multirow{2}{*}{\textbf{S3}} & Baseline & 4,27\% & 4,40\% & 27,26\% & 27,25\% & 3,89 (Normal) / 2,28 (Event) & 5,29 (Normal) / 1,83 (Event) \\
+ & Event-Driven & 4,39\% & 4,59\% & 30,73\% & 30,73\% & 0,86 (Normal) / 3,83 (Event) & 2,24 (Normal) / 2,83 (Event) \\
+\hline
+\multirow{2}{*}{\textbf{S4}} & Baseline & 4,23\% & 4,11\% & 31,27\% & 31,26\% & 4,32 (Normal) / 0,75 (Event) & 2,65 (Normal) / 1,76 (Event) \\
+ & Event-Driven & 4,32\% & 4,43\% & 32,92\% & 32,69\% & 0,82 (Normal) / 0,74 (Event) & 2,08 (Normal) / 2,09 (Event) \\
+\hline
+\multirow{2}{*}{\textbf{S5}} & Baseline & 4,59\% & 4,63\% & 31,02\% & 31,04\% & 4,17 (Normal) / 2,26 (Event) & 57,41 (Normal) / 52,05 (Event) \\
+ & Event-Driven & 4,81\% & 4,80\% & 29,64\% & 29,67\% & 4,39 (Normal) / 4,62 (Event) & 54,21 (Normal) / 60,95 (Event) \\
+\hline
+\multirow{2}{*}{\textbf{S6}} & Baseline & 4,35\% & 4,43\% & 30,01\% & 30,00\% & 2,11 (Normal) / 0,78 (Event) & 2,15 (Normal) / 1,89 (Event) \\
+ & Event-Driven & 4,45\% & 4,53\% & 30,09\% & 30,04\% & 2,41 (Normal) / 0,74 (Event) & 3,09 (Normal) / 1,89 (Event) \\
+\hline
+\multirow{2}{*}{\textbf{Rata-rata}} & \textbf{Baseline} & \textbf{4,62\%} & \textbf{4,64\%} & \textbf{28,96\%} & \textbf{28,94\%} & \textbf{2,72 / 2,71} & \textbf{12,47 / 10,45} \\
+ & \textbf{Event-Driven} & \textbf{4,80\%} & \textbf{4,87\%} & \textbf{30,47\%} & \textbf{30,43\%} & \textbf{1,71 / 1,93} & \textbf{11,14 / 12,00} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Hasil Berkas Bukti (Evidence Bundle)}
+Pengecekan dilakukan terhadap berkas bukti JSON/JSONL yang tersimpan di dalam folder \texttt{/out/test\_S[X]/run\_id\_[YY]\_event/evidence/} untuk memverifikasi ketersediaan elemen bukti. Matriks kelengkapan berkas bukti dirangkum dalam Tabel~\ref{tab-checklist-evidence}.
+
+\begin{table*}[t]
+\caption{Matriks Keberadaan Elemen Berkas Bukti (\textit{Evidence Bundle}) Skenario S1 -- S6}
+\label{tab-checklist-evidence}
+\centering
+\begin{tabular}{lcccccccc}
+\toprule
+\textbf{Skenario} & \textbf{Pre-Event} & \textbf{Event} & \textbf{Post-Event} & \textbf{WiFi} & \textbf{IP Config} & \textbf{Routing} & \textbf{DNS} & \textbf{Event-Specific Evidence} \\
+\midrule
+\textbf{S1} & Yes & Yes & Yes & Yes & Yes & Yes & Yes & Yes (Latensi DNS \texttt{dig}) \\
+\textbf{S2} & Yes & Yes & Yes & Yes & Yes & Yes & Yes & Yes (Status Gagal DNS) \\
+\textbf{S3} & Yes & Yes & Yes & Yes & Yes & Yes & Yes & Yes (Rasio Packet Loss) \\
+\textbf{S4} & Yes & Yes & Yes & Yes & Yes & Yes & Yes & Yes (RTT Ping Batch) \\
+\textbf{S5} & Yes & Yes & Yes & Yes & Yes & Yes & Yes & Yes (HTTP TTFB/Total) \\
+\textbf{S6} & Yes & Yes & Yes & Yes & Yes & Yes & Yes & Yes (Transisi \texttt{operstate}) \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Pembahasan}
+
+\subsubsection{Analisis Perbandingan Performa Deteksi}
+Hasil pengujian menunjukkan adanya \textit{trade-off} antara keandalan alarm (\textit{Precision}) dan kecepatan deteksi (MTTD). Metode Baseline memperoleh nilai \textit{Precision} sebesar 100,0\% karena penentuan threshold statis ($P_{99}$) yang cukup tinggi dari fluktuasi normal, sehingga tidak memicu alarm palsu. Namun, metode ini membutuhkan waktu respon lebih lambat dengan rata-rata MTTD sebesar 21,83 detik.
+
+Sebaliknya, Metode Event-Driven mendeteksi gangguan lebih cepat dengan rata-rata MTTD 19,24 detik (lebih cepat sekitar 12\% dibanding Baseline, dengan peningkatan MTTD mencapai 24\% pada skenario S4 dan 34\% pada S5). Hal ini dikarenakan batas deteksi dinamis EWMA dapat menyesuaikan diri secara adaptif dengan kondisi varians jaringan saat itu. Namun, sensitivitas threshold dinamis menyebabkan munculnya alarm palsu pada metrik dengan varians normal rendah. Pada skenario S1 (DNS Degraded), varians latensi DNS pada kondisi normal sangat kecil, sehingga batas dinamis EWMA menyusut mendekati nilai rata-rata. Akibatnya, fluktuasi kecil pada latensi kueri langsung terdeteksi sebagai gangguan dan memicu 10 \textit{False Positive} (Precision turun menjadi 75,0\%). Hal ini menunjukkan perlunya penerapan batas bawah standar deviasi (\textit{variance floor}) untuk mencegah threshold dinamis menyusut terlalu rapat.
+
+Pada skenario S2 dan S3, logika jendela geser menunjukkan hasil yang optimal. Baseline lebih unggul pada S2 karena kegagalan DNS bersifat biner absolut (\textit{timeout}). Namun pada S3, Event-Driven mencatat \textit{Recall} lebih tinggi (90,0\% vs. 80,0\%) karena threshold dinamis lebih andal mendeteksi pola kehilangan paket 40\% di tengah gangguan interferensi sinyal Wi-Fi. Pada skenario S6, kedua metode menunjukkan performa yang seimbang (\textit{F1-Score} 1,000 vs. 0,967) karena status tautan antarmuka yang terputus merupakan indikator gangguan yang jelas.
+
+\subsubsection{Analisis Karakteristik Overhead Sistem}
+Hasil analisis overhead menunjukkan bahwa Micro-UXI membutuhkan sumber daya yang minimal. Rata-rata kenaikan penggunaan CPU untuk perhitungan algoritma EWMA pada Metode Event-Driven hanya sebesar 0,18\% dibandingkan dengan Metode Baseline. Perhitungan rekursif EWMA efisien karena tidak perlu menyimpan seluruh riwayat sampel mentah pada RAM secara kontinu. 
+
+Penggunaan memori RAM stabil pada kisaran 28,96\%--30,47\%. Selisih RAM sebesar 1,51\% pada Event-Driven disebabkan oleh penggunaan \textit{sliding queue} (\texttt{deque}) pada RAM untuk menghitung varians bergerak. Trafik data monitoring normal juga rendah (di bawah 3 KB/s TX dan 12 KB/s RX), kecuali pada skenario S5 yang memicu unduhan berkas uji 1 MB dengan bandwidth RX mencapai 57,41 KB/s. Secara umum, overhead ini tidak memengaruhi stabilitas perangkat sensor.
+
+\subsubsection{Evaluasi Berkas Bukti (Evidence Bundle)}
+Mekanisme \textit{Passive-Triggered Diagnostic Snapshot} membatasi penulisan berkas bukti hanya ketika alarm aktif. Hasil verifikasi pada Tabel~\ref{tab-checklist-evidence} menunjukkan seluruh berkas bukti (S1--S6) memuat data diagnostik yang lengkap (status Wi-Fi, IP, routing, resolver DNS, dan bukti spesifik) dengan ukuran berkas berkisar 20--25 KB per kejadian. Data ini dapat membantu administrator mengidentifikasi akar masalah secara terarah (misalnya membedakan gangguan Wi-Fi fisik dengan kegagalan resolver DNS) tanpa perlu merekam trafik paket penuh (PCAP) yang membutuhkan ruang penyimpanan besar.

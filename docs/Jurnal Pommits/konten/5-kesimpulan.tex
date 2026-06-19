@@ -1,0 +1,23 @@
+\section{Kesimpulan dan Saran}
+\label{sec-kesimpulan-dan-saran}
+
+\subsection{Kesimpulan}
+
+Berdasarkan hasil perancangan, implementasi, dan pengujian eksperimental sistem detektor Micro-UXI berbasis Arduino Uno Q, dapat diambil kesimpulan sebagai berikut:
+
+\begin{enumerate}
+    \item \textbf{Performa Deteksi:} Terdapat \textit{trade-off} antara akurasi deteksi dan kecepatan deteksi. \textbf{Metode Baseline} (threshold statis) menghasilkan akurasi deteksi yang tinggi dengan \textit{Precision} mencapai \textbf{100,0\%}, \textit{Recall} \textbf{95,0\%}, dan \textit{F1-Score} \textbf{0,973}, namun membutuhkan waktu respon deteksi lebih lambat dengan rata-rata MTTD \textbf{21,83 detik}. \textbf{Metode Event-Driven} (threshold dinamis EWMA) mendeteksi gangguan lebih cepat dengan rata-rata MTTD \textbf{19,24 detik} ($\sim$12\% lebih cepat secara akumulatif, mencapai 34\% lebih cepat pada skenario \textit{HTTP Slow}), tetapi memiliki kerentanan terhadap alarm palsu pada metrik dengan varians rendah (seperti pada skenario S1 dengan 10 \textit{False Positive}), sehingga nilai \textit{Precision} rata-rata turun menjadi \textbf{91,1\%}, \textit{Recall} \textbf{88,3\%}, dan \textit{F1-Score} \textbf{0,891}.
+    \item \textbf{Kelayakan Perangkat (Resource Feasibility):} Hasil pengukuran beban kerja menunjukkan bahwa sistem Micro-UXI layak dijalankan pada perangkat dengan spesifikasi terbatas (\textit{resource-constrained edge client}). Rata-rata utilitas CPU berada pada kisaran \textbf{4,62\%--4,87\%} dengan selisih tambahan overhead EWMA dinamis sebesar \textbf{0,18\%}. Penggunaan memori RAM stabil pada kisaran \textbf{28,96\%--30,47\%} dengan overhead tambahan RAM sebesar \textbf{1,51\%} untuk \textit{sliding queue} varians bergerak.
+    \item \textbf{Efektivitas Berkas Bukti (Evidence Bundle):} Mekanisme \textit{Passive-Triggered Diagnostic Snapshot} berhasil mengumpulkan berkas bukti yang memuat 8 elemen diagnostik untuk seluruh skenario gangguan S1--S6. Pendekatan snapshot ini efisien karena ukuran berkas bukti hanya berkisar \textbf{20--25 KB per kejadian}, sehingga dapat dijadikan alternatif diagnosis akar masalah (RCA) yang hemat ruang penyimpanan dibandingkan dengan metode perekaman paket penuh (PCAP).
+\end{enumerate}
+
+\subsection{Saran}
+
+Untuk pengembangan sistem Micro-UXI di masa mendatang, disarankan beberapa penyempurnaan berikut:
+
+\begin{enumerate}
+    \item \textbf{Penerapan \textit{Variance Floor} pada EWMA:} Menambahkan batas bawah standar deviasi (\textit{variance floor}) pada formula threshold dinamis EWMA untuk mencegah ambang batas menyusut terlalu rapat ketika varians normal metrik bernilai kecil, guna meminimalkan alarm palsu pada metrik seperti latensi DNS.
+    \item \textbf{Metode Deteksi Hibrida (\textit{Hybrid Detection}):} Menggabungkan respon cepat threshold dinamis EWMA sebagai alarm pemicu awal dengan filter threshold statis $P_{99}$ sebagai pengonfirmasi akhir guna memastikan keandalan alarm sebelum dikirim ke server.
+    \item \textbf{Mekanisme \textit{Adaptive Probing}:} Mengonfigurasi detektor agar secara otomatis meningkatkan frekuensi \textit{probing} (\textit{fast mode}) saat terdeteksi indikasi awal deviasi performa jaringan, dan kembali ke mode normal (\textit{slow mode}) pada kondisi normal untuk menghemat daya baterai dan bandwidth.
+    \item \textbf{Pengujian pada Topologi Dinamis:} Menguji ketahanan baseline adaptif EWMA pada lingkungan jaringan nirkabel yang lebih padat pengguna (\textit{high-density Wi-Fi}) atau topologi dengan mobilitas tinggi (\textit{mobility/roaming}).
+\end{enumerate}

@@ -1,0 +1,102 @@
+\section{Metodologi}
+\label{sec-metodologi}
+
+\subsection{Arsitektur Sistem Micro-UXI}
+Arsitektur Micro-UXI terbagi menjadi lima komponen utama untuk memproses pemantauan QoE pada perangkat komputasi \textit{edge}:
+\begin{enumerate}
+    \item \textbf{Sensing Layer:} Menjalankan kueri aktif sintetis (\textit{synthetic probing}) secara paralel melalui dua jenis pemantau:
+    \begin{itemize}
+        \item \textbf{\textit{Fast Probe}}: Berjalan setiap 2 detik untuk mengukur latensi DNS, status konektivitas ping, dan status tautan nirkabel antarmuka Wi-Fi.
+        \item \textbf{\textit{Telemetry Probe}}: Berjalan setiap 20 detik untuk mengukur latensi RTT kueri \textit{batch ping}, transaksi HTTP (TTFB dan \textit{total duration}), serta performa pengunduhan file uji 1 MB.
+    \end{itemize}
+    \item \textbf{Ring Buffer:} Struktur data \textit{circular queue} di dalam memori RAM yang menyimpan sampel telemetri selama 30 detik sebelum anomali terdeteksi.
+    \item \textbf{Detector \& Trigger Logic:} Menganalisis metrik masuk secara \textit{real-time} untuk mendeteksi pelanggaran batas toleransi.
+    \item \textbf{Event Recorder:} Mengatur penyimpanan data \textit{pre-event} (dengan menghentikan pembaruan \textit{ring buffer}), data \textit{event window}, dan data \textit{post-event window} selama 30 detik setelah pemulihan, serta memicu penangkapan snapshot diagnostik sistem operasi.
+    \item \textbf{Exporter:} Mengemas data telemetri, log alarm, dan berkas bukti (\textit{evidence bundle}) ke dalam format JSON/JSONL dan mengirimkannya ke server kolektor.
+\end{enumerate}
+
+\subsection{Model Keadaan (State Machine) Sistem}
+Alur kerja pemantauan dan perekaman bukti diatur menggunakan \textit{finite state machine} dengan transisi berikut:
+\begin{itemize}
+    \item \textbf{NORMAL:} Sensor melakukan pemantauan periodik, mengisi data \textit{ring buffer}, dan memperbarui batas threshold dinamis (pada metode Event-Driven).
+    \item \textbf{EVENT\_ACTIVE:} Terjadi jika kriteria alarm terpenuhi. Sensor menghentikan pembaruan \textit{ring buffer} (mengunci data \textit{pre-event}), mengambil snapshot diagnostik pertama (label ``alarm''), dan mencatat metrik gangguan secara berkelanjutan.
+    \item \textbf{POST\_EVENT / CLOSE:} Terjadi ketika kondisi pemulihan (\textit{recovery}) terpenuhi. Sensor mencatat data performa selama 30 detik setelah pulih, mengambil snapshot diagnostik kedua (label ``recovery''), menutup berkas bukti, dan mengirimkannya ke server.
+    \item \textbf{BACK\_TO\_NORMAL:} Sensor mereset status, mengaktifkan kembali \textit{ring buffer}, dan kembali ke keadaan \textit{NORMAL}.
+\end{itemize}
+
+\subsection{Desain Logika Pemicu Alarm (Baseline vs. Event-Driven)}
+
+\subsubsection{Metode Baseline (Threshold Statis)}
+Pada Metode Baseline, detektor menggunakan nilai persentil ke-99 ($P_{99}$) dari uji pendahuluan sebagai ambang batas tetap ($T_{static}$). Alarm dipicu berdasarkan logika \textit{Confirm Consecutive} ($N$), di mana alarm hanya akan aktif jika suatu metrik melanggar threshold selama $N = 2$ sampel berturut-turut untuk menghindari pemicuan akibat fluktuasi acak.
+
+\subsubsection{Metode Event-Driven (Threshold Dinamis EWMA)}
+Detektor menghitung batas toleransi secara dinamis di setiap langkah sampling $t$ menggunakan algoritma \textit{Exponential Weighted Moving Average} (EWMA). Batas dinamis ($T_{dynamic, t}$) dihitung sebagai berikut:
+\begin{equation}
+\mu_t = \alpha \cdot x_t + (1 - \alpha) \cdot \mu_{t-1}
+\end{equation}
+\begin{equation}
+v_t = \beta \cdot (x_t - \mu_{t-1})^2 + (1 - \beta) \cdot v_{t-1}
+\end{equation}
+\begin{equation}
+T_{dynamic, t} = \mu_{t-1} + k \cdot \sqrt{v_{t-1}}
+\end{equation}
+Di mana $x_t$ adalah sampel metrik saat ini, $\mu_t$ adalah rata-rata bergerak, $v_t$ adalah varians bergerak, $\alpha$ dan $\beta$ adalah faktor pemulusan eksponensial (ditetapkan $\alpha = 0,1$ dan $\beta = 0,1$), serta $k$ adalah faktor pengali standar deviasi ($k = 3$). Untuk mencegah kenaikan threshold akibat pengaruh data saat terjadi gangguan, dilakukan pembekuan pembaruan nilai rata-rata dan varians (\textit{threshold freezing}) ketika $x_t \ge T_{dynamic, t}$.
+
+\subsubsection{Logika Jendela Geser (m-of-n Rule)}
+Untuk event diskrit atau intermiten, digunakan aturan jendela geser (\textit{sliding window}). Alarm dipicu jika terdapat minimal $m$ kegagalan dalam $n$ sampel terakhir:
+\begin{itemize}
+    \item \textbf{S2 (DNS Timeout):} Ukuran jendela $n = 10$, alarm aktif jika terjadi minimal $m = 3$ kegagalan resolusi.
+    \item \textbf{S3 (Loss Burst):} Ukuran jendela $n = 20$, alarm aktif jika terjadi minimal $m = 4$ kegagalan ping.
+    \item \textbf{S6 (Connectivity Flap):} Menggunakan transisi status koneksi Wi-Fi. Ukuran jendela $n = 15$, alarm aktif jika terjadi minimal $m = 4$ kali transisi status tautan (\textit{link state change}).
+\end{itemize}
+
+\subsection{Lingkungan Uji Eksperimental dan Skenario Gangguan}
+Pengujian dilakukan secara fisik menggunakan \textit{testbed} terisolasi. Perangkat sensor menggunakan \textbf{Arduino Uno Q} (spesifikasi: MPU Qualcomm Dragonwing QRB2210, RAM 2 GB LPDDR4, konektivitas Wi-Fi) yang dihubungkan ke \textit{Access Point} (AP) lokal pada laptop penguji (Acer Nitro 5, OS Ubuntu Linux). Laptop penguji juga berfungsi sebagai \textit{fault injector} menggunakan skrip \texttt{fault\_master.py} dan perangkat lunak manipulasi jaringan kernel Linux (\texttt{tc} dan \texttt{nftables}). Setiap skenario diuji sebanyak 30 kali iterasi untuk masing-masing metode (total 360 pengujian) untuk memastikan konsistensi hasil.
+
+Detail perintah manipulasi jaringan (\textit{fault injection command}) yang dijalankan pada Laptop penguji adalah sebagai berikut:
+\begin{enumerate}
+    \item \textbf{S1 -- DNS Degraded:} Menyuntikkan delay kueri DNS sebesar 400 ms:
+    \begin{lstlisting}[language=bash]
+nft add rule ip fi_mangle udp dport 53 mark set 53
+tc qdisc add dev eth0 root handle 1: prio
+tc qdisc add dev eth0 parent 1:1 netem delay 400ms
+tc filter add dev eth0 handle 53 fw flowid 1:1
+    \end{lstlisting}
+    \item \textbf{S2 -- DNS Timeout Burst:} Membuang kueri DNS UDP/TCP port 53 secara total:
+    \begin{lstlisting}[language=bash]
+nft add rule ip fi_forward udp dport 53 drop
+nft add rule ip fi_forward tcp dport 53 drop
+    \end{lstlisting}
+    \item \textbf{S3 -- Loss Burst:} Menyuntikkan kehilangan paket acak sebesar 40\% global:
+    \begin{lstlisting}[language=bash]
+tc qdisc add dev eth0 root netem loss 40%
+    \end{lstlisting}
+    \item \textbf{S4 -- High RTT:} Menyuntikkan RTT tambahan 300 ms global, kecuali kueri DNS:
+    \begin{lstlisting}[language=bash]
+tc qdisc add dev eth0 root handle 1: prio bands 2
+tc qdisc add dev eth0 parent 1:2 netem delay 300ms
+tc filter add dev eth0 handle 53 fw flowid 1:1
+    \end{lstlisting}
+    \item \textbf{S5 -- HTTP Slow:} Membatasi bandwidth HTTP server (port 8080) maksimal 1 Mbps:
+    \begin{lstlisting}[language=bash]
+tc qdisc add dev ap0 root handle 1: prio bands 2
+tc qdisc add dev ap0 parent 1:2 tbf rate 1mbit
+tc filter add dev ap0 parent 1:0 u32 match sport 8080 flowid 1:2
+    \end{lstlisting}
+    \item \textbf{S6 -- Connectivity Flap:} Mematikan dan menyalakan interface Wi-Fi AP secara berkala:
+    \begin{lstlisting}[language=bash]
+ip link set dev eth0 down
+ip link set dev eth0 up
+    \end{lstlisting}
+\end{enumerate}
+
+\subsection{Metrik Evaluasi}
+Evaluasi sistem dilakukan menggunakan metrik berikut:
+\begin{itemize}
+    \item \textbf{Precision:} $TP / (TP + FP)$, rasio alarm yang benar dari keseluruhan alarm yang dipicu.
+    \item \textbf{Recall:} $TP / (TP + FN)$, rasio gangguan terdeteksi dari total gangguan aktual.
+    \item \textbf{F1-Score:} Rata-rata harmonis antara \textit{Precision} dan \textit{Recall}.
+    \item \textbf{Mean Time to Detect (MTTD):} Selisih waktu antara pemicuan alarm dan waktu suntikan gangguan awal.
+    \item \textbf{System Overhead:} Rata-rata penggunaan CPU (\%), memori RAM (\%), serta volume transfer data TX/RX (KB/s).
+    \item \textbf{Reconstruction Completeness Score (RCS):} Kelengkapan komponen bukti dalam berkas bukti (\textit{evidence bundle}) berdasarkan matriks checklist 8 elemen diagnostik.
+\end{itemize}
