@@ -1,0 +1,39 @@
+{
+  "detector": {
+    "enabled": false,
+    "mode": "placeholder",
+    "notes": "Detection config is loaded and validated but not evaluated in sensor-side first pass."
+  },
+  "events": {
+    "S1": {
+      "enabled": false,
+      "event_type": "DNS_DEGRADED",
+      "placeholder": true
+    },
+    "S2": {
+      "enabled": false,
+      "event_type": "DNS_TIMEOUT_BURST",
+      "placeholder": true
+    },
+    "S3": {
+      "enabled": false,
+      "event_type": "LOSS_BURST",
+      "placeholder": true
+    },
+    "S4": {
+      "enabled": false,
+      "event_type": "HIGH_RTT",
+      "placeholder": true
+    },
+    "S5": {
+      "enabled": false,
+      "event_type": "HTTP_SLOW",
+      "placeholder": true
+    },
+    "S6": {
+      "enabled": false,
+      "event_type": "CONNECTIVITY_FLAP",
+      "placeholder": true
+    }
+  }
+}

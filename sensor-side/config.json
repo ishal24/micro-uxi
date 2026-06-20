@@ -1,0 +1,108 @@
+{
+  "device": {
+    "device_id": "uno-q-01",
+    "site_name": "ITS",
+    "timezone": "Asia/Jakarta",
+    "iface": "wlan0"
+  },
+  "scheduler": {
+    "fast_interval_sec": 5,
+    "telemetry_interval_sec": 30,
+    "throughput_interval_sec": 300,
+    "overhead_interval_sec": 30
+  },
+  "modules": {
+    "fast": true,
+    "telemetry": true,
+    "throughput": false,
+    "overhead": true
+  },
+  "fast_probe": {
+    "enabled": true,
+    "ping_target": "8.8.8.8",
+    "ping_timeout_sec": 1,
+    "dns_timeout_sec": 2.0,
+    "dns_resolver": "8.8.8.8",
+    "targets": [
+      {
+        "name": "google.com",
+        "scope": "external"
+      }
+    ]
+  },
+  "telemetry_probe": {
+    "enabled": true,
+    "ping_target": "8.8.8.8",
+    "ping_count": 5,
+    "ping_interval_sec": 0.2,
+    "ping_timeout_sec": 10,
+    "dns_timeout_sec": 5,
+    "dns_resolvers": [
+      "system"
+    ],
+    "dns_targets": [
+      {
+        "name": "its.ac.id",
+        "scope": "internal"
+      },
+      {
+        "name": "google.com",
+        "scope": "external"
+      }
+    ],
+    "http_targets": [
+      {
+        "url": "https://www.its.ac.id",
+        "scope": "internal",
+        "expected_status_min": 200,
+        "expected_status_max": 399
+      }
+    ],
+    "http_connect_timeout_sec": 5,
+    "http_max_time_sec": 15
+  },
+  "throughput_probe": {
+    "enabled": false,
+    "mode": "routine",
+    "connect_timeout_sec": 5,
+    "routine": {
+      "download": {
+        "enabled": true,
+        "url": "https://speed.cloudflare.com/__down?bytes=10000000",
+        "expected_bytes": 10000000,
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 60
+      },
+      "upload": {
+        "enabled": false,
+        "url": "https://speed.cloudflare.com/__up",
+        "expected_bytes": 5000000,
+        "payload_path": "./sensor-side/out/payloads/upload_5mb.bin",
+        "payload_source": "zero",
+        "runs": 3,
+        "warmup": 1,
+        "pause_sec": 2,
+        "max_time_sec": 60
+      }
+    }
+  },
+  "overhead_probe": {
+    "enabled": true,
+    "refresh_process_every_samples": 30,
+    "process_names": [
+      "sensor-side.controller",
+      "controller.py",
+      "telemetry.py",
+      "fast.py",
+      "throughput.py"
+    ]
+  },
+  "output": {
+    "enabled": true,
+    "output_dir": "./sensor-side/out",
+    "sample_format": "jsonl",
+    "verbose": false
+  }
+}
