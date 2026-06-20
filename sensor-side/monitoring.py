@@ -108,28 +108,47 @@ class MonitoringRuntime:
         ping = sample.get("ping", {})
         dns_rows = sample.get("dns", [])
         dns_text = ", ".join(
-            f"{row.get('target')}={'OK' if row.get('success') else row.get('status')}"
+            (
+                f"{row.get('target')}={row.get('latency_ms'):.1f}ms"
+                if row.get("success") and row.get("latency_ms") is not None
+                else f"{row.get('target')}={row.get('status')}"
+            )
             for row in dns_rows
+        )
+        ping_text = (
+            f"{ping.get('rtt_ms'):.1f}ms"
+            if ping.get("success") and ping.get("rtt_ms") is not None
+            else "FAIL"
         )
         self._print(
             f"[FAST] {ts} wifi={'UP' if wifi.get('wifi_up') else 'DOWN'} "
-            f"ping={'OK' if ping.get('success') else 'FAIL'} dns=[{dns_text}]"
+            f"ping={ping_text} dns=[{dns_text}]"
         )
 
     def _print_telemetry_line(self, sample: dict[str, Any]) -> None:
         ts = sample.get("ts", "")[11:19] if sample.get("ts") else "--:--:--"
         wifi = sample.get("wifi", {})
         ping = sample.get("ping", {})
+        dns_rows = sample.get("dns", [])
         http_rows = sample.get("http", [])
+        dns_text = ", ".join(
+            (
+                f"{row.get('target')}@{row.get('resolver')}={row.get('latency_ms'):.1f}ms"
+                if row.get("success") and row.get("latency_ms") is not None
+                else f"{row.get('target')}@{row.get('resolver')}={row.get('status')}"
+            )
+            for row in dns_rows
+        )
         http_text = ", ".join(
-            f"{row.get('host')}={row.get('http_status')}/{row.get('http_total_ms'):.1f}ms"
+            f"{row.get('host')}={row.get('http_status')}/{row.get('http_total_ms'):.1f}ms ttfb={row.get('http_ttfb_ms'):.1f}ms"
             if row.get("http_total_ms") is not None
             else f"{row.get('host')}=FAIL(rc={row.get('curl_rc')})"
             for row in http_rows
         )
         self._print(
             f"[TELEMETRY] {ts} wifi={'UP' if wifi.get('wifi_connected') else 'DOWN'} "
-            f"rtt={ping.get('rtt_avg_ms')}ms loss={ping.get('loss_pct')}% http=[{http_text}]"
+            f"rtt={ping.get('rtt_avg_ms')}ms loss={ping.get('loss_pct')}% "
+            f"dns=[{dns_text}] http=[{http_text}]"
         )
 
     def _print_summary(self, elapsed_sec: float) -> None:

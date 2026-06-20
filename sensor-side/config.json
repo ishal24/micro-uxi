@@ -48,7 +48,7 @@
   },
   "monitoring": {
     "output_dir": "./out",
-    "write_jsonl": true,
+    "write_jsonl": false,
     "verbose": true
   }
 }
