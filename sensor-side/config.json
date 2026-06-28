@@ -77,7 +77,7 @@
   },
   "detection": {
     "enabled": false,
-    "config_file": null
+    "config_file": "./detection_config.json"
   },
   "evidence": {
     "enabled": false,

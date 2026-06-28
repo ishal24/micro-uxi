@@ -80,7 +80,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "detection": {
         "enabled": False,
-        "config_file": None,
+        "config_file": "./detection_config.json",
     },
     "evidence": {
         "enabled": False,
@@ -122,5 +122,9 @@ def load_config(path: str) -> dict[str, Any]:
 
     overhead = _require(config, "overhead", "config")
     overhead.setdefault("metrics", {})
+
+    detection = _require(config, "detection", "config")
+    detection_config_file = detection.get("config_file", "./detection_config.json")
+    detection["config_file"] = str((config_path.parent / detection_config_file).resolve()) if not Path(detection_config_file).is_absolute() else str(Path(detection_config_file))
 
     return config

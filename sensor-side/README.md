@@ -7,10 +7,10 @@ Fase implementasi saat ini mencakup:
 - `Main` sebagai supervisor runtime
 - `Monitoring` dengan probe `fast` dan `telemetry` berjalan bersamaan
 - `Overhead` untuk memantau CPU, memori, disk, dan network I/O sistem
+- `Detection` untuk alarm event real-time berbasis stream sample monitoring
 
 Modul berikut belum diimplementasikan, tetapi slot konfigurasinya sudah disiapkan:
 
-- `Detection`
 - `Evidence`
 - `Exporter`
 
@@ -20,6 +20,7 @@ Modul berikut belum diimplementasikan, tetapi slot konfigurasinya sudah disiapka
 - `config.py` memuat dan memvalidasi konfigurasi
 - `monitoring.py` menjalankan scheduler probe `fast` dan `telemetry`
 - `overhead.py` menjalankan sampling overhead sistem
+- `detection.py` menjalankan deteksi event dari sample monitoring
 - `probe/` berisi implementasi probe dan helper bersama
 
 ## Cara Kerja
@@ -30,8 +31,10 @@ Modul berikut belum diimplementasikan, tetapi slot konfigurasinya sudah disiapka
    - `fast` untuk sinyal ringan yang relevan ke event fast seperti S1/S2/S3/S6
    - `telemetry` untuk snapshot kaya metrik yang relevan ke event telemetry seperti S4/S5
 4. `overhead` berjalan paralel dan mengambil metrik sistem
-5. output default ditampilkan verbose di terminal
-6. JSONL per modul bisa diaktifkan lewat config atau flag CLI
+5. `detection` menerima sample `fast` dan `telemetry` dari `monitoring`, lalu mengevaluasi event
+6. mode deteksi bisa dipilih antara baseline statik dan dynamic event-driven
+7. output default ditampilkan verbose di terminal
+8. JSONL per modul bisa diaktifkan lewat config atau flag CLI
 
 ## CLI Dasar
 
@@ -53,7 +56,15 @@ Konfigurasi dipisah per modul dalam satu file utama:
 - `modules`: switch enable/disable modul
 - `monitoring`: scheduler, target ping/DNS/HTTP, verbosity, JSONL
 - `overhead`: interval, metrik, verbosity, JSONL
-- `detection`, `evidence`, `exporter`: placeholder untuk fase berikutnya
+- `detection`: switch modul dan path ke file config deteksi terpisah
+- `evidence`, `exporter`: placeholder untuk fase berikutnya
+
+File deteksi dipisah di `detection_config.json`. Di file ini terdapat:
+
+- `detection.mode = baseline | dynamic`
+- threshold baseline statik
+- parameter EWMA untuk mode event-driven
+- rule per event seperti `confirm_consecutive`, `n_dns/m_dns`, `n_ping/m_ping`, dan `n_flap/m_transition`
 
 ## Output
 
@@ -67,3 +78,4 @@ Jika JSONL diaktifkan:
 
 - `monitoring.jsonl` berisi sample `fast` dan `telemetry`
 - `overhead.jsonl` berisi sample overhead sistem
+- `detection.jsonl` berisi alarm dan recovery event

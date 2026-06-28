@@ -10,6 +10,7 @@ if __package__ in (None, ""):
     sys.path.append(str(Path(__file__).resolve().parent))
 
 from config import load_config
+from detection import DetectionRuntime, load_detection_config
 from monitoring import MonitoringRuntime, parse_duration
 from overhead import OverheadRuntime
 from probe.utils import safe_mkdir
@@ -24,11 +25,17 @@ class SensorRuntimeController:
         self.modules_cfg = config["modules"]
         self.monitoring: MonitoringRuntime | None = None
         self.overhead: OverheadRuntime | None = None
+        self.detection: DetectionRuntime | None = None
 
         if self.modules_cfg["monitoring"]["enabled"]:
             self.monitoring = MonitoringRuntime(config, self.output_dir)
         if self.modules_cfg["overhead"]["enabled"]:
             self.overhead = OverheadRuntime(config, self.output_dir)
+        if self.modules_cfg["detection"]["enabled"]:
+            detection_config = load_detection_config(config["detection"]["config_file"])
+            self.detection = DetectionRuntime(config, detection_config, self.output_dir)
+            if self.monitoring:
+                self.monitoring.add_sample_subscriber(self.detection.submit_sample)
 
     def _banner(self, duration_sec: float | None) -> None:
         duration_label = f"{duration_sec:.0f}s ({duration_sec / 60:.1f} min)" if duration_sec else "indefinite (Ctrl+C to stop)"
@@ -58,7 +65,14 @@ class SensorRuntimeController:
                 f"write_jsonl={overhead_cfg.get('write_jsonl', False)} "
                 f"verbose_terminal={overhead_cfg.get('verbose_terminal', False)}"
             )
-        print(f"  Detection   : placeholder (enabled={self.modules_cfg['detection']['enabled']})")
+        print(f"  Detection   : {'enabled' if self.detection else 'disabled'}")
+        if self.detection:
+            print(
+                "  Detection   : "
+                f"mode={self.detection.mode} "
+                f"write_jsonl={self.detection.write_jsonl} "
+                f"verbose_terminal={self.detection.verbose_terminal}"
+            )
         print(f"  Evidence    : placeholder (enabled={self.modules_cfg['evidence']['enabled']})")
         print(f"  Exporter    : placeholder (enabled={self.modules_cfg['exporter']['enabled']})")
         print("=" * 72)
@@ -71,6 +85,8 @@ class SensorRuntimeController:
 
         if self.overhead:
             self.overhead.start()
+        if self.detection:
+            self.detection.start()
 
         if self.monitoring:
             thread = threading.Thread(target=self.monitoring.run_forever, daemon=True, name="monitoring")
@@ -90,11 +106,15 @@ class SensorRuntimeController:
                 self.monitoring.stop_event.set()
             if self.overhead:
                 self.overhead.stop_event.set()
+            if self.detection:
+                self.detection.stop_event.set()
 
             for thread in threads:
                 thread.join(timeout=10)
             if self.overhead:
                 self.overhead.join()
+            if self.detection:
+                self.detection.join()
 
             elapsed = time.monotonic() - started
             print("=" * 72)
@@ -114,6 +134,13 @@ class SensorRuntimeController:
                     "  Overhead     : "
                     f"samples={self.overhead.sample_count} "
                     f"errors={self.overhead.error_count}"
+                )
+            if self.detection:
+                print(
+                    "  Detection    : "
+                    f"samples={self.detection.sample_count} "
+                    f"events={self.detection.event_count} "
+                    f"errors={self.detection.error_count}"
                 )
             print("=" * 72)
 

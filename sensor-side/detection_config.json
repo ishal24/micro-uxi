@@ -1,0 +1,100 @@
+{
+  "detection": {
+    "mode": "baseline",
+    "write_jsonl": false,
+    "output_filename": "detection.jsonl",
+    "verbose_terminal": true
+  },
+  "thresholds": {
+    "dns_latency_threshold_ms": 243,
+    "loss_threshold_pct": 20,
+    "rtt_threshold_ms": 279,
+    "http_total_threshold_ms": 1535,
+    "http_ttfb_threshold_ms": 88
+  },
+  "dynamic_thresholds": {
+    "enabled": true,
+    "events": {
+      "S1_DNS_DEGRADED": {
+        "dns_latency_ms": {
+          "method": "ewma",
+          "warmup_samples": 60,
+          "alpha": 0.1,
+          "beta": 0.1,
+          "k": 3
+        }
+      },
+      "S4_HIGH_RTT": {
+        "rtt_ms": {
+          "method": "ewma",
+          "warmup_samples": 12,
+          "alpha": 0.1,
+          "beta": 0.1,
+          "k": 3
+        }
+      },
+      "S5_HTTP_SLOW": {
+        "http_total_ms": {
+          "method": "ewma",
+          "warmup_samples": 12,
+          "alpha": 0.1,
+          "beta": 0.1,
+          "k": 3
+        },
+        "http_ttfb_ms": {
+          "method": "ewma",
+          "warmup_samples": 12,
+          "alpha": 0.1,
+          "beta": 0.1,
+          "k": 3
+        }
+      }
+    }
+  },
+  "events": {
+    "S1_DNS_DEGRADED": {
+      "probe": "fast",
+      "rules": {
+        "confirm_consecutive": 2,
+        "recovery_consecutive": 2
+      }
+    },
+    "S2_DNS_TIMEOUT_BURST": {
+      "probe": "fast",
+      "rules": {
+        "n_dns": 10,
+        "m_dns": 3
+      }
+    },
+    "S3_LOSS_BURST": {
+      "probe": "fast",
+      "rules": {
+        "n_ping": 20,
+        "m_ping": 4,
+        "recovery_max_failures": 1
+      }
+    },
+    "S4_HIGH_RTT": {
+      "probe": "telemetry",
+      "rules": {
+        "confirm_consecutive": 2,
+        "recovery_consecutive": 2
+      }
+    },
+    "S5_HTTP_SLOW": {
+      "probe": "telemetry",
+      "rules": {
+        "confirm_consecutive": 2,
+        "recovery_consecutive": 2
+      }
+    },
+    "S6_CONNECTIVITY_FLAP": {
+      "probe": "fast",
+      "rules": {
+        "n_flap": 15,
+        "m_transition": 4,
+        "recovery_max_transitions": 1
+      }
+    }
+  }
+}

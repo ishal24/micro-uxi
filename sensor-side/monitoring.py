@@ -47,6 +47,10 @@ class MonitoringRuntime:
         self.sample_queue: queue.Queue[tuple[str, dict[str, Any] | None, str | None]] = queue.Queue()
         self.sample_counts = {"fast": 0, "telemetry": 0}
         self.error_counts = {"fast": 0, "telemetry": 0}
+        self.sample_subscribers: list = []
+
+    def add_sample_subscriber(self, subscriber) -> None:
+        self.sample_subscribers.append(subscriber)
 
     def build_workers(self) -> list[WorkerSpec]:
         scheduler = self.module_cfg["scheduler"]
@@ -69,6 +73,13 @@ class MonitoringRuntime:
     def _write_sample(self, sample: dict[str, Any]) -> None:
         if self.write_jsonl:
             append_jsonl(self.output_path, sample)
+
+    def _publish_sample(self, sample: dict[str, Any]) -> None:
+        for subscriber in self.sample_subscribers:
+            try:
+                subscriber(sample)
+            except Exception as exc:  # pragma: no cover
+                self._print(f"[MONITORING PUBLISH ERROR] {exc}")
 
     def _print(self, message: str) -> None:
         with self.print_lock:
@@ -180,6 +191,7 @@ class MonitoringRuntime:
                 assert sample is not None
                 self.sample_counts[probe_name] += 1
                 self._write_sample(sample)
+                self._publish_sample(sample)
                 self.print_sample(probe_name, sample)
         finally:
             self.stop_event.set()
