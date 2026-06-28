@@ -69,7 +69,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "overhead": {
         "write_jsonl": False,
         "output_filename": "overhead.jsonl",
-        "verbose_terminal": False,
+        "verbose_terminal": True,
         "interval_sec": 2,
         "metrics": {
             "cpu": True,

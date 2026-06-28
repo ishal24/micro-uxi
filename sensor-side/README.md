@@ -60,7 +60,7 @@ Konfigurasi dipisah per modul dalam satu file utama:
 Default:
 
 - monitoring verbose penuh di terminal
-- overhead silent di terminal
+- overhead juga tampil di terminal
 - file output nonaktif
 
 Jika JSONL diaktifkan:
