@@ -90,6 +90,7 @@ class DetectionRuntime:
         self.sample_queue: queue.Queue[dict[str, Any]] = queue.Queue()
         self.thread: threading.Thread | None = None
         self.print_lock = threading.Lock()
+        self.transition_subscribers: list = []
         self.histories = {
             "s2_dns": deque(maxlen=int(self.config["events"]["S2_DNS_TIMEOUT_BURST"]["rules"]["n_dns"])),
             "s3_ping": deque(maxlen=int(self.config["events"]["S3_LOSS_BURST"]["rules"]["n_ping"])),
@@ -152,6 +153,9 @@ class DetectionRuntime:
     def submit_sample(self, sample: dict[str, Any]) -> None:
         self.sample_queue.put(sample)
 
+    def add_transition_subscriber(self, subscriber) -> None:
+        self.transition_subscribers.append(subscriber)
+
     def _print(self, line: str) -> None:
         with self.print_lock:
             print(line, flush=True)
@@ -161,6 +165,7 @@ class DetectionRuntime:
         record = {
             "ts": datetime.now(timezone.utc).isoformat(),
             "module": "detection",
+            "device_id": self.runtime_config["device"].get("device_id"),
             "status": status,
             "event_key": event_key,
             "mode": self.mode,
@@ -171,6 +176,11 @@ class DetectionRuntime:
         }
         if self.write_jsonl:
             append_jsonl(self.output_path, record)
+        for subscriber in self.transition_subscribers:
+            try:
+                subscriber(record)
+            except Exception as exc:  # pragma: no cover
+                self._print(f"[DETECTION PUBLISH ERROR] {exc}")
         if self.verbose_terminal:
             self._print(f"[DETECTION {status}] {event_key} probe={sample.get('probe_type')} seq={sample.get('seq')} detail={json.dumps(detail, ensure_ascii=False)}")
 

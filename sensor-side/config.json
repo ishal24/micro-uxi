@@ -85,6 +85,6 @@
   },
   "exporter": {
     "enabled": false,
-    "endpoint": null
+    "config_file": "./exporter_config.json"
   }
 }

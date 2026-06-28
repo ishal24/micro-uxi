@@ -8,11 +8,11 @@ Fase implementasi saat ini mencakup:
 - `Monitoring` dengan probe `fast` dan `telemetry` berjalan bersamaan
 - `Overhead` untuk memantau CPU, memori, disk, dan network I/O sistem
 - `Detection` untuk alarm event real-time berbasis stream sample monitoring
+- `Exporter` untuk mengirim record monitoring, overhead, dan detection ke endpoint HTTP generik
 
 Modul berikut belum diimplementasikan, tetapi slot konfigurasinya sudah disiapkan:
 
 - `Evidence`
-- `Exporter`
 
 ## Struktur
 
@@ -21,6 +21,7 @@ Modul berikut belum diimplementasikan, tetapi slot konfigurasinya sudah disiapka
 - `monitoring.py` menjalankan scheduler probe `fast` dan `telemetry`
 - `overhead.py` menjalankan sampling overhead sistem
 - `detection.py` menjalankan deteksi event dari sample monitoring
+- `exporter.py` menjalankan queue + retry untuk pengiriman HTTP generik
 - `probe/` berisi implementasi probe dan helper bersama
 
 ## Cara Kerja
@@ -32,9 +33,10 @@ Modul berikut belum diimplementasikan, tetapi slot konfigurasinya sudah disiapka
    - `telemetry` untuk snapshot kaya metrik yang relevan ke event telemetry seperti S4/S5
 4. `overhead` berjalan paralel dan mengambil metrik sistem
 5. `detection` menerima sample `fast` dan `telemetry` dari `monitoring`, lalu mengevaluasi event
-6. mode deteksi bisa dipilih antara baseline statik dan dynamic event-driven
-7. output default ditampilkan verbose di terminal
-8. JSONL per modul bisa diaktifkan lewat config atau flag CLI
+6. `exporter` menerima sample/event dari modul lain dan mengirimkannya ke endpoint HTTP generik lewat background queue
+7. mode deteksi bisa dipilih antara baseline statik dan dynamic event-driven
+8. output default ditampilkan verbose di terminal
+9. JSONL per modul bisa diaktifkan lewat config atau flag CLI
 
 ## CLI Dasar
 
@@ -44,6 +46,8 @@ python controller.py
 python controller.py --duration 10m
 python controller.py --enable-monitoring-jsonl --enable-overhead-jsonl
 python controller.py --disable-overhead
+python controller.py --disable-exporter
+python controller.py --enable-exporter
 python controller.py --quiet-monitoring
 ```
 
@@ -57,7 +61,8 @@ Konfigurasi dipisah per modul dalam satu file utama:
 - `monitoring`: scheduler, target ping/DNS/HTTP, verbosity, JSONL
 - `overhead`: interval, metrik, verbosity, JSONL
 - `detection`: switch modul dan path ke file config deteksi terpisah
-- `evidence`, `exporter`: placeholder untuk fase berikutnya
+- `exporter`: switch modul dan path ke file config exporter terpisah
+- `evidence`: placeholder untuk fase berikutnya
 
 File deteksi dipisah di `detection_config.json`. Di file ini terdapat:
 
@@ -72,6 +77,14 @@ Catatan mode:
 - `mode = dynamic` memakai EWMA event-driven
 - tidak ada lagi `dynamic_thresholds.enabled`; pemilih mode hanya `detection.mode`
 
+File exporter dipisah di `exporter_config.json`. Di file ini terdapat:
+
+- `transport.base_url`, `api_key`, `timeout_sec`
+- path endpoint per stream: `monitoring`, `overhead`, `detection`
+- queue memory bounded
+- retry delay dan attempt policy
+- toggle stream per jenis data
+
 ## Output
 
 Default:
@@ -85,3 +98,9 @@ Jika JSONL diaktifkan:
 - `monitoring.jsonl` berisi sample `fast` dan `telemetry`
 - `overhead.jsonl` berisi sample overhead sistem
 - `detection.jsonl` berisi alarm dan recovery event
+
+Exporter tidak menulis outbox lokal. Jika aktif, exporter mengirim:
+
+- semua sample monitoring
+- semua sample overhead
+- hanya transition event detection (`ALARM` dan `RECOVERY`)

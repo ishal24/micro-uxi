@@ -11,6 +11,7 @@ if __package__ in (None, ""):
 
 from config import load_config
 from detection import DetectionRuntime, load_detection_config
+from exporter import ExporterRuntime, load_exporter_config
 from monitoring import MonitoringRuntime, parse_duration
 from overhead import OverheadRuntime
 from probe.utils import safe_mkdir
@@ -26,6 +27,7 @@ class SensorRuntimeController:
         self.monitoring: MonitoringRuntime | None = None
         self.overhead: OverheadRuntime | None = None
         self.detection: DetectionRuntime | None = None
+        self.exporter: ExporterRuntime | None = None
 
         if self.modules_cfg["monitoring"]["enabled"]:
             self.monitoring = MonitoringRuntime(config, self.output_dir)
@@ -36,6 +38,15 @@ class SensorRuntimeController:
             self.detection = DetectionRuntime(config, detection_config, self.output_dir)
             if self.monitoring:
                 self.monitoring.add_sample_subscriber(self.detection.submit_sample)
+        if self.modules_cfg["exporter"]["enabled"]:
+            exporter_config = load_exporter_config(config["exporter"]["config_file"])
+            self.exporter = ExporterRuntime(config, exporter_config)
+            if self.monitoring:
+                self.monitoring.add_sample_subscriber(self.exporter.submit_monitoring)
+            if self.overhead:
+                self.overhead.add_sample_subscriber(self.exporter.submit_overhead)
+            if self.detection:
+                self.detection.add_transition_subscriber(self.exporter.submit_detection)
 
     def _banner(self, duration_sec: float | None) -> None:
         duration_label = f"{duration_sec:.0f}s ({duration_sec / 60:.1f} min)" if duration_sec else "indefinite (Ctrl+C to stop)"
@@ -74,7 +85,14 @@ class SensorRuntimeController:
                 f"verbose_terminal={self.detection.verbose_terminal}"
             )
         print(f"  Evidence    : placeholder (enabled={self.modules_cfg['evidence']['enabled']})")
-        print(f"  Exporter    : placeholder (enabled={self.modules_cfg['exporter']['enabled']})")
+        print(f"  Exporter    : {'enabled' if self.exporter else 'disabled'}")
+        if self.exporter:
+            print(
+                "  Exporter    : "
+                f"base_url={self.exporter.base_url or 'unset'} "
+                f"queue_max={self.exporter.max_items} "
+                f"retry_delay={self.exporter.retry_delay_sec}s"
+            )
         print("=" * 72)
 
     def run(self, duration_sec: float | None = None) -> None:
@@ -87,6 +105,8 @@ class SensorRuntimeController:
             self.overhead.start()
         if self.detection:
             self.detection.start()
+        if self.exporter:
+            self.exporter.start()
 
         if self.monitoring:
             thread = threading.Thread(target=self.monitoring.run_forever, daemon=True, name="monitoring")
@@ -108,6 +128,8 @@ class SensorRuntimeController:
                 self.overhead.stop_event.set()
             if self.detection:
                 self.detection.stop_event.set()
+            if self.exporter:
+                self.exporter.stop_event.set()
 
             for thread in threads:
                 thread.join(timeout=10)
@@ -115,6 +137,8 @@ class SensorRuntimeController:
                 self.overhead.join()
             if self.detection:
                 self.detection.join()
+            if self.exporter:
+                self.exporter.join()
 
             elapsed = time.monotonic() - started
             print("=" * 72)
@@ -142,6 +166,15 @@ class SensorRuntimeController:
                     f"events={self.detection.event_count} "
                     f"errors={self.detection.error_count}"
                 )
+            if self.exporter:
+                print(
+                    "  Exporter     : "
+                    f"queued={self.exporter.queued_count} "
+                    f"sent={self.exporter.sent_count} "
+                    f"failed={self.exporter.failed_count} "
+                    f"retried={self.exporter.retry_count} "
+                    f"dropped={self.exporter.dropped_count}"
+                )
             print("=" * 72)
 
 
@@ -152,6 +185,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", default=None, help="Override runtime output directory")
     parser.add_argument("--disable-monitoring", action="store_true", help="Disable monitoring module")
     parser.add_argument("--disable-overhead", action="store_true", help="Disable overhead module")
+    parser.add_argument("--disable-exporter", action="store_true", help="Disable exporter module")
+    parser.add_argument("--enable-exporter", action="store_true", help="Enable exporter module")
     parser.add_argument("--enable-monitoring-jsonl", action="store_true", help="Force monitoring JSONL output on")
     parser.add_argument("--enable-overhead-jsonl", action="store_true", help="Force overhead JSONL output on")
     parser.add_argument("--quiet-monitoring", action="store_true", help="Disable verbose monitoring terminal output")
@@ -170,6 +205,10 @@ def main() -> None:
         config["modules"]["monitoring"]["enabled"] = False
     if args.disable_overhead:
         config["modules"]["overhead"]["enabled"] = False
+    if args.disable_exporter:
+        config["modules"]["exporter"]["enabled"] = False
+    if args.enable_exporter:
+        config["modules"]["exporter"]["enabled"] = True
     if args.enable_monitoring_jsonl:
         config["monitoring"]["write_jsonl"] = True
     if args.enable_overhead_jsonl:

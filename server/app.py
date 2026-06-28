@@ -242,6 +242,234 @@ def api_data_events():
     return jsonify({"events": db.get_events(device_id, limit)})
 
 
+# ── Routes — Devices (dipakai React dashboard) ────────────────────────────────
+# Format response sesuai kontrak useLiveMetrics.js → fetchLatest().
+# MetricList = list[{label, unit, value, data:[{t,v,label}], static?, services?}]
+
+RANGE_HOURS = {"1h": 1, "6h": 6, "12h": 12, "24h": 24}
+
+
+def _time_label(dt: datetime) -> str:
+    from datetime import timedelta
+    start = dt - timedelta(minutes=10)
+    hm = lambda d: f"{d.hour:02d}:{d.minute:02d}"
+    day = dt.strftime("%a, %b ") + str(dt.day)
+    return f"{hm(start)} - {hm(dt)} ({day})"
+
+
+def _build_metric_list(rows: list[dict], label: str, unit: str,
+                       key_fn, decimals: int = 1, static: bool = False) -> dict:
+    """Bangun satu MetricList entry dari daftar rows DB."""
+    pts = []
+    latest = None
+    for r in rows:
+        try:
+            ts_str = r.get("ts") or r.get("received_at")
+            dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+            v = key_fn(r)
+            if v is None:
+                continue
+            v = float(v)
+            pts.append({"t": int(dt.timestamp() * 1000), "v": round(v, decimals), "label": _time_label(dt)})
+            latest = v
+        except Exception:
+            continue
+    return {
+        "label": label,
+        "unit": unit,
+        "type": "line",
+        "value": f"{latest:.{decimals}f}" if latest is not None else "-",
+        "data": [] if static else pts,
+        "static": static,
+    }
+
+
+def _build_snapshot(device_id: str, range_hours: int) -> dict | None:
+    """Bangun snapshot lengkap {info,wifi,external,overhead,status} dari DB."""
+    from datetime import timedelta
+    since_dt = datetime.now(timezone.utc) - timedelta(hours=range_hours)
+    since_iso = since_dt.isoformat(timespec="seconds")
+    limit = range_hours * 60  # asumsi max 1 sample/menit
+
+    # ── Latest telemetry payload (untuk info & static wifi fields) ────────────
+    latest_tel = db.get_latest_sensor(device_id, "telemetry")
+    wifi_raw = (latest_tel or {}).get("wifi") or {}
+    net_raw  = (latest_tel or {}).get("network") or {}
+
+    info = {
+        "ssid": wifi_raw.get("wifi_ssid", "-"),
+        "ip":   net_raw.get("ip_address",  "-"),
+        "mac":  "-",  # MAC tidak dikirim sensor — bisa diisi dari device registry nanti
+    }
+
+    # ── Wi-Fi time-series (dari telemetry history) ────────────────────────────
+    tel_history = db.get_sensor_history(device_id, "telemetry", limit=limit, since=since_iso)
+
+    wifi = [
+        {
+            "label": "SSID", "unit": "",
+            "value": wifi_raw.get("wifi_ssid", "-"),
+            "data": [], "static": True,
+        },
+        {
+            "label": "BSSID", "unit": "",
+            "value": wifi_raw.get("wifi_bssid", "-"),
+            "data": [], "static": True,
+        },
+        {
+            "label": "Frequency", "unit": "MHz",
+            "value": str(wifi_raw.get("wifi_freq_mhz") or "-"),
+            "data": [], "static": True,
+        },
+        _build_metric_list(
+            tel_history, "Signal (RSSI)", "dBm",
+            lambda r: (r.get("wifi") or {}).get("wifi_rssi_dbm"),
+            decimals=0,
+        ),
+        _build_metric_list(
+            tel_history, "Bitrate", "Mbps",
+            lambda r: (r.get("wifi") or {}).get("wifi_bitrate_mbps"),
+            decimals=1,
+        ),
+    ]
+
+    # ── External time-series (ping + http dari telemetry) ─────────────────────
+    external = [
+        _build_metric_list(
+            tel_history, "Latency (RTT)", "ms",
+            lambda r: (r.get("ping") or {}).get("rtt_avg_ms"),
+            decimals=0,
+        ),
+        _build_metric_list(
+            tel_history, "Packet Loss", "%",
+            lambda r: (r.get("ping") or {}).get("loss_pct"),
+            decimals=2,
+        ),
+        _build_metric_list(
+            tel_history, "Jitter", "ms",
+            lambda r: (r.get("ping") or {}).get("rtt_mdev_ms"),
+            decimals=0,
+        ),
+        _build_metric_list(
+            tel_history, "HTTP Total", "ms",
+            lambda r: (
+                sum(x["http_total_ms"] for x in (r.get("http") or []) if x.get("http_total_ms") is not None)
+                / max(len([x for x in (r.get("http") or []) if x.get("http_total_ms") is not None]), 1)
+                if any(x.get("http_total_ms") is not None for x in (r.get("http") or []))
+                else None
+            ),
+            decimals=0,
+        ),
+        _build_metric_list(
+            tel_history, "HTTP TTFB", "ms",
+            lambda r: (
+                sum(x["http_ttfb_ms"] for x in (r.get("http") or []) if x.get("http_ttfb_ms") is not None)
+                / max(len([x for x in (r.get("http") or []) if x.get("http_ttfb_ms") is not None]), 1)
+                if any(x.get("http_ttfb_ms") is not None for x in (r.get("http") or []))
+                else None
+            ),
+            decimals=0,
+        ),
+    ]
+
+    # ── Overhead time-series ──────────────────────────────────────────────────
+    overhead_history = db.get_overhead_history(device_id, limit=limit, since=since_iso)
+    overhead = [
+        _build_metric_list(overhead_history, "CPU Usage",   "%",  lambda r: r.get("cpu_pct"),  decimals=1),
+        _build_metric_list(overhead_history, "Memory Used", "%",  lambda r: r.get("mem_pct"),  decimals=1),
+        _build_metric_list(overhead_history, "Disk Used",   "%",  lambda r: r.get("disk_pct"), decimals=1),
+        _build_metric_list(overhead_history, "Net RX",      "MB", lambda r: r.get("net_rx_kbs", 0) / 1024 if r.get("net_rx_kbs") is not None else None, decimals=1),
+        _build_metric_list(overhead_history, "Net TX",      "MB", lambda r: r.get("net_tx_kbs", 0) / 1024 if r.get("net_tx_kbs") is not None else None, decimals=1),
+    ]
+
+    # ── Status + detection events ─────────────────────────────────────────────
+    events_raw = db.get_events(device_id, limit=96)
+    active_alarms = []
+    resolved_list = []
+    timeline = [{"h": 0.66 + 0.06 * (i % 3), "muted": i > 80, "marker": False} for i in range(96)]
+
+    for i, ev in enumerate(reversed(events_raw[:96])):
+        h = 1.0 if ev.get("severity") == "critical" else 0.75
+        timeline[min(i, 95)] = {"h": h, "muted": False, "marker": i == 0}
+
+    # Derive status from recent events (last 10 minutes)
+    recent = [e for e in events_raw if _seconds_ago(e["ts"]) < 600]
+    if recent:
+        crit = [e for e in recent if e.get("severity") == "critical"]
+        current_status = "Bad" if crit else "Fair"
+        active_alarms = [{"id": e["id"], "label": e["event_type"]} for e in recent[:5]]
+    else:
+        current_status = "Good"
+
+    # Recent resolved = events older than 10 min but within range
+    older = [e for e in events_raw if _seconds_ago(e["ts"]) >= 600]
+    resolved_list = [{"id": e["id"], "label": e["event_type"]} for e in older[:5]]
+
+    status = {
+        "status":   current_status,
+        "events":   timeline,
+        "ongoing":  active_alarms,
+        "resolved": resolved_list,
+    }
+
+    return {"info": info, "wifi": wifi, "external": external,
+            "overhead": overhead, "status": status}
+
+
+@app.get("/api/devices")
+def api_devices_list():
+    """
+    Mengembalikan device list dalam format deviceGroups yang dipakai React sidebar.
+    Devices yang belum di-assign ke group muncul di grup default 'SENSORS'.
+    """
+    statuses = db.get_all_status()
+    groups_raw = db.get_groups()  # [{id, name}]
+
+    # Kelompokkan device per group
+    group_map: dict[int | None, list] = {}
+    for s in statuses:
+        gid = s.get("group_id")
+        elapsed = _seconds_ago(s["last_seen"])
+        device = {
+            "id":     s["device_id"],
+            "name":   s["device_id"],
+            "status": "online" if _device_online(s["last_seen"]) else "disconnected",
+            "ip":     s.get("ip_address", "-"),
+            "ssid":   "-",
+            "mac":    "-",
+        }
+        group_map.setdefault(gid, []).append(device)
+
+    result = []
+    for g in groups_raw:
+        result.append({
+            "id":      str(g["id"]),
+            "name":   g["name"].upper(),
+            "devices": group_map.get(g["id"], []),
+        })
+
+    # Ungrouped
+    ungrouped = group_map.get(None, [])
+    if ungrouped:
+        result.append({"id": "ungrouped", "name": "SENSORS", "devices": ungrouped})
+
+    return jsonify(result)
+
+
+@app.get("/api/devices/<device_id>")
+def api_devices_get(device_id: str):
+    """
+    Snapshot metrik satu device: {info, wifi, external, overhead, status}.
+    Query param: range = 1h | 6h | 12h | 24h (default: 1h)
+    """
+    range_param = request.args.get("range", "1h")
+    hours = RANGE_HOURS.get(range_param, 1)
+    snap = _build_snapshot(device_id, hours)
+    if snap is None:
+        return jsonify({"error": f"Device '{device_id}' not found"}), 404
+    return jsonify(snap)
+
+
 # ── Routes — Arduino ingest ───────────────────────────────────────────────────
 
 @app.post("/api/ingest/sensor")
@@ -294,8 +522,61 @@ def api_ingest_overhead():
 
     for item in items:
         device_id = item.get("device_id", "unknown")
-        db.insert_overhead(device_id, item)
+        # Normalisasi field dari OverheadRuntime.collect() ke skema DB
+        cpu   = item.get("cpu") or {}
+        mem   = item.get("memory") or {}
+        disk  = item.get("disk") or {}
+        net   = item.get("network") or {}
+        normalized = {
+            "ts":         item.get("ts"),
+            "cpu_pct":    cpu.get("percent"),
+            "mem_pct":    mem.get("used_pct"),
+            "mem_used_mb":   mem.get("used_bytes",  0) / 1_048_576 if mem.get("used_bytes")  else None,
+            "mem_avail_mb":  mem.get("available_bytes", 0) / 1_048_576 if mem.get("available_bytes") else None,
+            "disk_pct":   disk.get("used_pct"),
+            "net_tx_kbs": net.get("bytes_sent", 0) / 1024 if net.get("bytes_sent") else None,
+            "net_rx_kbs": net.get("bytes_recv", 0) / 1024 if net.get("bytes_recv") else None,
+        }
+        db.insert_overhead(device_id, normalized)
         db.touch_status(device_id, ip)
+        inserted += 1
+
+    return jsonify({"ok": True, "inserted": inserted}), 201
+
+
+@app.post("/api/ingest/monitoring")
+@require_key
+def api_ingest_monitoring():
+    """
+    Alias endpoint untuk sensor-side baru (exporter_config paths.monitoring).
+    Menerima FastProbe + TelemetryProbe payload dan meneruskan ke handler sensor.
+    """
+    return api_ingest_sensor()
+
+
+@app.post("/api/ingest/detection")
+@require_key
+def api_ingest_detection():
+    """
+    Terima detection event dari DetectionRuntime.  
+    Body: { ts, module, device_id, status, event_key, mode, probe_type, sample_ts, sample_seq, detail }
+    """
+    payload = request.get_json(force=True, silent=True)
+    if payload is None:
+        return jsonify({"error": "Invalid JSON"}), 400
+
+    items = payload if isinstance(payload, list) else [payload]
+    inserted = 0
+
+    for item in items:
+        device_id  = item.get("device_id", "unknown")
+        event_key  = item.get("event_key", "UNKNOWN")
+        status     = item.get("status", "ALARM")  # ALARM | RECOVERY
+        ts         = item.get("ts") or _now_iso()
+        detail     = item.get("detail") or {}
+        severity   = "critical" if status == "ALARM" else "info"
+        description = f"{event_key} → {status}" + (f" | {detail}" if detail else "")
+        db.insert_event(device_id, event_key, severity, ts, description, item)
         inserted += 1
 
     return jsonify({"ok": True, "inserted": inserted}), 201

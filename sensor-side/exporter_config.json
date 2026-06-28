@@ -1,0 +1,35 @@
+{
+  "exporter": {
+    "enabled": true,
+    "verbose_terminal": true
+  },
+  "transport": {
+    "base_url": "http://10.130.180.68:8000",
+    "api_key": "",
+    "timeout_sec": 5,
+    "paths": {
+      "monitoring": "/api/ingest/monitoring",
+      "overhead": "/api/ingest/overhead",
+      "detection": "/api/ingest/detection"
+    }
+  },
+  "queue": {
+    "max_items": 200,
+    "drop_policy": "drop_oldest"
+  },
+  "retry": {
+    "delay_sec": 5,
+    "max_attempts": null
+  },
+  "streams": {
+    "monitoring": {
+      "enabled": true
+    },
+    "overhead": {
+      "enabled": true
+    },
+    "detection": {
+      "enabled": true
+    }
+  }
+}

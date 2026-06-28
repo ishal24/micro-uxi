@@ -88,7 +88,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "exporter": {
         "enabled": False,
-        "endpoint": None,
+        "config_file": "./exporter_config.json",
     },
 }
 
@@ -126,5 +126,9 @@ def load_config(path: str) -> dict[str, Any]:
     detection = _require(config, "detection", "config")
     detection_config_file = detection.get("config_file", "./detection_config.json")
     detection["config_file"] = str((config_path.parent / detection_config_file).resolve()) if not Path(detection_config_file).is_absolute() else str(Path(detection_config_file))
+
+    exporter = _require(config, "exporter", "config")
+    exporter_config_file = exporter.get("config_file", "./exporter_config.json")
+    exporter["config_file"] = str((config_path.parent / exporter_config_file).resolve()) if not Path(exporter_config_file).is_absolute() else str(Path(exporter_config_file))
 
     return config

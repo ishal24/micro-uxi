@@ -31,6 +31,10 @@ class OverheadRuntime:
         self.thread: threading.Thread | None = None
         self.sample_count = 0
         self.error_count = 0
+        self.sample_subscribers: list = []
+
+    def add_sample_subscriber(self, subscriber) -> None:
+        self.sample_subscribers.append(subscriber)
 
     def start(self) -> None:
         self.thread = threading.Thread(target=self._worker_loop, daemon=True, name="overhead")
@@ -127,6 +131,13 @@ class OverheadRuntime:
             flush=True,
         )
 
+    def _publish_sample(self, sample: dict[str, Any]) -> None:
+        for subscriber in self.sample_subscribers:
+            try:
+                subscriber(sample)
+            except Exception as exc:  # pragma: no cover
+                print(f"[OVERHEAD PUBLISH ERROR] {exc}", flush=True)
+
     def _worker_loop(self) -> None:
         while not self.stop_event.is_set():
             started = time.monotonic()
@@ -135,6 +146,7 @@ class OverheadRuntime:
                 self.sample_count += 1
                 if self.write_jsonl:
                     append_jsonl(self.output_path, record)
+                self._publish_sample(record)
                 if self.verbose_terminal:
                     self._print(record)
             except Exception as exc:  # pragma: no cover
