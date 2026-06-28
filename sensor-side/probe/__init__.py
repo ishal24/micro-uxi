@@ -1,1 +1,1 @@
-"""Local probe implementations for sensor-side."""
+"""Probe implementations for the sensor-side runtime."""

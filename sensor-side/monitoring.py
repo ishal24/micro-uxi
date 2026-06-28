@@ -5,11 +5,12 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
 from probe.fast_probe import FastProbe
 from probe.telemetry_probe import TelemetryProbe
-from probe.utils import append_jsonl, safe_mkdir
+from probe.utils import append_jsonl
 
 
 def parse_duration(value: str) -> float | None:
@@ -33,31 +34,22 @@ class WorkerSpec:
 
 
 class MonitoringRuntime:
-    def __init__(self, config: dict[str, Any], output_override: str | None = None):
+    def __init__(self, config: dict[str, Any], output_dir: Path):
         self.config = config
         self.run_id = f"run-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
-        monitoring_cfg = config["monitoring"]
-        base_output = output_override or monitoring_cfg["output_dir"]
-        self.verbose = bool(monitoring_cfg.get("verbose", True))
-        self.output_enabled = bool(monitoring_cfg.get("write_jsonl", True))
-        self.output_dir = safe_mkdir(base_output) / self.run_id if self.output_enabled else None
-        self.samples_dir = safe_mkdir(self.output_dir / "samples") if self.output_enabled else None
+        self.module_cfg = config["monitoring"]
+        self.output_dir = output_dir
+        self.output_path = self.output_dir / self.module_cfg.get("output_filename", "monitoring.jsonl")
+        self.verbose_terminal = bool(self.module_cfg.get("verbose_terminal", True))
+        self.write_jsonl = bool(self.module_cfg.get("write_jsonl", False))
         self.stop_event = threading.Event()
         self.print_lock = threading.Lock()
         self.sample_queue: queue.Queue[tuple[str, dict[str, Any] | None, str | None]] = queue.Queue()
         self.sample_counts = {"fast": 0, "telemetry": 0}
         self.error_counts = {"fast": 0, "telemetry": 0}
-        self.sample_paths = (
-            {
-                "fast": self.samples_dir / "fast.jsonl",
-                "telemetry": self.samples_dir / "telemetry.jsonl",
-            }
-            if self.output_enabled
-            else {}
-        )
 
     def build_workers(self) -> list[WorkerSpec]:
-        scheduler = self.config["scheduler"]
+        scheduler = self.module_cfg["scheduler"]
         return [
             WorkerSpec("fast", float(scheduler["fast_interval_sec"]), FastProbe(self.config)),
             WorkerSpec("telemetry", float(scheduler["telemetry_interval_sec"]), TelemetryProbe(self.config)),
@@ -74,119 +66,107 @@ class MonitoringRuntime:
             elapsed = time.monotonic() - started
             self.stop_event.wait(max(0.0, spec.interval_sec - elapsed))
 
-    def _write_sample(self, probe_name: str, sample: dict[str, Any]) -> None:
-        if self.output_enabled:
-            append_jsonl(self.sample_paths[probe_name], sample)
+    def _write_sample(self, sample: dict[str, Any]) -> None:
+        if self.write_jsonl:
+            append_jsonl(self.output_path, sample)
 
     def _print(self, message: str) -> None:
         with self.print_lock:
             print(message, flush=True)
 
-    def _print_banner(self, workers: list[WorkerSpec], duration_sec: float | None) -> None:
-        duration_label = f"{duration_sec:.0f}s ({duration_sec / 60:.1f} min)" if duration_sec else "indefinite (Ctrl+C to stop)"
-        modules = self.config["controller"].get("modules", {})
-        with self.print_lock:
-            print("=" * 72)
-            print("  Micro-UXI Sensor Controller")
-            print("=" * 72)
-            print(f"  Run ID      : {self.run_id}")
-            print(f"  Device      : {self.config['device']['device_id']} @ {self.config['device'].get('site_name', '?')}")
-            print(f"  Interface   : {self.config['device']['iface']}")
-            print(f"  Duration    : {duration_label}")
-            print(f"  Monitoring  : {'enabled' if modules.get('monitoring', True) else 'disabled'}")
-            print("  Detection   : planned, not running")
-            print("  Overhead    : planned, not running")
-            print("  Exporter    : planned, not running")
-            print(f"  Output dir  : {self.output_dir.resolve() if self.output_enabled else 'disabled'}")
-            for worker in workers:
-                print(f"  {worker.name:<11}: every {worker.interval_sec:g}s")
-            print("=" * 72)
-
-    def _print_fast_line(self, sample: dict[str, Any]) -> None:
+    def _format_fast_line(self, sample: dict[str, Any]) -> str:
         ts = sample.get("ts", "")[11:19] if sample.get("ts") else "--:--:--"
         wifi = sample.get("wifi", {})
         ping = sample.get("ping", {})
         dns_rows = sample.get("dns", [])
         dns_text = ", ".join(
-            (
-                f"{row.get('target')}={row.get('latency_ms'):.1f}ms"
-                if row.get("success") and row.get("latency_ms") is not None
-                else f"{row.get('target')}={row.get('status')}"
-            )
+            f"{row.get('target')}={row.get('latency_ms'):.1f}ms/{row.get('status')}"
+            if row.get("latency_ms") is not None
+            else f"{row.get('target')}={row.get('status')}"
             for row in dns_rows
         )
-        ping_text = (
-            f"{ping.get('rtt_ms'):.1f}ms"
-            if ping.get("success") and ping.get("rtt_ms") is not None
-            else "FAIL"
-        )
-        self._print(
-            f"[FAST] {ts} wifi={'UP' if wifi.get('wifi_up') else 'DOWN'} "
-            f"ping={ping_text} dns=[{dns_text}]"
+        return (
+            f"[FAST #{sample.get('seq', '?'):>4}] {ts} "
+            f"wifi_up={wifi.get('wifi_up')} "
+            f"conn_ok={sample.get('connectivity_ok')} "
+            f"ping_success={ping.get('success')} ping_rtt={ping.get('rtt_ms')}ms "
+            f"dns=[{dns_text}]"
         )
 
-    def _print_telemetry_line(self, sample: dict[str, Any]) -> None:
+    def _format_telemetry_lines(self, sample: dict[str, Any]) -> list[str]:
         ts = sample.get("ts", "")[11:19] if sample.get("ts") else "--:--:--"
         wifi = sample.get("wifi", {})
+        network = sample.get("network", {})
         ping = sample.get("ping", {})
         dns_rows = sample.get("dns", [])
         http_rows = sample.get("http", [])
-        dns_text = ", ".join(
+
+        lines = [
+            f"[TELEMETRY #{sample.get('seq', '?'):>4}] {ts} device={sample.get('device_id')} iface={sample.get('iface')}",
             (
-                f"{row.get('target')}@{row.get('resolver')}={row.get('latency_ms'):.1f}ms"
-                if row.get("success") and row.get("latency_ms") is not None
-                else f"{row.get('target')}@{row.get('resolver')}={row.get('status')}"
-            )
-            for row in dns_rows
-        )
-        http_text = ", ".join(
-            f"{row.get('host')}={row.get('http_status')}/{row.get('http_total_ms'):.1f}ms ttfb={row.get('http_ttfb_ms'):.1f}ms"
-            if row.get("http_total_ms") is not None
-            else f"{row.get('host')}=FAIL(rc={row.get('curl_rc')})"
-            for row in http_rows
-        )
-        self._print(
-            f"[TELEMETRY] {ts} wifi={'UP' if wifi.get('wifi_connected') else 'DOWN'} "
-            f"rtt={ping.get('rtt_avg_ms')}ms loss={ping.get('loss_pct')}% "
-            f"dns=[{dns_text}] http=[{http_text}]"
-        )
+                "  wifi: "
+                f"up={wifi.get('wifi_up')} connected={wifi.get('wifi_connected')} "
+                f"ssid={wifi.get('wifi_ssid')} bssid={wifi.get('wifi_bssid')} "
+                f"rssi={wifi.get('wifi_rssi_dbm')} bitrate={wifi.get('wifi_bitrate_mbps')}Mbps "
+                f"freq={wifi.get('wifi_freq_mhz')}MHz"
+            ),
+            (
+                "  network: "
+                f"ip={network.get('ip_address')} gw={network.get('gateway_ip')} "
+                f"dns_resolvers={network.get('dns_resolvers')}"
+            ),
+            (
+                "  ping: "
+                f"success={ping.get('success')} loss={ping.get('loss_pct')}% "
+                f"rtt_min={ping.get('rtt_min_ms')} rtt_avg={ping.get('rtt_avg_ms')} "
+                f"rtt_max={ping.get('rtt_max_ms')} rtt_mdev={ping.get('rtt_mdev_ms')}"
+            ),
+        ]
 
-    def _print_summary(self, elapsed_sec: float) -> None:
-        with self.print_lock:
-            print("=" * 72)
-            print("  Monitoring complete")
-            print("=" * 72)
-            print(f"  Elapsed      : {elapsed_sec:.1f}s ({elapsed_sec / 60:.1f} min)")
-            for probe_name in ("fast", "telemetry"):
-                print(
-                    f"  {probe_name:<12}: samples={self.sample_counts[probe_name]} "
-                    f"errors={self.error_counts[probe_name]}"
+        if dns_rows:
+            lines.append("  dns:")
+            for row in dns_rows:
+                lines.append(
+                    "    "
+                    f"{row.get('target')}@{row.get('resolver')} scope={row.get('scope')} "
+                    f"ok={row.get('success')} status={row.get('status')} "
+                    f"latency={row.get('latency_ms')}ms answers={row.get('answers')}"
                 )
-            if self.output_enabled:
-                print(f"  Samples      : {self.samples_dir.resolve()}")
-            else:
-                print("  Output       : disabled")
-            print("=" * 72)
 
-    def run(self, duration_sec: float | None = None) -> None:
+        if http_rows:
+            lines.append("  http:")
+            for row in http_rows:
+                lines.append(
+                    "    "
+                    f"{row.get('host')} scope={row.get('scope')} ok={row.get('http_ok')} "
+                    f"status={row.get('http_status')} dns={row.get('http_dns_ms')}ms "
+                    f"connect={row.get('http_connect_ms')}ms tls={row.get('http_tls_ms')}ms "
+                    f"ttfb={row.get('http_ttfb_ms')}ms total={row.get('http_total_ms')}ms "
+                    f"bytes={row.get('http_download_bytes')} rc={row.get('curl_rc')}"
+                )
+        return lines
+
+    def print_sample(self, probe_name: str, sample: dict[str, Any]) -> None:
+        if not self.verbose_terminal:
+            return
+        if probe_name == "fast":
+            self._print(self._format_fast_line(sample))
+        else:
+            for line in self._format_telemetry_lines(sample):
+                self._print(line)
+
+    def run_forever(self) -> None:
         workers = self.build_workers()
         threads = [
             threading.Thread(target=self._worker_loop, args=(worker,), daemon=True, name=worker.name)
             for worker in workers
         ]
 
-        self._print_banner(workers, duration_sec)
-        started = time.monotonic()
-        deadline = started + duration_sec if duration_sec is not None else None
         for thread in threads:
             thread.start()
 
         try:
             while not self.stop_event.is_set():
-                if deadline is not None and time.monotonic() >= deadline:
-                    self._print("[i] Target duration reached.")
-                    break
-
                 try:
                     probe_name, sample, error = self.sample_queue.get(timeout=0.5)
                 except queue.Empty:
@@ -194,21 +174,14 @@ class MonitoringRuntime:
 
                 if error is not None:
                     self.error_counts[probe_name] += 1
-                    self._print(f"[{probe_name.upper()} ERROR] {error}")
+                    self._print(f"[MONITORING {probe_name.upper()} ERROR] {error}")
                     continue
 
                 assert sample is not None
                 self.sample_counts[probe_name] += 1
-                self._write_sample(probe_name, sample)
-                if self.verbose or probe_name == "telemetry":
-                    if probe_name == "fast":
-                        self._print_fast_line(sample)
-                    else:
-                        self._print_telemetry_line(sample)
-        except KeyboardInterrupt:
-            self._print("[!] Stopped by user.")
+                self._write_sample(sample)
+                self.print_sample(probe_name, sample)
         finally:
             self.stop_event.set()
             for thread in threads:
                 thread.join(timeout=10)
-            self._print_summary(time.monotonic() - started)

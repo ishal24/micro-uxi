@@ -14,7 +14,7 @@ class TelemetryProbe:
     def __init__(self, config: dict):
         self.config = config
         self.device_cfg = config["device"]
-        self.targets_cfg = config["targets"]
+        self.targets_cfg = config["monitoring"]["targets"]
         self._seq = 0
 
     def collect(self) -> dict:

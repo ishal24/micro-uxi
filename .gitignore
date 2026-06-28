@@ -7,3 +7,5 @@ fault-injection/fi-scripts/fi_config.env
 Proposal-TA-DTI.pdf
 Fault Injection Scheme.xlsx
 ewma.md
+
+sensor-side/out/

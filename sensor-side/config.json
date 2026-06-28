@@ -2,53 +2,89 @@
   "device": {
     "device_id": "uno-q-01",
     "site_name": "ITS",
-    "timezone": "Asia/Jakarta",
     "iface": "wlan0"
   },
-  "controller": {
-    "modules": {
-      "monitoring": true,
-      "detection": false,
-      "overhead": false,
-      "exporter": false
+  "runtime": {
+    "output_dir": "./out",
+    "default_duration": "0"
+  },
+  "modules": {
+    "monitoring": {
+      "enabled": true
+    },
+    "overhead": {
+      "enabled": true
+    },
+    "detection": {
+      "enabled": false
+    },
+    "evidence": {
+      "enabled": false
+    },
+    "exporter": {
+      "enabled": false
     }
   },
-  "scheduler": {
-    "fast_interval_sec": 2,
-    "telemetry_interval_sec": 20
-  },
-  "targets": {
-    "ping_target": "8.8.8.8",
-    "ping_timeout_sec": 1,
-    "dns_resolver": "8.8.8.8",
-    "dns_timeout_sec": 2,
-    "dns_resolvers": [
-      "system"
-    ],
-    "telemetry_dns_timeout_sec": 5,
-    "telemetry_ping_count": 5,
-    "telemetry_ping_interval_sec": 0.2,
-    "telemetry_ping_timeout_sec": 10,
-    "http_connect_timeout_sec": 5,
-    "http_max_time_sec": 15,
-    "dns_targets": [
-      {
-        "name": "google.com",
-        "scope": "external"
-      }
-    ],
-    "http_targets": [
-      {
-        "url": "http://192.168.12.1:8080/testfile_1mb.bin",
-        "scope": "local",
-        "expected_status_min": 200,
-        "expected_status_max": 399
-      }
-    ]
-  },
   "monitoring": {
-    "output_dir": "./out",
     "write_jsonl": false,
-    "verbose": true
+    "output_filename": "monitoring.jsonl",
+    "verbose_terminal": true,
+    "scheduler": {
+      "fast_interval_sec": 2,
+      "telemetry_interval_sec": 20
+    },
+    "targets": {
+      "ping_target": "8.8.8.8",
+      "ping_timeout_sec": 1,
+      "dns_targets": [
+        {
+          "name": "google.com",
+          "scope": "external"
+        }
+      ],
+      "dns_timeout_sec": 2,
+      "dns_resolver": "8.8.8.8",
+      "dns_resolvers": [
+        "system"
+      ],
+      "telemetry_ping_count": 5,
+      "telemetry_ping_interval_sec": 0.2,
+      "telemetry_ping_timeout_sec": 10,
+      "telemetry_dns_timeout_sec": 5,
+      "http_targets": [
+        {
+          "url": "https://example.com",
+          "scope": "external",
+          "expected_status_min": 200,
+          "expected_status_max": 399
+        }
+      ],
+      "http_connect_timeout_sec": 5,
+      "http_max_time_sec": 15
+    }
+  },
+  "overhead": {
+    "write_jsonl": false,
+    "output_filename": "overhead.jsonl",
+    "verbose_terminal": false,
+    "interval_sec": 2,
+    "metrics": {
+      "cpu": true,
+      "memory": true,
+      "disk": true,
+      "network": true
+    }
+  },
+  "detection": {
+    "enabled": false,
+    "config_file": null
+  },
+  "evidence": {
+    "enabled": false,
+    "buffer_seconds": 60
+  },
+  "exporter": {
+    "enabled": false,
+    "endpoint": null
   }
 }

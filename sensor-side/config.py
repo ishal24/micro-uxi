@@ -5,65 +5,122 @@ from pathlib import Path
 from typing import Any
 
 
-def load_config(path: str | Path) -> dict[str, Any]:
-    target = Path(path)
-    try:
-        with target.open("r", encoding="utf-8") as fh:
-            data = json.load(fh)
-    except FileNotFoundError as exc:
-        raise ValueError(f"Config file not found: {target}") from exc
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"Invalid JSON in {target}: {exc.msg} at line {exc.lineno}") from exc
-
-    if not isinstance(data, dict):
-        raise ValueError(f"Expected top-level JSON object in {target}")
-
-    validate_config(data)
-    normalize_paths(data, target.parent.resolve())
-    return data
+def _require(mapping: dict[str, Any], key: str, ctx: str) -> Any:
+    if key not in mapping:
+        raise ValueError(f"Missing required key '{ctx}.{key}'")
+    return mapping[key]
 
 
-def validate_config(config: dict[str, Any]) -> None:
-    for key in ("device", "controller", "scheduler", "targets", "monitoring"):
-        if key not in config:
-            raise ValueError(f"Missing config section: {key}")
-
-    device = config["device"]
-    for key in ("device_id", "iface"):
-        if key not in device:
-            raise ValueError(f"Missing device.{key}")
-
-    scheduler = config["scheduler"]
-    for key in ("fast_interval_sec", "telemetry_interval_sec"):
-        if key not in scheduler:
-            raise ValueError(f"Missing scheduler.{key}")
-        if float(scheduler[key]) <= 0:
-            raise ValueError(f"scheduler.{key} must be > 0")
-
-    controller = config["controller"]
-    modules = controller.get("modules")
-    if not isinstance(modules, dict):
-        raise ValueError("controller.modules must be an object")
-    if "monitoring" not in modules:
-        raise ValueError("controller.modules.monitoring is required")
-
-    targets = config["targets"]
-    for key in ("ping_target", "dns_resolver", "dns_targets", "http_targets"):
-        if key not in targets:
-            raise ValueError(f"Missing targets.{key}")
-    if not isinstance(targets["dns_targets"], list):
-        raise ValueError("targets.dns_targets must be a list")
-    if not isinstance(targets["http_targets"], list):
-        raise ValueError("targets.http_targets must be a list")
-
-    monitoring = config["monitoring"]
-    if "output_dir" not in monitoring:
-        raise ValueError("Missing monitoring.output_dir")
+def _merge(a: dict[str, Any], b: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(a)
+    for key, value in b.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _merge(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
 
 
-def normalize_paths(config: dict[str, Any], base_dir: Path) -> None:
-    output_dir = config.get("monitoring", {}).get("output_dir")
-    if isinstance(output_dir, str) and output_dir:
-        path = Path(output_dir)
-        if not path.is_absolute():
-            config["monitoring"]["output_dir"] = str((base_dir / path).resolve())
+DEFAULT_CONFIG: dict[str, Any] = {
+    "device": {
+        "device_id": "uno-q-01",
+        "site_name": "ITS",
+        "iface": "wlan0",
+    },
+    "runtime": {
+        "output_dir": "./out",
+        "default_duration": "0",
+    },
+    "modules": {
+        "monitoring": {"enabled": True},
+        "overhead": {"enabled": True},
+        "detection": {"enabled": False},
+        "evidence": {"enabled": False},
+        "exporter": {"enabled": False},
+    },
+    "monitoring": {
+        "write_jsonl": False,
+        "output_filename": "monitoring.jsonl",
+        "verbose_terminal": True,
+        "scheduler": {
+            "fast_interval_sec": 2,
+            "telemetry_interval_sec": 20,
+        },
+        "targets": {
+            "ping_target": "8.8.8.8",
+            "ping_timeout_sec": 1,
+            "dns_targets": [
+                {"name": "google.com", "scope": "external"},
+            ],
+            "dns_timeout_sec": 2,
+            "dns_resolver": "8.8.8.8",
+            "dns_resolvers": ["system"],
+            "telemetry_ping_count": 5,
+            "telemetry_ping_interval_sec": 0.2,
+            "telemetry_ping_timeout_sec": 10,
+            "telemetry_dns_timeout_sec": 5,
+            "http_targets": [
+                {"url": "https://example.com", "scope": "external"},
+            ],
+            "http_connect_timeout_sec": 5,
+            "http_max_time_sec": 15,
+        },
+    },
+    "overhead": {
+        "write_jsonl": False,
+        "output_filename": "overhead.jsonl",
+        "verbose_terminal": False,
+        "interval_sec": 2,
+        "metrics": {
+            "cpu": True,
+            "memory": True,
+            "disk": True,
+            "network": True,
+        },
+    },
+    "detection": {
+        "enabled": False,
+        "config_file": None,
+    },
+    "evidence": {
+        "enabled": False,
+        "buffer_seconds": 60,
+    },
+    "exporter": {
+        "enabled": False,
+        "endpoint": None,
+    },
+}
+
+
+def load_config(path: str) -> dict[str, Any]:
+    config_path = Path(path).resolve()
+    with config_path.open("r", encoding="utf-8") as fh:
+        loaded = json.load(fh)
+
+    config = _merge(DEFAULT_CONFIG, loaded)
+
+    device = _require(config, "device", "config")
+    _require(device, "device_id", "device")
+    _require(device, "iface", "device")
+
+    runtime = _require(config, "runtime", "config")
+    output_dir = runtime.get("output_dir", "./out")
+    runtime["output_dir"] = str((config_path.parent / output_dir).resolve()) if not Path(output_dir).is_absolute() else str(Path(output_dir))
+
+    modules = _require(config, "modules", "config")
+    for module_name in ("monitoring", "overhead", "detection", "evidence", "exporter"):
+        modules.setdefault(module_name, {"enabled": False})
+        modules[module_name].setdefault("enabled", False)
+
+    monitoring = _require(config, "monitoring", "config")
+    _require(monitoring, "scheduler", "monitoring")
+    targets = _require(monitoring, "targets", "monitoring")
+    _require(targets, "ping_target", "monitoring.targets")
+    targets.setdefault("dns_targets", [])
+    targets.setdefault("http_targets", [])
+
+    overhead = _require(config, "overhead", "config")
+    overhead.setdefault("metrics", {})
+
+    return config

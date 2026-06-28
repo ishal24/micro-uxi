@@ -38,7 +38,6 @@ def collect_wifi_details(iface: str) -> dict:
         "wifi_freq_mhz": None,
     }
 
-    # `iw ... link` gives the richest Wi-Fi association details in one call.
     rc, out, _ = run_command(["iw", "dev", iface, "link"], timeout=10)
     if rc != 0 or "Connected to" not in out:
         data["wifi_connected"] = False
@@ -173,7 +172,6 @@ def resolve_dns(name: str, scope: str, timeout_sec: float, resolver: str | None 
     }
 
     if HAS_DNSPYTHON:
-        # Prefer dnspython when available for clearer timeout/error handling.
         res = dns.resolver.Resolver()
         res.cache = None
         res.timeout = timeout_sec
@@ -187,7 +185,7 @@ def resolve_dns(name: str, scope: str, timeout_sec: float, resolver: str | None 
             entry["latency_ms"] = round((time.monotonic() - start) * 1000, 2)
             entry["success"] = True
             entry["status"] = "NOERROR"
-            entry["answers"] = [r.to_text() for r in answers]
+            entry["answers"] = [record.to_text() for record in answers]
         except dns.resolver.NXDOMAIN:
             entry["latency_ms"] = round((time.monotonic() - start) * 1000, 2)
             entry["status"] = "NXDOMAIN"
@@ -199,7 +197,6 @@ def resolve_dns(name: str, scope: str, timeout_sec: float, resolver: str | None 
             entry["latency_ms"] = round((time.monotonic() - start) * 1000, 2)
             entry["status"] = exc.__class__.__name__.upper()
     else:
-        # Fallback keeps the probe usable even when dnspython is not installed.
         cmd = ["dig", name, "+stats", "+tries=1", f"+time={max(int(timeout_sec), 1)}"]
         if resolver and resolver != "system":
             cmd.insert(1, f"@{resolver}")
@@ -252,7 +249,6 @@ def measure_http(
         "expected_status_max": expected_status_max,
     }
 
-    # One curl call returns both status and timing phases needed for later analysis.
     cmd = [
         "curl",
         "-L",
@@ -286,11 +282,7 @@ def measure_http(
             pass
 
     status = entry["http_status"]
-    entry["http_ok"] = (
-        rc == 0
-        and status is not None
-        and expected_status_min <= status <= expected_status_max
-    )
+    entry["http_ok"] = rc == 0 and status is not None and expected_status_min <= status <= expected_status_max
     return entry
 
 

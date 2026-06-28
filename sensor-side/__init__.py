@@ -1,1 +1,1 @@
-"""Sensor-side monitoring controller package."""
+"""Micro-UXI sensor-side runtime package."""
