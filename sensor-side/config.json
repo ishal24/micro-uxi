@@ -16,7 +16,7 @@
       "enabled": true
     },
     "detection": {
-      "enabled": false
+      "enabled": true
     },
     "evidence": {
       "enabled": false

@@ -66,6 +66,12 @@ File deteksi dipisah di `detection_config.json`. Di file ini terdapat:
 - parameter EWMA untuk mode event-driven
 - rule per event seperti `confirm_consecutive`, `n_dns/m_dns`, `n_ping/m_ping`, dan `n_flap/m_transition`
 
+Catatan mode:
+
+- `mode = baseline` memakai threshold statik
+- `mode = dynamic` memakai EWMA event-driven
+- tidak ada lagi `dynamic_thresholds.enabled`; pemilih mode hanya `detection.mode`
+
 ## Output
 
 Default:

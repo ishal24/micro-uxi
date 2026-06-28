@@ -13,7 +13,6 @@
     "http_ttfb_threshold_ms": 88
   },
   "dynamic_thresholds": {
-    "enabled": true,
     "events": {
       "S1_DNS_DEGRADED": {
         "dns_latency_ms": {
@@ -93,6 +92,8 @@
       "rules": {
         "n_flap": 15,
         "m_transition": 4,
+        "disconnect_consecutive": 2,
+        "recovery_consecutive": 2,
         "recovery_max_transitions": 1
       }
     }

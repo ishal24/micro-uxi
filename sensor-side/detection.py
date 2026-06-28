@@ -103,7 +103,7 @@ class DetectionRuntime:
             "S3_LOSS_BURST": {"active": False},
             "S4_HIGH_RTT": {"active": False, "hits": 0, "oks": 0},
             "S5_HTTP_SLOW": {"active": False, "hits": 0, "oks": 0},
-            "S6_CONNECTIVITY_FLAP": {"active": False},
+            "S6_CONNECTIVITY_FLAP": {"active": False, "disconnect_hits": 0, "recovery_hits": 0},
         }
         self.dynamic_thresholds = self._build_dynamic_thresholds()
         self.sample_count = 0
@@ -112,7 +112,6 @@ class DetectionRuntime:
 
     def _build_dynamic_thresholds(self) -> dict[str, dict[str, EwmaThreshold]]:
         dyn_cfg = self.config.get("dynamic_thresholds", {})
-        enabled = self.mode == "dynamic" and bool(dyn_cfg.get("enabled", True))
         events_cfg = dyn_cfg.get("events", {})
 
         def build(event_key: str, metric_key: str, static_value: float) -> EwmaThreshold:
@@ -125,7 +124,7 @@ class DetectionRuntime:
                 alpha=metric_cfg.get("alpha", 0.1),
                 beta=metric_cfg.get("beta", 0.1),
                 k=metric_cfg.get("k", 3),
-                enabled=enabled,
+                enabled=self.mode == "dynamic",
             )
 
         thresholds = self.config["thresholds"]
@@ -391,8 +390,39 @@ class DetectionRuntime:
         self.histories["s6_wifi"].append(wifi_up)
         self.histories["s6_ping"].append(ping_ok)
 
+        if not conn_ok:
+            state["disconnect_hits"] += 1
+            state["recovery_hits"] = 0
+        else:
+            state["disconnect_hits"] = 0
+            state["recovery_hits"] += 1
+
         conn_history = self.histories["s6_conn"]
         if len(conn_history) < rules["n_flap"]:
+            if not state["active"] and state["disconnect_hits"] >= rules["disconnect_consecutive"]:
+                state["active"] = True
+                layer = "wifi_link" if not wifi_up else "upstream"
+                self._emit_transition(
+                    "S6_CONNECTIVITY_FLAP",
+                    "ALARM",
+                    sample,
+                    {
+                        "reason": "sustained_disconnect",
+                        "disconnect_hits": state["disconnect_hits"],
+                        "suspected_layer": layer,
+                    },
+                )
+            elif state["active"] and state["recovery_hits"] >= rules["recovery_consecutive"]:
+                state["active"] = False
+                self._emit_transition(
+                    "S6_CONNECTIVITY_FLAP",
+                    "RECOVERY",
+                    sample,
+                    {
+                        "reason": "sustained_disconnect_recovered",
+                        "recovery_hits": state["recovery_hits"],
+                    },
+                )
             return
 
         transitions = self._transition_count(conn_history)
@@ -405,11 +435,17 @@ class DetectionRuntime:
                 "S6_CONNECTIVITY_FLAP",
                 "ALARM",
                 sample,
-                {"transitions": transitions, "suspected_layer": layer, "window": len(conn_history)},
+                {"reason": "transition_flap", "transitions": transitions, "suspected_layer": layer, "window": len(conn_history)},
             )
-        elif state["active"] and transitions < rules["recovery_max_transitions"]:
-            state["active"] = False
-            self._emit_transition("S6_CONNECTIVITY_FLAP", "RECOVERY", sample, {"transitions": transitions, "window": len(conn_history)})
+        elif state["active"]:
+            if transitions < rules["recovery_max_transitions"] and state["recovery_hits"] >= rules["recovery_consecutive"]:
+                state["active"] = False
+                self._emit_transition(
+                    "S6_CONNECTIVITY_FLAP",
+                    "RECOVERY",
+                    sample,
+                    {"reason": "transition_flap_recovered", "transitions": transitions, "window": len(conn_history)},
+                )
 
     def process_sample(self, sample: dict[str, Any]) -> None:
         self.sample_count += 1
