@@ -3,7 +3,7 @@
     "verbose_terminal": true
   },
   "transport": {
-    "base_url": "http://10.130.180.68:8000",
+    "base_url": "http://169.254.173.80:8000",
     "api_key": "",
     "timeout_sec": 5,
     "paths": {
