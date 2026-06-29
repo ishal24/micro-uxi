@@ -79,7 +79,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "evidence": {
         "enabled": False,
-        "buffer_seconds": 60,
+        "config_file": "./evidence_config.json",
     },
     "exporter": {
         "enabled": False,
@@ -122,6 +122,8 @@ def load_config(path: str) -> dict[str, Any]:
 
     evidence = _require(config, "evidence", "config")
     evidence.setdefault("enabled", False)
+    evidence_config_file = evidence.get("config_file", "./evidence_config.json")
+    evidence["config_file"] = str((config_path.parent / evidence_config_file).resolve()) if not Path(evidence_config_file).is_absolute() else str(Path(evidence_config_file))
 
     exporter = _require(config, "exporter", "config")
     exporter.setdefault("enabled", False)

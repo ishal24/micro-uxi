@@ -1,0 +1,17 @@
+{
+  "evidence": {
+    "pre_window_sec": 30,
+    "post_window_sec": 30,
+    "buffer_seconds": 60,
+    "output_dirname": "evidence",
+    "write_timeline_jsonl": true,
+    "write_snapshot_json": true,
+    "verbose_terminal": true,
+    "max_active_bundles": 16,
+    "include_streams": {
+      "monitoring": true,
+      "overhead": true,
+      "detection": true
+    }
+  }
+}

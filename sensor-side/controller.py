@@ -11,6 +11,7 @@ if __package__ in (None, ""):
 
 from config import load_config
 from detection import DetectionRuntime, load_detection_config
+from evidence import EvidenceRuntime, load_evidence_config
 from exporter import ExporterRuntime, load_exporter_config
 from monitoring import MonitoringRuntime, parse_duration
 from overhead import OverheadRuntime
@@ -26,6 +27,7 @@ class SensorRuntimeController:
         self.monitoring: MonitoringRuntime | None = None
         self.overhead: OverheadRuntime | None = None
         self.detection: DetectionRuntime | None = None
+        self.evidence: EvidenceRuntime | None = None
         self.exporter: ExporterRuntime | None = None
 
         if self.config["monitoring"].get("enabled", True):
@@ -37,6 +39,15 @@ class SensorRuntimeController:
             self.detection = DetectionRuntime(config, detection_config, self.output_dir)
             if self.monitoring:
                 self.monitoring.add_sample_subscriber(self.detection.submit_sample)
+        if self.config["evidence"].get("enabled", False):
+            evidence_config = load_evidence_config(config["evidence"]["config_file"])
+            self.evidence = EvidenceRuntime(config, evidence_config, self.output_dir)
+            if self.monitoring:
+                self.monitoring.add_sample_subscriber(self.evidence.submit_monitoring)
+            if self.overhead:
+                self.overhead.add_sample_subscriber(self.evidence.submit_overhead)
+            if self.detection:
+                self.detection.add_transition_subscriber(self.evidence.submit_detection_transition)
         if self.config["exporter"].get("enabled", False):
             exporter_config = load_exporter_config(config["exporter"]["config_file"])
             self.exporter = ExporterRuntime(config, exporter_config)
@@ -83,7 +94,16 @@ class SensorRuntimeController:
                 f"write_jsonl={self.detection.write_jsonl} "
                 f"verbose_terminal={self.detection.verbose_terminal}"
             )
-        print(f"  Evidence    : placeholder (enabled={self.config['evidence'].get('enabled', False)})")
+        print(f"  Evidence    : {'enabled' if self.evidence else 'disabled'}")
+        if self.evidence:
+            print(
+                "  Evidence    : "
+                f"pre={self.evidence.pre_window_sec}s "
+                f"post={self.evidence.post_window_sec}s "
+                f"buffer={self.evidence.buffer_seconds}s "
+                f"timeline={self.evidence.write_timeline_jsonl} "
+                f"snapshot={self.evidence.write_snapshot_json}"
+            )
         print(f"  Exporter    : {'enabled' if self.exporter else 'disabled'}")
         if self.exporter:
             print(
@@ -104,6 +124,8 @@ class SensorRuntimeController:
             self.overhead.start()
         if self.detection:
             self.detection.start()
+        if self.evidence:
+            self.evidence.start()
         if self.exporter:
             self.exporter.start()
 
@@ -127,6 +149,8 @@ class SensorRuntimeController:
                 self.overhead.stop_event.set()
             if self.detection:
                 self.detection.stop_event.set()
+            if self.evidence:
+                self.evidence.stop_event.set()
             if self.exporter:
                 self.exporter.stop_event.set()
 
@@ -136,6 +160,8 @@ class SensorRuntimeController:
                 self.overhead.join()
             if self.detection:
                 self.detection.join()
+            if self.evidence:
+                self.evidence.join()
             if self.exporter:
                 self.exporter.join()
 
@@ -165,6 +191,14 @@ class SensorRuntimeController:
                     f"events={self.detection.event_count} "
                     f"errors={self.detection.error_count}"
                 )
+            if self.evidence:
+                print(
+                    "  Evidence     : "
+                    f"opened={self.evidence.bundle_count} "
+                    f"closed={self.evidence.closed_count} "
+                    f"active={len(self.evidence.active_bundles)} "
+                    f"errors={self.evidence.error_count}"
+                )
             if self.exporter:
                 print(
                     "  Exporter     : "
@@ -186,6 +220,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--disable-overhead", action="store_true", help="Disable overhead module")
     parser.add_argument("--disable-detection", action="store_true", help="Disable detection module")
     parser.add_argument("--enable-detection", action="store_true", help="Enable detection module")
+    parser.add_argument("--disable-evidence", action="store_true", help="Disable evidence module")
+    parser.add_argument("--enable-evidence", action="store_true", help="Enable evidence module")
     parser.add_argument("--disable-exporter", action="store_true", help="Disable exporter module")
     parser.add_argument("--enable-exporter", action="store_true", help="Enable exporter module")
     parser.add_argument("--enable-monitoring-jsonl", action="store_true", help="Force monitoring JSONL output on")
@@ -210,6 +246,10 @@ def main() -> None:
         config["detection"]["enabled"] = False
     if args.enable_detection:
         config["detection"]["enabled"] = True
+    if args.disable_evidence:
+        config["evidence"]["enabled"] = False
+    if args.enable_evidence:
+        config["evidence"]["enabled"] = True
     if args.disable_exporter:
         config["exporter"]["enabled"] = False
     if args.enable_exporter:

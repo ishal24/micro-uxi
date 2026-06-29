@@ -8,11 +8,8 @@ Fase implementasi saat ini mencakup:
 - `Monitoring` dengan probe `fast` dan `telemetry` berjalan bersamaan
 - `Overhead` untuk memantau CPU, memori, disk, dan network I/O sistem
 - `Detection` untuk alarm event real-time berbasis stream sample monitoring
+- `Evidence` untuk merekam bundle bukti lokal per alarm event
 - `Exporter` untuk mengirim record monitoring, overhead, dan detection ke endpoint HTTP generik
-
-Modul berikut belum diimplementasikan, tetapi slot konfigurasinya sudah disiapkan:
-
-- `Evidence`
 
 ## Struktur
 
@@ -21,6 +18,7 @@ Modul berikut belum diimplementasikan, tetapi slot konfigurasinya sudah disiapka
 - `monitoring.py` menjalankan scheduler probe `fast` dan `telemetry`
 - `overhead.py` menjalankan sampling overhead sistem
 - `detection.py` menjalankan deteksi event dari sample monitoring
+- `evidence.py` menjalankan ring buffer dan perekaman bundle evidence lokal
 - `exporter.py` menjalankan queue + retry untuk pengiriman HTTP generik
 - `probe/` berisi implementasi probe dan helper bersama
 
@@ -33,10 +31,11 @@ Modul berikut belum diimplementasikan, tetapi slot konfigurasinya sudah disiapka
    - `telemetry` untuk snapshot kaya metrik yang relevan ke event telemetry seperti S4/S5
 4. `overhead` berjalan paralel dan mengambil metrik sistem
 5. `detection` menerima sample `fast` dan `telemetry` dari `monitoring`, lalu mengevaluasi event
-6. `exporter` menerima sample/event dari modul lain dan mengirimkannya ke endpoint HTTP generik lewat background queue
-7. mode deteksi bisa dipilih antara baseline statik dan dynamic event-driven
-8. output default ditampilkan verbose di terminal
-9. JSONL per modul bisa diaktifkan lewat config atau flag CLI
+6. `evidence` menerima sample/event dari monitoring, overhead, dan detection untuk membentuk bundle bukti lokal per alarm
+7. `exporter` menerima sample/event dari modul lain dan mengirimkannya ke endpoint HTTP generik lewat background queue
+8. mode deteksi bisa dipilih antara baseline statik dan dynamic event-driven
+9. output default ditampilkan verbose di terminal
+10. JSONL per modul bisa diaktifkan lewat config atau flag CLI
 
 ## CLI Dasar
 
@@ -46,6 +45,8 @@ python controller.py
 python controller.py --duration 10m
 python controller.py --enable-monitoring-jsonl --enable-overhead-jsonl
 python controller.py --disable-overhead
+python controller.py --enable-evidence
+python controller.py --disable-evidence
 python controller.py --disable-exporter
 python controller.py --enable-exporter
 python controller.py --quiet-monitoring
@@ -60,8 +61,8 @@ Konfigurasi dipisah per modul dalam satu file utama:
 - `monitoring`: switch modul, scheduler, target ping/DNS/HTTP, verbosity, JSONL
 - `overhead`: switch modul, interval, metrik, verbosity, JSONL
 - `detection`: switch modul dan path ke file config deteksi terpisah
+- `evidence`: switch modul dan path ke file config evidence terpisah
 - `exporter`: switch modul dan path ke file config exporter terpisah
-- `evidence`: placeholder untuk fase berikutnya
 
 Enable/disable runtime hanya dibaca dari field berikut di `config.json`:
 
@@ -97,6 +98,14 @@ Catatan enable:
 - enable/disable modul exporter hanya ditentukan oleh `exporter.enabled` di `config.json`
 - `exporter_config.json` hanya berisi detail transport dan perilaku exporter
 
+File evidence dipisah di `evidence_config.json`. Di file ini terdapat:
+
+- `pre_window_sec`, `post_window_sec`, `buffer_seconds`
+- `output_dirname`
+- toggle penulisan timeline dan snapshot
+- `max_active_bundles`
+- include stream `monitoring`, `overhead`, dan `detection`
+
 ## Output
 
 Default:
@@ -110,6 +119,13 @@ Jika JSONL diaktifkan:
 - `monitoring.jsonl` berisi sample `fast` dan `telemetry`
 - `overhead.jsonl` berisi sample overhead sistem
 - `detection.jsonl` berisi alarm dan recovery event
+
+Jika evidence diaktifkan:
+
+- tiap `ALARM` membuat satu folder bundle di `out/evidence/`
+- bundle berisi `evidence_timeline.jsonl`
+- bundle berisi `diagnostic_snapshot.json`
+- bundle ditutup setelah `RECOVERY + post_window` atau saat runtime berhenti
 
 Exporter tidak menulis outbox lokal. Jika aktif, exporter mengirim:
 
