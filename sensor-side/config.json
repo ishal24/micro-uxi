@@ -22,7 +22,7 @@
       "enabled": false
     },
     "exporter": {
-      "enabled": false
+      "enabled": true
     }
   },
   "monitoring": {
@@ -84,7 +84,6 @@
     "buffer_seconds": 60
   },
   "exporter": {
-    "enabled": true,
     "config_file": "./exporter_config.json"
   }
 }

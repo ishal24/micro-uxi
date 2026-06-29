@@ -85,6 +85,11 @@ File exporter dipisah di `exporter_config.json`. Di file ini terdapat:
 - retry delay dan attempt policy
 - toggle stream per jenis data
 
+Catatan enable:
+
+- enable/disable modul exporter hanya ditentukan oleh `modules.exporter.enabled` di `config.json`
+- `exporter_config.json` hanya berisi detail transport dan perilaku exporter
+
 ## Output
 
 Default:

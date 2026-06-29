@@ -1,6 +1,5 @@
 {
   "exporter": {
-    "enabled": true,
     "verbose_terminal": true
   },
   "transport": {

@@ -87,7 +87,6 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "buffer_seconds": 60,
     },
     "exporter": {
-        "enabled": False,
         "config_file": "./exporter_config.json",
     },
 }
