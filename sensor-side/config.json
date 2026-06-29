@@ -84,7 +84,7 @@
     "buffer_seconds": 60
   },
   "exporter": {
-    "enabled": false,
+    "enabled": true,
     "config_file": "./exporter_config.json"
   }
 }
