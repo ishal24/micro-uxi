@@ -57,12 +57,19 @@ Konfigurasi dipisah per modul dalam satu file utama:
 
 - `device`: identitas node dan interface
 - `runtime`: output path dan durasi default
-- `modules`: switch enable/disable modul
-- `monitoring`: scheduler, target ping/DNS/HTTP, verbosity, JSONL
-- `overhead`: interval, metrik, verbosity, JSONL
+- `monitoring`: switch modul, scheduler, target ping/DNS/HTTP, verbosity, JSONL
+- `overhead`: switch modul, interval, metrik, verbosity, JSONL
 - `detection`: switch modul dan path ke file config deteksi terpisah
 - `exporter`: switch modul dan path ke file config exporter terpisah
 - `evidence`: placeholder untuk fase berikutnya
+
+Enable/disable runtime hanya dibaca dari field berikut di `config.json`:
+
+- `monitoring.enabled`
+- `overhead.enabled`
+- `detection.enabled`
+- `exporter.enabled`
+- `evidence.enabled`
 
 File deteksi dipisah di `detection_config.json`. Di file ini terdapat:
 
@@ -87,7 +94,7 @@ File exporter dipisah di `exporter_config.json`. Di file ini terdapat:
 
 Catatan enable:
 
-- enable/disable modul exporter hanya ditentukan oleh `modules.exporter.enabled` di `config.json`
+- enable/disable modul exporter hanya ditentukan oleh `exporter.enabled` di `config.json`
 - `exporter_config.json` hanya berisi detail transport dan perilaku exporter
 
 ## Output

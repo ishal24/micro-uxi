@@ -8,24 +8,8 @@
     "output_dir": "./out",
     "default_duration": "0"
   },
-  "modules": {
-    "monitoring": {
-      "enabled": true
-    },
-    "overhead": {
-      "enabled": true
-    },
-    "detection": {
-      "enabled": true
-    },
-    "evidence": {
-      "enabled": false
-    },
-    "exporter": {
-      "enabled": true
-    }
-  },
   "monitoring": {
+    "enabled": true,
     "write_jsonl": false,
     "output_filename": "monitoring.jsonl",
     "verbose_terminal": true,
@@ -64,6 +48,7 @@
     }
   },
   "overhead": {
+    "enabled": true,
     "write_jsonl": false,
     "output_filename": "overhead.jsonl",
     "verbose_terminal": true,
@@ -84,6 +69,7 @@
     "buffer_seconds": 60
   },
   "exporter": {
+    "enabled": true,
     "config_file": "./exporter_config.json"
   }
 }

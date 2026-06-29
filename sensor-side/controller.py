@@ -23,22 +23,21 @@ class SensorRuntimeController:
         runtime_cfg = config["runtime"]
         base_output = output_override or runtime_cfg["output_dir"]
         self.output_dir = safe_mkdir(base_output)
-        self.modules_cfg = config["modules"]
         self.monitoring: MonitoringRuntime | None = None
         self.overhead: OverheadRuntime | None = None
         self.detection: DetectionRuntime | None = None
         self.exporter: ExporterRuntime | None = None
 
-        if self.modules_cfg["monitoring"]["enabled"]:
+        if self.config["monitoring"].get("enabled", True):
             self.monitoring = MonitoringRuntime(config, self.output_dir)
-        if self.modules_cfg["overhead"]["enabled"]:
+        if self.config["overhead"].get("enabled", True):
             self.overhead = OverheadRuntime(config, self.output_dir)
-        if self.modules_cfg["detection"]["enabled"]:
+        if self.config["detection"].get("enabled", False):
             detection_config = load_detection_config(config["detection"]["config_file"])
             self.detection = DetectionRuntime(config, detection_config, self.output_dir)
             if self.monitoring:
                 self.monitoring.add_sample_subscriber(self.detection.submit_sample)
-        if self.modules_cfg["exporter"]["enabled"]:
+        if self.config["exporter"].get("enabled", False):
             exporter_config = load_exporter_config(config["exporter"]["config_file"])
             self.exporter = ExporterRuntime(config, exporter_config)
             if self.monitoring:
@@ -84,7 +83,7 @@ class SensorRuntimeController:
                 f"write_jsonl={self.detection.write_jsonl} "
                 f"verbose_terminal={self.detection.verbose_terminal}"
             )
-        print(f"  Evidence    : placeholder (enabled={self.modules_cfg['evidence']['enabled']})")
+        print(f"  Evidence    : placeholder (enabled={self.config['evidence'].get('enabled', False)})")
         print(f"  Exporter    : {'enabled' if self.exporter else 'disabled'}")
         if self.exporter:
             print(
@@ -185,6 +184,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--output", default=None, help="Override runtime output directory")
     parser.add_argument("--disable-monitoring", action="store_true", help="Disable monitoring module")
     parser.add_argument("--disable-overhead", action="store_true", help="Disable overhead module")
+    parser.add_argument("--disable-detection", action="store_true", help="Disable detection module")
+    parser.add_argument("--enable-detection", action="store_true", help="Enable detection module")
     parser.add_argument("--disable-exporter", action="store_true", help="Disable exporter module")
     parser.add_argument("--enable-exporter", action="store_true", help="Enable exporter module")
     parser.add_argument("--enable-monitoring-jsonl", action="store_true", help="Force monitoring JSONL output on")
@@ -202,13 +203,17 @@ def main() -> None:
         raise SystemExit(f"Configuration error: {exc}") from exc
 
     if args.disable_monitoring:
-        config["modules"]["monitoring"]["enabled"] = False
+        config["monitoring"]["enabled"] = False
     if args.disable_overhead:
-        config["modules"]["overhead"]["enabled"] = False
+        config["overhead"]["enabled"] = False
+    if args.disable_detection:
+        config["detection"]["enabled"] = False
+    if args.enable_detection:
+        config["detection"]["enabled"] = True
     if args.disable_exporter:
-        config["modules"]["exporter"]["enabled"] = False
+        config["exporter"]["enabled"] = False
     if args.enable_exporter:
-        config["modules"]["exporter"]["enabled"] = True
+        config["exporter"]["enabled"] = True
     if args.enable_monitoring_jsonl:
         config["monitoring"]["write_jsonl"] = True
     if args.enable_overhead_jsonl:

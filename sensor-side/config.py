@@ -31,14 +31,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "output_dir": "./out",
         "default_duration": "0",
     },
-    "modules": {
-        "monitoring": {"enabled": True},
-        "overhead": {"enabled": True},
-        "detection": {"enabled": False},
-        "evidence": {"enabled": False},
-        "exporter": {"enabled": False},
-    },
     "monitoring": {
+        "enabled": True,
         "write_jsonl": False,
         "output_filename": "monitoring.jsonl",
         "verbose_terminal": True,
@@ -67,6 +61,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         },
     },
     "overhead": {
+        "enabled": True,
         "write_jsonl": False,
         "output_filename": "overhead.jsonl",
         "verbose_terminal": True,
@@ -87,6 +82,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         "buffer_seconds": 60,
     },
     "exporter": {
+        "enabled": False,
         "config_file": "./exporter_config.json",
     },
 }
@@ -107,12 +103,8 @@ def load_config(path: str) -> dict[str, Any]:
     output_dir = runtime.get("output_dir", "./out")
     runtime["output_dir"] = str((config_path.parent / output_dir).resolve()) if not Path(output_dir).is_absolute() else str(Path(output_dir))
 
-    modules = _require(config, "modules", "config")
-    for module_name in ("monitoring", "overhead", "detection", "evidence", "exporter"):
-        modules.setdefault(module_name, {"enabled": False})
-        modules[module_name].setdefault("enabled", False)
-
     monitoring = _require(config, "monitoring", "config")
+    monitoring.setdefault("enabled", True)
     _require(monitoring, "scheduler", "monitoring")
     targets = _require(monitoring, "targets", "monitoring")
     _require(targets, "ping_target", "monitoring.targets")
@@ -120,14 +112,28 @@ def load_config(path: str) -> dict[str, Any]:
     targets.setdefault("http_targets", [])
 
     overhead = _require(config, "overhead", "config")
+    overhead.setdefault("enabled", True)
     overhead.setdefault("metrics", {})
 
     detection = _require(config, "detection", "config")
+    detection.setdefault("enabled", False)
     detection_config_file = detection.get("config_file", "./detection_config.json")
     detection["config_file"] = str((config_path.parent / detection_config_file).resolve()) if not Path(detection_config_file).is_absolute() else str(Path(detection_config_file))
 
+    evidence = _require(config, "evidence", "config")
+    evidence.setdefault("enabled", False)
+
     exporter = _require(config, "exporter", "config")
+    exporter.setdefault("enabled", False)
     exporter_config_file = exporter.get("config_file", "./exporter_config.json")
     exporter["config_file"] = str((config_path.parent / exporter_config_file).resolve()) if not Path(exporter_config_file).is_absolute() else str(Path(exporter_config_file))
+
+    # Backward compatibility for older configs that still use config.modules.*.
+    # The module block itself remains the single runtime switch after this mapping.
+    legacy_modules = config.get("modules") or {}
+    for module_name in ("monitoring", "overhead", "detection", "evidence", "exporter"):
+        legacy_enabled = ((legacy_modules.get(module_name) or {}).get("enabled"))
+        if "enabled" not in loaded.get(module_name, {}) and legacy_enabled is not None:
+            config[module_name]["enabled"] = bool(legacy_enabled)
 
     return config
