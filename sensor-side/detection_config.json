@@ -6,11 +6,11 @@
     "verbose_terminal": true
   },
   "thresholds": {
-    "dns_latency_threshold_ms": 243,
+    "dns_latency_threshold_ms": 2430,
     "loss_threshold_pct": 20,
-    "rtt_threshold_ms": 279,
-    "http_total_threshold_ms": 1535,
-    "http_ttfb_threshold_ms": 88
+    "rtt_threshold_ms": 2790,
+    "http_total_threshold_ms": 15350,
+    "http_ttfb_threshold_ms": 880
   },
   "dynamic_thresholds": {
     "events": {
